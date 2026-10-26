@@ -6,7 +6,6 @@ const employee = require('./employee');
 
 const ACTIVE = employee.STATUS_ACTIVE;
 const ROLES = employee.ROLES;
-const LMS = config.lmsSchema;
 
 /**
  * Who counts as LDP, from tbl_employee's own side: active in tbl_leaders (sewak/
@@ -31,10 +30,9 @@ async function activeMembers() {
             e.rp_approver_code, e.rp_approver_name,
             e.rp_creator_code, e.rp_creator_name,
             e.pracharak_code,
-            COALESCE(NULLIF(TRIM(e.pracharak_name), ''), NULLIF(TRIM(m.pracharak_name), ''), '') AS pracharak_name
+            COALESCE(TRIM(e.pracharak_name), '') AS pracharak_name
      FROM tbl_employee e
      LEFT JOIN tbl_leaders l ON l.emp_code = e.emp_code AND l.is_active = 1
-     LEFT JOIN ${LMS}.emp_master m ON m.emp_code = e.emp_code
      WHERE e.status = ? AND ${ldpMemberCondition('e')}
      ORDER BY TRIM(e.name) = '' ASC, e.name ASC`,
     [ACTIVE]
@@ -48,10 +46,9 @@ async function findActiveByCode(empCode) {
             e.rp_approver_code, e.rp_approver_name,
             e.rp_creator_code, e.rp_creator_name,
             e.pracharak_code,
-            COALESCE(NULLIF(TRIM(e.pracharak_name), ''), NULLIF(TRIM(m.pracharak_name), ''), '') AS pracharak_name
+            COALESCE(TRIM(e.pracharak_name), '') AS pracharak_name
      FROM tbl_employee e
      LEFT JOIN tbl_leaders l ON l.emp_code = e.emp_code AND l.is_active = 1
-     LEFT JOIN ${LMS}.emp_master m ON m.emp_code = e.emp_code
      WHERE e.status = ? AND e.emp_code = ? AND ${ldpMemberCondition('e')}
      LIMIT 1`,
     [ACTIVE, empCode]

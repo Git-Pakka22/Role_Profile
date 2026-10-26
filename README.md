@@ -16,8 +16,7 @@ Settings live in `.env`:
 | Key | Meaning |
 | --- | --- |
 | `PORT` | Port to listen on (3000) |
-| `DB_*` | MySQL connection — points at `yashpakk_displ7qd_yash_lp` |
-| `LMS_SCHEMA` | Schema holding `emp_master`, joined for Pracharak names (`pakka_lms`) |
+| `DB_*` | MySQL connection — the portal's own database `rp_db`, the only one it reads or writes |
 | `ADMIN_CODES` | Employee codes that act as PSP Approver (`MM008`) |
 | `EXCLUDED_SANGHS` | Sanghs left out as subjects — `SS,SS1` belong to LDP |
 | `SESSION_SECRET` | Change this before anything but local use |
@@ -312,10 +311,3 @@ Technical Skills / Weightage / Sub-Weightage with the attribute cells spanning t
 skills and a total row. An assessment PDF adds Rating, Score and Training Gap columns and
 names the version it was scored against. Built with PDFKit in `src/lib/pdf.js`; the Pakka
 logo is `public/img/pakka-logo.png`.
-
-## Known quirk, carried over from the PHP app
-
-On the member pages a Pracharak with no name in `tbl_employee` falls back to
-`pakka_lms.emp_master`. The sangh summary does not do that fallback, so a sangh can
-read "not set" for Pracharak while its members each show one. Both apps behave this
-way; fixing it means changing `models/sangh.js` and `SanghModel.php` together.

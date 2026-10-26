@@ -197,8 +197,10 @@ const bySangh = (html) => JSON.parse(/var BY_SANGH = (.*?);\n/.exec(html)[1]);
   check('...and DVS under PSP', /value="DVS"[^>]*>[^<]*(PSP|members)/.test(dvsForm) && /PSP/.test(dvsForm), true);
   const ssDesig = bySangh(created).SS.find((d) => d.designation === 'Sanghrakshak Mentor');
   check('the new SS designation is in the dropdown, as LDP', ssDesig && ssDesig.program, 'ldp');
-  const pspList = (await get(port, '/role-profiles', ADMIN.code)).body;
-  check('PSP Approver\'s list: PSP profiles only', pspList.includes('rp-prog-psp') && !pspList.includes('rp-prog-ldp'), true);
+  // Profiles the admin wrote themselves are always theirs to see, whichever programme.
+  const pspSees = await roleProfile.visibleTo(ADMIN.code, true, false);
+  check('PSP Approver sees no one else\'s LDP profile',
+    pspSees.some((p) => p.program === 'ldp' && p.created_by !== ADMIN.code), false);
   const ldpList = (await get(port, '/role-profiles', LDP_ADMIN.code)).body;
   check('LDP Admin\'s list: tagged LDP', ldpList.includes('rp-prog-ldp') && !ldpList.includes('rp-prog-psp'), true);
 

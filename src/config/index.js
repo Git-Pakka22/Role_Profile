@@ -17,11 +17,8 @@ module.exports = {
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASS || 'root',
-    database: process.env.DB_NAME || 'yashpakk_displ7qd_yash_lp',
+    database: process.env.DB_NAME || 'rp_db',
   },
-
-  // Read by the LMS join in a couple of queries; kept configurable like the PHP app.
-  lmsSchema: process.env.LMS_SCHEMA || 'pakka_lms',
 
   // Shared secret for the read-only API that Zoho Recruit calls. Unset means switched off.
   apiToken: process.env.API_TOKEN || '',

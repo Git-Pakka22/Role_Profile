@@ -17,7 +17,6 @@ const ROLES = {
   pracharak: { code: 'pracharak_code', name: 'pracharak_name', label: 'Pracharak' },
 };
 
-const LMS = config.lmsSchema;
 
 /** Every active member with the roles assigned to them. */
 async function getDirectory() {
@@ -27,9 +26,8 @@ async function getDirectory() {
             e.rp_approver_code, e.rp_approver_name,
             e.rp_creator_code, e.rp_creator_name,
             e.pracharak_code,
-            COALESCE(NULLIF(TRIM(e.pracharak_name), ''), NULLIF(TRIM(m.pracharak_name), ''), '') AS pracharak_name
+            COALESCE(TRIM(e.pracharak_name), '') AS pracharak_name
      FROM tbl_employee e
-     LEFT JOIN ${LMS}.emp_master m ON m.emp_code = e.emp_code
      WHERE e.status = ? AND ${scope.sqlCondition('e')}
      ORDER BY TRIM(e.name) = '' ASC, e.name ASC`,
     [STATUS_ACTIVE]
@@ -42,9 +40,8 @@ async function findActiveByCode(empCode) {
             e.rp_approver_code, e.rp_approver_name,
             e.rp_creator_code, e.rp_creator_name,
             e.pracharak_code,
-            COALESCE(NULLIF(TRIM(e.pracharak_name), ''), NULLIF(TRIM(m.pracharak_name), ''), '') AS pracharak_name
+            COALESCE(TRIM(e.pracharak_name), '') AS pracharak_name
      FROM tbl_employee e
-     LEFT JOIN ${LMS}.emp_master m ON m.emp_code = e.emp_code
      WHERE e.status = ? AND e.emp_code = ? AND ${scope.sqlCondition('e')}
      LIMIT 1`,
     [STATUS_ACTIVE, empCode]
@@ -83,9 +80,8 @@ async function membersOfSangh(sanghCode) {
             e.rp_approver_code, e.rp_approver_name,
             e.rp_creator_code, e.rp_creator_name,
             e.pracharak_code,
-            COALESCE(NULLIF(TRIM(e.pracharak_name), ''), NULLIF(TRIM(m.pracharak_name), ''), '') AS pracharak_name
+            COALESCE(TRIM(e.pracharak_name), '') AS pracharak_name
      FROM tbl_employee e
-     LEFT JOIN ${LMS}.emp_master m ON m.emp_code = e.emp_code
      WHERE e.status = ? AND e.sangh_code = ? AND ${scope.sqlCondition('e')}
      ORDER BY TRIM(e.name) = '' ASC, e.name ASC`,
     [STATUS_ACTIVE, sanghCode]

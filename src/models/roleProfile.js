@@ -4,7 +4,6 @@ const employee = require('./employee');
 const config = require('../config');
 const scope = require('../lib/scope');
 
-const LMS = config.lmsSchema;
 const ACTIVE = employee.STATUS_ACTIVE;
 
 const MAX_OUTCOMES = 3;
