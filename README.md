@@ -17,7 +17,7 @@ Settings live in `.env`:
 | --- | --- |
 | `PORT` | Port to listen on (3000) |
 | `DB_*` | MySQL connection — the portal's own database `rp_db`, the only one it reads or writes |
-| `ADMIN_CODES` | Employee codes that act as PSP Approver (`MM008`) |
+| `ADMIN_CODES` | Employee codes that act as PSP Approver — required, there is no built-in default |
 | `EXCLUDED_SANGHS` | Sanghs left out as subjects — `SS,SS1` belong to LDP |
 | `SESSION_SECRET` | Change this before anything but local use |
 
@@ -45,7 +45,7 @@ to the layout as `body`. That is the only structural difference from the PHP vie
 
 | Sees | Member list | My Members | Create RP | Assign | Assess |
 | --- | --- | --- | --- | --- | --- |
-| PSP Approver (`MM008`) | yes | — | — | yes | corrections only |
+| PSP Approver (`ADMIN_CODES`) | yes | — | — | yes | corrections only |
 | RP Creator (has members) | — | yes | yes | — | yes, once per year |
 | Member | — | — | — | — | own, read-only |
 
@@ -160,7 +160,7 @@ Both stages store `status = pending_admin`; the profile's `program` decides whos
 on, and screens read "Awaiting PSP Approver" or "Awaiting LDP Admin" accordingly. The PSP
 Approver sees and acts on PSP profiles, the LDP Admin on LDP ones; notifications, the
 pending count and the approval timeline follow the same split. `LDP_ADMIN_CODES` defaults to
-`ADMIN_CODES`, so until it is set one person (MM008) holds both roles. Assessments, member
+`ADMIN_CODES`, so until it is set the same person holds both roles. Assessments, member
 assignment and the yearly review are unchanged and still belong to the PSP Approver. The
 rules live in `finalApprover()` in `src/models/roleProfile.js`.
 

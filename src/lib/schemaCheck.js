@@ -68,6 +68,9 @@ async function check() {
 
 /** Log the result at boot. Never throws — a warning is more use than a dead server. */
 async function report() {
+  if (!require('../config').adminCodes.length) {
+    console.error('\n  NO ADMIN CONFIGURED: set ADMIN_CODES in .env (the PSP Approver\'s employee code).\n');
+  }
   try {
     const problems = await check();
     if (!problems.length) return true;
