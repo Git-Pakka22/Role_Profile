@@ -9,7 +9,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node tests/routes.js && node tests/content.js && node tests/pdf.js && node tests/flash.js && node tests/api.js",
-    "test:writes": "node tests/make_sandbox.js && node tests/migrate_sandbox.js && node tests/writes.js && node tests/years.js && node tests/versions.js && node tests/assignment.js && node tests/duplicate_clone.js && node tests/import.js && node tests/candidates.js && node tests/pending_edit.js && node tests/designations.js && node tests/ldp_approval.js && node tests/admin_create.js",
+    "test:writes": "node tests/make_sandbox.js && node tests/migrate_sandbox.js && node tests/writes.js && node tests/years.js && node tests/versions.js && node tests/assignment.js && node tests/duplicate_clone.js && node tests/import.js && node tests/candidates.js && node tests/pending_edit.js && node tests/designations.js && node tests/ldp_approval.js && node tests/admin_create.js && node tests/update_rp.js && node tests/report.js",
     "sandbox": "node tests/make_sandbox.js",
     "migrate": "node scripts/migrate_versions.js",
     "migrate:ldp": "node scripts/migrate_ldp.js",

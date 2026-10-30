@@ -17,6 +17,7 @@
                 <div class="rp-card-subtitle">
                     <% if (String(profile.sangh_name || '').trim()) { %><strong><%= profile.sangh_name %></strong><span class="rp-prog rp-prog-<%= profile.program === 'ldp' ? 'ldp' : 'psp' %>"><%= profile.program === 'ldp' ? 'LDP' : 'PSP' %></span> · <% } %>
                     by <%= personName(profile.created_by, profile.created_by_name) %> · <%= fmt(profile.created_at) %>
+                    <% if (profile.updated_at && String(profile.updated_at) !== String(profile.created_at)) { %> · <span title="Last updated">last updated <%= fmt(profile.updated_at) %></span><% } %>
                 </div>
             </div>
         </div>
@@ -31,6 +32,11 @@
                     <i class="mdi mdi-pencil-outline"></i> Edit
                 </a>
             <% } %>
+            <% if (canUpdate) { %>
+                <a class="rp-edit-btn rp-edit-btn-due" href="/role-profiles/<%= profile.id %>/edit" title="Change this role profile; it goes for approval as a new version">
+                    <i class="mdi mdi-file-document-edit-outline"></i> Update RP
+                </a>
+            <% } %>
             <% if (status === S.APPROVED) { %>
                 <a class="rp-pdf-btn" href="/role-profiles/<%= profile.id %>/pdf">
                     <i class="mdi mdi-file-pdf-box"></i> Download PDF
@@ -41,6 +47,22 @@
     </div>
     <div class="rp-card-body">
 
+        <% if (pendingUpdate && inForce) { %>
+            <div class="rp-version-banner">
+                <i class="mdi mdi-source-branch"></i>
+                <div>
+                    <% if (status === S.REJECTED) { %>
+                        The <strong>update was rejected</strong>. <strong>Version <%= inForce.version_no %></strong> is still in force —
+                        members keep it and are assessed against it.
+                    <% } else { %>
+                        An <strong>update is awaiting approval</strong> — shown below as proposed.
+                        <strong>Version <%= inForce.version_no %></strong> stays in force until it is approved; members keep it and are assessed against it.
+                    <% } %>
+                    <a href="/role-profiles/<%= profile.id %>/versions/<%= inForce.id %>">View version <%= inForce.version_no %> in force</a>
+                </div>
+            </div>
+        <% } %>
+
         <% if (status === S.REJECTED) { %>
             <div class="rp-alert rp-alert-error">
                 <i class="mdi mdi-close-circle-outline"></i>
@@ -49,7 +71,7 @@
             </div>
         <% } %>
 
-        <% if (status === S.APPROVED) { %>
+        <% if (live) { %>
             <div class="rp-applies">
                 <i class="mdi mdi-account-check-outline"></i>
                 <% if (members.length) { %>
@@ -142,7 +164,7 @@
         <!-- TABS -->
         <div class="rp-tabs" role="tablist">
             <button type="button" class="rp-tab active" data-tab="details"><i class="mdi mdi-file-document-outline"></i> Details</button>
-            <% if (status === S.APPROVED) { %>
+            <% if (live) { %>
                 <button type="button" class="rp-tab" data-tab="members">
                     <i class="mdi mdi-account-multiple-outline"></i> Members
                     <% if (members.length) { %><span class="rp-tab-count"><%= members.length %></span><% } %>
@@ -203,7 +225,7 @@
             <% } %>
         </div>
 
-        <% if (status === S.APPROVED) { %>
+        <% if (live) { %>
         <div class="rp-tab-panel" data-panel="members" hidden>
             <div class="rp-note-scope">
                 <i class="mdi mdi-information-outline"></i>
@@ -346,7 +368,7 @@
                                         <i class="mdi <%= y.review.outcome === 'unchanged' ? 'mdi-check' : 'mdi-pencil-outline' %>"></i>
                                         <%= outcomeLabels[y.review.outcome] || y.review.outcome %>
                                     </div>
-                                    <div class="rp-sub"><%= y.review.reviewed_by_name || y.review.reviewed_by %> · <%= fmt(y.review.reviewed_at) %></div>
+                                    <div class="rp-sub"><%= personName(y.review.reviewed_by, y.review.reviewed_by_name) %> · <%= fmt(y.review.reviewed_at) %></div>
                                     <% if (String(y.review.note || '').trim()) { %><div class="rp-sub">“<%= y.review.note %>”</div><% } %>
                                 <% } else { %>
                                     <span class="rp-review-tag pending"><i class="mdi mdi-calendar-alert"></i> Not reviewed yet</span>
@@ -409,7 +431,7 @@
                                 <td>
                                     <% if (!v.years.length) { %><span class="rp-none">not yet in force</span><% } %>
                                     <% v.years.forEach(y => { %>
-                                        <span class="rp-year-tag" title="<%= outcomeLabels[y.outcome] || y.outcome %><%= y.reviewed_by_name ? ' — ' + y.reviewed_by_name : '' %>"><%= y.financial_year %></span>
+                                        <span class="rp-year-tag" title="<%= outcomeLabels[y.outcome] || y.outcome %><%= y.reviewed_by_name ? ' — ' + personName(y.reviewed_by, y.reviewed_by_name) : '' %>"><%= y.financial_year %></span>
                                     <% }) %>
                                 </td>
                                 <td>

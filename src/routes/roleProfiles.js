@@ -46,16 +46,24 @@ const num = (v) => String(Math.round(Number(v) * 100) / 100).replace(/\.00$/, ''
  * The RP Approver recorded against this person's own member row, if any.
  * Empty when that person is the author themselves — 6 members are their own approver,
  * and letting them clear their own submission would make the first stage meaningless.
+ *
+ * Empty too when a member of an LDP sangh (Sanghrakshak / Seva Sangh, SS/SS1) writes a PSP
+ * profile: their RP Approver is on the LDP side, so a PSP profile goes straight to the PSP
+ * Approver. Their LDP profiles still go to that RP Approver first. Leave `program` out to get
+ * the approver on record whatever the profile.
  */
-async function approverFor(empCode) {
+async function approverFor(empCode, program = null) {
   // Read straight from tbl_employee, not employee.findActiveByCode(): that one leaves out the
-  // LDP sanghs (SS/SS1), and people there still write profiles for their members — they
-  // would otherwise skip their RP Approver and land on the PSP Approver.
+  // LDP sanghs (SS/SS1), and people there still write profiles for their members.
   const row = await db.first(
-    'SELECT rp_approver_code, rp_approver_name FROM tbl_employee WHERE emp_code = ? AND status = ? LIMIT 1',
+    'SELECT sangh_code, rp_approver_code, rp_approver_name FROM tbl_employee WHERE emp_code = ? AND status = ? LIMIT 1',
     [empCode, employee.STATUS_ACTIVE]);
   const code = String((row && row.rp_approver_code) || '').trim();
   if (!code || code === empCode) return { code: '', name: '' };
+  if (program === roleProfile.PROGRAM.PSP && row
+      && roleProfile.sanghProgram(row.sangh_code) === roleProfile.PROGRAM.LDP) {
+    return { code: '', name: '', ldpOnly: { code, name: String(row.rp_approver_name || '').trim() } };
+  }
   return { code, name: String((row && row.rp_approver_name) || '').trim() };
 }
 
@@ -136,7 +144,7 @@ async function notifyApproved(profile, id, actor) {
   return members;
 }
 
-/** "Heena Kumari (M01078) and Amit Kumar (M00934)", trimmed if the list is long. */
+/** "Asha Rao (E10001) and Ravi Kumar (E10002)", trimmed if the list is long. */
 function nameList(members, limit = 6) {
   const names = members.map((m) => `${m.name || m.emp_code} (${m.emp_code})`);
   if (names.length <= limit) return names.join(', ');
@@ -296,7 +304,7 @@ async function programFor(sanghCode, designation, ldpSet = null) {
  * profile, the LDP Admin for an LDP one — and only once the profile is approved.
  */
 const canAssign = (profile, actor) =>
-  profile.status === S.APPROVED && roleProfile.isFinalApprover(profile, actor.isAdmin, actor.isLdpAdmin);
+  roleProfile.isLive(profile) && roleProfile.isFinalApprover(profile, actor.isAdmin, actor.isLdpAdmin);
 
 const gone = (req, res) => {
   req.session.flashError = 'That role profile no longer exists.';
@@ -332,6 +340,9 @@ router.get('/', async (req, res) => {
     p.fy_predates = !!info.born_in && chosen < info.born_in;
     // Drafts, rejections and anything still awaiting approval at a stage this person may edit.
     p.can_edit = p.status !== S.APPROVED && roleProfile.canEdit(p, actor.code, actor.isAdmin, actor.isLdpAdmin);
+    // An approved profile can be updated by its creator at any time in the year.
+    p.can_update = p.status === S.APPROVED && roleProfile.canEdit(p, actor.code, actor.isAdmin, actor.isLdpAdmin);
+    p.is_live = roleProfile.isLive(p);
   }
 
   await res.page('role_profiles/list', {
@@ -391,6 +402,8 @@ async function formData(req, profile = null) {
     sanghs,
     bySangh,
     approver: await approverFor(actor.code),
+    // An LDP-sangh member's RP Approver only sees their LDP profiles; PSP ones skip to the PSP Approver.
+    approverLdpOnly: !!(await approverFor(actor.code, roleProfile.PROGRAM.PSP)).ldpOnly,
     maxOutcomes: roleProfile.MAX_OUTCOMES,
     minOutcomesLdp: roleProfile.MIN_OUTCOMES_LDP,
     maxOutcomesLdp: roleProfile.MAX_OUTCOMES_LDP,
@@ -452,7 +465,7 @@ router.post('/store', async (req, res) => {
     return res.redirect('/role-profiles/create');
   }
 
-  const approver = await approverFor(actor.code);
+  const approver = await approverFor(actor.code, parsed.program);
   const header = {
     designation_name: parsed.designation,
     designation_id: await designationId(parsed.designation),
@@ -542,8 +555,8 @@ router.get('/:id(\\d+)/edit', async (req, res) => {
     fyNow: await financialYear.current(),
     pendingEdit: pending ? { ...pendingStage(profile), lockedFields } : null,
     title: pending ? 'Edit Role Profile — Pakka Role Profile'
-      : (revision ? 'Revise Role Profile — Pakka Role Profile' : 'Edit Draft — Pakka Role Profile'),
-    pageTitle: pending ? 'Edit Role Profile' : (revision ? 'Revise Role Profile' : 'Edit Draft'),
+      : (revision ? 'Update Role Profile — Pakka Role Profile' : 'Edit Draft — Pakka Role Profile'),
+    pageTitle: pending ? 'Edit Role Profile' : (revision ? 'Update Role Profile' : 'Edit Draft'),
     activeNav: 'role-profiles',
   });
 });
@@ -615,7 +628,7 @@ router.post('/:id(\\d+)/update', async (req, res) => {
     return res.redirect(`/role-profiles/${id}/edit`);
   }
 
-  const approver = await approverFor(actor.code);
+  const approver = await approverFor(actor.code, parsed.program);
   const wasRejected = profile.status === S.REJECTED;
 
   const header = {
@@ -667,7 +680,7 @@ router.post('/:id(\\d+)/submit', async (req, res) => {
     return res.redirect(`/role-profiles/${id}`);
   }
 
-  const approver = await approverFor(actor.code);
+  const approver = await approverFor(actor.code, profile.program);
   await db.run(
     `UPDATE rp_role_profiles
      SET status = ?, rp_approver_code = ?, rp_approver_name = ?,
@@ -1145,10 +1158,12 @@ router.get('/:id(\\d+)', async (req, res) => {
   }
 
   const approved = profile.status === S.APPROVED;
+  // Live on its version in force — also while an update is going for approval.
+  const live = roleProfile.isLive(profile);
   const fy = await financialYear.current();
 
   const assessments = {};
-  if (approved) {
+  if (live) {
     for (const a of await assessment.forProfile(id, fy)) assessments[a.emp_code] = a;
   }
 
@@ -1184,10 +1199,14 @@ router.get('/:id(\\d+)', async (req, res) => {
     fyPrev,
     outcomeLabels: version.OUTCOME_LABELS,
     fyNow,
-    members: approved ? await roleProfile.effectiveMembers(profile) : [],
+    members: live ? await roleProfile.effectiveMembers(profile) : [],
     assignable: canAssign(profile, actor) ? await roleProfile.assignableMembers(profile) : [],
     canAssign: canAssign(profile, actor),
-    canAssess: profile.created_by === actor.code && approved,
+    canAssess: profile.created_by === actor.code && live,
+    live,
+    pendingUpdate: roleProfile.hasPendingUpdate(profile),
+    // The creator may update an approved profile at any time in the year.
+    canUpdate: approved && roleProfile.canEdit(profile, actor.code, actor.isAdmin, actor.isLdpAdmin),
     assessments,
     canAct: roleProfile.canActOn(profile, actor.code, actor.isAdmin, actor.isLdpAdmin),
     canEdit: roleProfile.canEdit(profile, actor.code, actor.isAdmin, actor.isLdpAdmin),

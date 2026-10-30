@@ -31,7 +31,9 @@ async function chosenYear(req) {
 async function load(id, empCode) {
   const profile = await roleProfile.find(id);
   if (!profile) return { error: 'That role profile no longer exists.' };
-  if (profile.status !== roleProfile.STATUS.APPROVED) {
+  // A live profile can be assessed even while an update is going for approval: the
+  // assessment runs against the version in force for the year.
+  if (!roleProfile.isLive(profile)) {
     return { error: 'Only an approved role profile can be assessed.' };
   }
   const member = (await roleProfile.effectiveMembers(profile)).find((m) => m.emp_code === empCode);

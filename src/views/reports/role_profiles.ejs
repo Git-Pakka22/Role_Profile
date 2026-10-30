@@ -1,0 +1,240 @@
+<%
+  const f = filters;
+  const stageLabel = (key) => key === UPDATE_PENDING ? 'Update awaiting approval'
+    : (stages.find((s) => s.key === key) || {}).label || key;
+  const progTag = (p) => `<span class="rp-prog rp-prog-${p === 'ldp' ? 'ldp' : 'psp'}" style="margin-left:0">${p === 'ldp' ? 'LDP' : 'PSP'}</span>`;
+  const cell = (n, changes) => n ? `<a class="rp-rep-num" href="${link(changes)}">${n}</a>` : '<span class="rp-rep-zero">0</span>';
+  const cards = [{ key: '', label: 'All role profiles', icon: 'mdi-file-document-multiple-outline', n: stageCards.total }]
+    .concat(stages.map((s) => ({ key: s.key, label: s.label, icon: s.icon, n: stageCards[s.key] || 0 })))
+    .concat([{ key: UPDATE_PENDING, label: 'Update awaiting approval', icon: 'mdi-source-branch', n: stageCards[UPDATE_PENDING] || 0 }]);
+%>
+<div class="rp-card rp-report">
+    <div class="rp-card-header">
+        <div class="rp-card-header-left">
+            <div class="rp-card-header-icon"><i class="mdi mdi-chart-box-outline"></i></div>
+            <div>
+                <div class="rp-card-title">Role Profile Report</div>
+                <div class="rp-card-subtitle">How many role profiles are at each stage — covering <%= scopeNote %> (<%= totalVisible %>)</div>
+            </div>
+        </div>
+    </div>
+    <div class="rp-card-body">
+
+        <!-- ------------------------------------------------------------ filters -->
+        <form method="get" action="/reports/role-profiles" class="rp-rep-filters" id="reportFilters">
+            <div class="rp-rep-grid">
+                <label>Financial year (created)
+                    <select name="fy" class="rp-select">
+                        <option value="">All years</option>
+                        <% years.forEach((y) => { %><option value="<%= y.year %>" <%= f.fy === y.year ? 'selected' : '' %>><%= y.year %><%= y.year === fyNow ? ' — current' : '' %></option><% }) %>
+                    </select>
+                </label>
+                <label>Created from
+                    <input type="date" name="from" class="rp-input" value="<%= f.from || '' %>">
+                </label>
+                <label>Created to
+                    <input type="date" name="to" class="rp-input" value="<%= f.to || '' %>">
+                </label>
+                <label>Sangh
+                    <select name="sangh" class="rp-select">
+                        <option value="">All sanghs</option>
+                        <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak & Seva Sangh']].forEach(([prog, groupLabel]) => {
+                             const group = options.sanghs.filter((s) => (s.program === 'ldp' ? 'ldp' : 'psp') === prog);
+                             if (!group.length) return; %>
+                            <optgroup label="<%= groupLabel %>">
+                            <% group.forEach((s) => { %><option value="<%= s.code %>" <%= f.sangh === s.code ? 'selected' : '' %>><%= s.name %></option><% }) %>
+                            </optgroup>
+                        <% }) %>
+                    </select>
+                </label>
+                <label>Programme
+                    <select name="program" class="rp-select">
+                        <option value="">PSP and LDP</option>
+                        <option value="psp" <%= f.program === 'psp' ? 'selected' : '' %>>PSP</option>
+                        <option value="ldp" <%= f.program === 'ldp' ? 'selected' : '' %>>LDP</option>
+                    </select>
+                </label>
+                <label>Stage
+                    <select name="stage" class="rp-select">
+                        <option value="">All stages</option>
+                        <% stages.forEach((s) => { %><option value="<%= s.key %>" <%= f.stage === s.key ? 'selected' : '' %>><%= s.label %></option><% }) %>
+                        <option value="<%= UPDATE_PENDING %>" <%= f.stage === UPDATE_PENDING ? 'selected' : '' %>>Update awaiting approval</option>
+                    </select>
+                </label>
+                <label>Created by
+                    <select name="creator" class="rp-select">
+                        <option value="">Anyone</option>
+                        <% options.creators.forEach((c) => { %><option value="<%= c.code %>" <%= f.creator === c.code ? 'selected' : '' %>><%= personName(c.code, c.name) %></option><% }) %>
+                    </select>
+                </label>
+                <label>RP Approver
+                    <select name="approver" class="rp-select">
+                        <option value="">Anyone</option>
+                        <% options.approvers.forEach((a) => { %><option value="<%= a.code %>" <%= f.approver === a.code ? 'selected' : '' %>><%= personName(a.code, a.name) %></option><% }) %>
+                    </select>
+                </label>
+                <label>Designation
+                    <input type="search" name="q" class="rp-input" placeholder="Search designation…" value="<%= f.q %>">
+                </label>
+                <label>Members
+                    <select name="members" class="rp-select">
+                        <option value="">Any</option>
+                        <option value="yes" <%= f.members === 'yes' ? 'selected' : '' %>>Assigned</option>
+                        <option value="no" <%= f.members === 'no' ? 'selected' : '' %>>None assigned</option>
+                    </select>
+                </label>
+                <label>Versions
+                    <select name="updated" class="rp-select">
+                        <option value="">Any</option>
+                        <option value="yes" <%= f.updated === 'yes' ? 'selected' : '' %>>Updated (v2 or later)</option>
+                        <option value="no" <%= f.updated === 'no' ? 'selected' : '' %>>First version only</option>
+                    </select>
+                </label>
+                <label>Assessed in <%= fyNow %>
+                    <select name="assessed" class="rp-select">
+                        <option value="">Any</option>
+                        <option value="yes" <%= f.assessed === 'yes' ? 'selected' : '' %>>Has assessments</option>
+                        <option value="no" <%= f.assessed === 'no' ? 'selected' : '' %>>No assessments</option>
+                    </select>
+                </label>
+            </div>
+            <div class="rp-rep-actions">
+                <button type="submit" class="rp-btn-submit"><i class="mdi mdi-filter-outline"></i> Apply filters</button>
+                <% if (activeFilters) { %>
+                    <a class="rp-btn-cancel" href="/reports/role-profiles"><i class="mdi mdi-close"></i> Clear all (<%= activeFilters %>)</a>
+                <% } %>
+                <span class="rp-sub">Showing <strong><%= rows.length %></strong> of <%= totalVisible %> role profiles</span>
+            </div>
+        </form>
+
+        <!-- -------------------------------------------------------- stage cards -->
+        <div class="rp-rep-cards">
+            <% cards.forEach((c) => { const active = f.stage === c.key; %>
+                <a class="rp-rep-card<%= active ? ' active' : '' %> rp-rep-<%= c.key || 'all' %>" href="<%= link({ stage: active ? '' : c.key }) %>">
+                    <i class="mdi <%= c.icon %>"></i>
+                    <span class="n"><%= c.n %></span>
+                    <span class="l"><%= c.label %></span>
+                </a>
+            <% }) %>
+        </div>
+        <p class="rp-sub" style="margin:-6px 0 18px">Click a stage to filter by it. "Awaiting final approval" is the PSP Approver for PSP profiles and the LDP Admin for LDP ones. "Update awaiting approval" counts approved profiles with an update going through approval or sent back — their earlier version stays in force.</p>
+
+        <!-- --------------------------------------------------- sangh × stage table -->
+        <div class="rp-section"><h3><i class="mdi mdi-table-large"></i> By sangh and stage</h3></div>
+        <% if (!sanghRows.length) { %>
+            <div class="rp-empty-inline">No role profiles match these filters.</div>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="rp-member-table rp-rep-matrix">
+                <thead>
+                    <tr>
+                        <th>Sangh</th>
+                        <% stages.forEach((s) => { %><th class="num"><%= s.label %></th><% }) %>
+                        <th class="num">Update pending</th>
+                        <th class="num">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <% const totals = { total: 0, [UPDATE_PENDING]: 0 }; stages.forEach((s) => { totals[s.key] = 0; }); %>
+                <% sanghRows.forEach((g) => { %>
+                    <tr<%= f.sangh === g.sangh_code ? ' class="is-current"' : '' %>>
+                        <td><a href="<%= link({ sangh: g.sangh_code }) %>"><strong><%= g.sangh_name %></strong></a> <%- progTag(g.program) %></td>
+                        <% stages.forEach((s) => { totals[s.key] += g.counts[s.key] || 0; %>
+                            <td class="num"><%- cell(g.counts[s.key] || 0, { sangh: g.sangh_code, stage: s.key }) %></td>
+                        <% }) %>
+                        <% totals[UPDATE_PENDING] += g.counts[UPDATE_PENDING]; totals.total += g.counts.total; %>
+                        <td class="num"><%- cell(g.counts[UPDATE_PENDING], { sangh: g.sangh_code, stage: UPDATE_PENDING }) %></td>
+                        <td class="num"><%- cell(g.counts.total, { sangh: g.sangh_code, stage: '' }) %></td>
+                    </tr>
+                <% }) %>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>All sanghs</th>
+                        <% stages.forEach((s) => { %><th class="num"><%- cell(totals[s.key], { sangh: '', stage: s.key }) %></th><% }) %>
+                        <th class="num"><%- cell(totals[UPDATE_PENDING], { sangh: '', stage: UPDATE_PENDING }) %></th>
+                        <th class="num"><%- cell(totals.total, { sangh: '', stage: '' }) %></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <% } %>
+
+        <!-- -------------------------------------------------- programme split -->
+        <% if (programRows.length) { %>
+        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-chart-bar"></i> By programme</h3></div>
+        <div class="rp-rep-programs">
+            <% programRows.forEach((r) => { %>
+                <div class="rp-rep-program">
+                    <div class="head"><%- progTag(r.program) %> <strong><%= r.counts.total %></strong> role profile<%= r.counts.total === 1 ? '' : 's' %></div>
+                    <div class="bar">
+                        <% stages.forEach((s) => { const n = r.counts[s.key] || 0; if (!n) return; %>
+                            <a class="seg rp-rep-<%= s.key %>" style="flex:<%= n %>" href="<%= link({ program: r.program, stage: s.key }) %>" title="<%= s.label %>: <%= n %>"><%= n %></a>
+                        <% }) %>
+                    </div>
+                    <div class="legend">
+                        <% stages.forEach((s) => { const n = r.counts[s.key] || 0; if (!n) return; %>
+                            <span><i class="dot rp-rep-<%= s.key %>"></i><%= s.label %> <strong><%= n %></strong></span>
+                        <% }) %>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+        <% } %>
+
+        <!-- --------------------------------------------------------- detail list -->
+        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-format-list-bulleted"></i> Role profiles<%= f.stage ? ' — ' + stageLabel(f.stage) : '' %></h3></div>
+        <% if (!rows.length) { %>
+            <div class="rp-empty-inline">No role profiles match these filters.</div>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="display" id="reportTable" style="width:100%">
+                <thead>
+                    <tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Stage</th><th>Created by</th><th>RP Approver</th>
+                        <th>Created</th><th>Last change</th><th>Version</th><th>Members</th><th>Assessed <%= fyNow %></th></tr>
+                </thead>
+                <tbody>
+                <% rows.forEach((p) => { %>
+                    <tr>
+                        <td><a href="/role-profiles/<%= p.id %>"><span class="emp-name"><%= p.designation_name %></span></a></td>
+                        <td><%= p.sangh_name || p.sangh_code %></td>
+                        <td data-order="<%= p.program %>"><%= p.program === 'ldp' ? 'LDP' : 'PSP' %></td>
+                        <td data-order="<%= p.status %>">
+                            <span class="rp-status rp-status-<%= p.status %>"><%= p.stage_label %></span>
+                            <% if (p.update_pending) { %><div class="rp-sub">update in approval · v<%= p.version_no %> in force</div><% } %>
+                        </td>
+                        <td><%= personName(p.created_by, p.created_by_name) %></td>
+                        <td><%= p.rp_approver_code ? personName(p.rp_approver_code, p.rp_approver_name) : '—' %></td>
+                        <td data-order="<%= p.created_at ? new Date(p.created_at).getTime() : 0 %>"><%= fmtDate(p.created_at) %></td>
+                        <td data-order="<%= p.updated_at ? new Date(p.updated_at).getTime() : 0 %>"><%= fmtDate(p.updated_at || p.created_at) %></td>
+                        <td data-order="<%= p.version_no || 0 %>"><%= p.version_no ? 'v' + p.version_no : '—' %></td>
+                        <td data-order="<%= p.members %>"><%= p.members %></td>
+                        <td data-order="<%= p.assessments %>"><%= p.assessments %></td>
+                    </tr>
+                <% }) %>
+                </tbody>
+            </table>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+$(function () {
+    // Filters apply as soon as a dropdown or date changes; the search box on Enter.
+    $('#reportFilters').on('change', 'select, input[type="date"]', function () { this.form.submit(); });
+    if ($('#reportTable').length) {
+        new DataTable('#reportTable', {
+            pageLength: 25, order: [[6, 'desc']],
+            layout: { topStart: { buttons: [
+                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: 'Role Profile Report' },
+                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: 'Role Profile Report' }
+            ] } },
+            language: {
+                search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search in results...',
+                info: 'Showing _START_ to _END_ of _TOTAL_ role profiles', zeroRecords: 'No role profiles match your search'
+            }
+        });
+    }
+});
+</script>

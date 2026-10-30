@@ -41,6 +41,8 @@ function build() {
   app.use('/role-profiles', require('../src/routes/roleProfiles'));
   app.use('/assessments', require('../src/routes/assessments'));
   app.use('/designations', require('../src/routes/designations'));
+  app.use('/reports', require('../src/routes/reports'));
+  app.use('/manual', mw.loggedIn, express.static(path.join(__dirname, '..', 'public', 'manual')));
   app.use('/assign', require('../src/routes/assign'));
 
   app.use((req, res) => { res.status(404); res.page('error', { code: 404, message: 'Not found', pageTitle: 'Not found' }); });

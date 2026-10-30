@@ -23,7 +23,7 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-file-document-edit-outline"></i></div>
             <div>
-                <div class="rp-card-title"><%= importedFrom ? 'Imported from Excel' : (cloning ? 'Clone Role Profile' : (pending ? 'Edit Role Profile' : (isEdit ? 'Edit Draft' : 'Create Role Profile'))) %></div>
+                <div class="rp-card-title"><%= importedFrom ? 'Imported from Excel' : (cloning ? 'Clone Role Profile' : (pending ? 'Edit Role Profile' : (typeof revision !== 'undefined' && revision ? 'Update Role Profile' : (isEdit ? 'Edit Draft' : 'Create Role Profile')))) %></div>
                 <div class="rp-card-subtitle">Against a designation — it stays valid as members join or leave</div>
             </div>
         </div>
@@ -101,10 +101,11 @@
             <div class="rp-version-banner due">
                 <i class="mdi mdi-source-branch"></i>
                 <div>
-                    This is the <strong><%= fyNow %> revision</strong> of a role profile that is already approved.
-                    Saving sends it for approval again; <strong>version <%= inForce.version_no %></strong> stays in
-                    force until then, and every assessment already written against it keeps its original wording.
-                    Approval creates version <%= inForce.version_no + 1 %>.
+                    You are <strong>updating</strong> an approved role profile (<%= fyNow %>). Submitting sends the
+                    update for approval; <strong>version <%= inForce.version_no %></strong> stays in force — members keep
+                    it and assessments run against it — until the update is approved as
+                    <strong>version <%= inForce.version_no + 1 %></strong>. Assessments already written keep their wording,
+                    and every earlier version stays viewable under Versions.
                 </div>
             </div>
         <% } %>
@@ -240,9 +241,15 @@
                     You give final approval yourself — as <%= [me.isAdmin && 'PSP Approver (PSP sanghs)', me.isLdpAdmin && 'LDP Admin (Sanghrakshak / Seva Sangh)'].filter(Boolean).join(' and ') %> —
                     so a profile you submit comes straight back to you to approve. Once approved, you assign the members it is for.
                 <% } else if (approver.code) { %>
+                    <% if (typeof approverLdpOnly !== 'undefined' && approverLdpOnly) { %>
+                    A <strong>PSP</strong> profile goes straight to the <strong>PSP Approver</strong> — your RP Approver,
+                    <strong><%= approver.name %></strong>, is on the LDP side. An <strong>LDP</strong> profile goes to
+                    <strong><%= approver.name %></strong> first, then the LDP Admin.
+                    <% } else { %>
                     This goes to <strong><%= approver.name %></strong> (your RP Approver) for approval,
                     then to the PSP Approver — or the LDP Admin, for an LDP profile (Sanghrakshak / Seva Sangh).
                     Once approved, it applies to the members the admin assigns to it.
+                    <% } %>
                 <% } else { %>
                     You have no separate RP Approver on record, so this goes straight to the
                     <strong>PSP Approver</strong> — or the <strong>LDP Admin</strong>, for an LDP profile — for approval.
@@ -294,12 +301,14 @@
                         <i class="mdi mdi-content-save-outline"></i> Save changes
                     </button>
                 <% } else { %>
-                <a class="rp-btn-cancel" href="/role-profiles">Cancel</a>
+                <a class="rp-btn-cancel" href="<%= isEdit ? '/role-profiles/' + profile.id : '/role-profiles' %>">Cancel</a>
+                <% if (!(typeof revision !== 'undefined' && revision)) { %>
                 <button type="submit" name="action" value="draft" class="rp-btn-draft" id="btnDraft" disabled>
                     <i class="mdi mdi-content-save-outline"></i> Save as draft
                 </button>
+                <% } %>
                 <button type="submit" name="action" value="submit" class="rp-btn-submit" id="btnSubmit" disabled>
-                    <i class="mdi mdi-send"></i> Submit for approval
+                    <i class="mdi mdi-send"></i> <%= (typeof revision !== 'undefined' && revision) ? 'Submit update for approval' : 'Submit for approval' %>
                 </button>
                 <% } %>
             </div>

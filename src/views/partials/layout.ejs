@@ -49,6 +49,7 @@
                 <div class="rp-nav-section">Role Profiles</div>
                 <%- navItem('role-profiles', '/role-profiles', 'mdi-file-document-edit-outline', 'Role Profiles') %>
                 <%- navItem('assessments', '/assessments', 'mdi-clipboard-check-outline', 'Assessments') %>
+                <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %><%- navItem('reports', '/reports/role-profiles', 'mdi-chart-box-outline', 'Reports') %><% } %>
                 <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %><%- navItem('designations', '/designations', 'mdi-badge-account-outline', 'Designations') %><% } %>
 
                 <% if (me.isAdmin) { %>
@@ -63,6 +64,7 @@
                 <% } %>
 
                 <div class="rp-nav-section">Account</div>
+                <a class="rp-nav-item" href="/manual/" target="_blank" rel="noopener"><i class="mdi mdi-book-open-page-variant-outline"></i>User Manual</a>
                 <%- navItem('logout', '/logout', 'mdi-logout', 'Sign Out') %>
             <% } else { %>
                 <div class="rp-nav-section">Account</div>

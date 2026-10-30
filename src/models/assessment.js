@@ -74,7 +74,8 @@ async function overviewFor(empCode, isAdmin, financialYear) {
 
   // Both programmes for the PSP Approver here, as before: assessments are not split by programme.
   for (const profile of await roleProfile.visibleTo(empCode, isAdmin, isAdmin)) {
-    if (profile.status !== roleProfile.STATUS.APPROVED) continue;
+    // Still live on its version in force while an update goes for approval.
+    if (!roleProfile.isLive(profile)) continue;
     const isCreator = profile.created_by === empCode;
 
     for (const member of await roleProfile.effectiveMembers(profile)) {

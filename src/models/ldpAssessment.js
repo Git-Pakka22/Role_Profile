@@ -66,7 +66,8 @@ async function yearsForMember(profileId, empCode) {
  */
 async function overviewForLeader(leaderCode, financialYear) {
   const profiles = await db.query(
-    `SELECT * FROM rp_role_profiles WHERE status = ? AND program = ?`,
+    // Live profiles: approved, or approved before and now carrying an update for approval.
+    `SELECT * FROM rp_role_profiles WHERE (status = ? OR admin_action_at IS NOT NULL) AND program = ?`,
     [roleProfile.STATUS.APPROVED, roleProfile.PROGRAM.LDP]
   );
 

@@ -63,6 +63,10 @@ app.use('/role-profiles/:id(\\d+)/assess', require('./src/routes/assess'));
 app.use('/role-profiles', require('./src/routes/roleProfiles'));
 app.use('/assessments', require('./src/routes/assessments'));
 app.use('/designations', require('./src/routes/designations'));
+app.use('/reports', require('./src/routes/reports'));
+// The user manual (English / Hindi) with its screenshots. Signed-in users only: the
+// screenshots show real members.
+app.use('/manual', mw.loggedIn, express.static(path.join(__dirname, 'public', 'manual')));
 app.use('/assign', require('./src/routes/assign'));
 app.use('/ldp-assign', require('./src/routes/ldpAssign'));
 

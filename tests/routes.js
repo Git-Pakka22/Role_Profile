@@ -11,7 +11,7 @@ const USERS = {
 
 // [path, expectation per user] — "ok" = 200, "->/x" = redirect, "404" etc.
 const PAGES = [
-  '/', '/login', '/my-members', '/notifications', '/assessments', '/designations',
+  '/', '/login', '/my-members', '/notifications', '/assessments', '/designations', '/reports/role-profiles', '/manual/',
   '/role-profiles', '/role-profiles/create', '/role-profiles/1', '/role-profiles/1/edit',
   '/role-profiles/1/assess/M01078', '/role-profiles/1/assess/M00934',
   '/role-profiles/1/versions/1', '/role-profiles/1/versions/999',

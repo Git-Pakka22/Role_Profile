@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Role Profile Portal Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* The portal's own palette: maroon brand on a warm paper ground, olive for "done", sky for "waiting".
+     Layout: sticky contents rail on the left, one reading column, each section in English and Hindi. */
+  --brand: #a3243c;
+  --brand-soft: rgba(163, 36, 60, 0.08);
+  --ink: #1d1f24;
+  --muted: #5d6270;
+  --paper: #fbf8f4;
+  --card: #ffffff;
+  --line: #e9e2d8;
+  --ok: #3f7d4e;
+  --wait: #1a8fc4;
+  --warn: #b5651d;
+  --bad: #b8322a;
+  --font-display: "Manrope", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: #e0607a; --brand-soft: rgba(224, 96, 122, 0.12); --ink: #ecebe8; --muted: #a7a9b0;
+    --paper: #17171a; --card: #202024; --line: #34343a; --ok: #7cbf8b; --wait: #5cb8e6;
+    --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --brand: #e0607a; --brand-soft: rgba(224, 96, 122, 0.12); --ink: #ecebe8; --muted: #a7a9b0;
+  --paper: #17171a; --card: #202024; --line: #34343a; --ok: #7cbf8b; --wait: #5cb8e6;
+  --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
+}
+
+/* One language at a time: every text block exists twice, tagged .en / .hi */
+html[data-lang="hi"] .en { display: none !important; }
+html:not([data-lang="hi"]) .hi { display: none !important; }
+html[data-lang="hi"] body { line-height: 1.75; }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.62 var(--font-body); }
+a { color: var(--brand); }
+a:focus-visible, summary:focus-visible, button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+.shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 40px; max-width: 1220px; margin: 0 auto; padding: 32px 24px 80px; }
+nav.toc { position: sticky; top: 20px; align-self: start; font-size: 0.9rem; max-height: calc(100vh - 40px); overflow-y: auto; }
+.toc .brandmark { font: 800 1.05rem/1.25 var(--font-display); color: var(--brand); margin-bottom: 12px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.toc a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; }
+.toc a:hover { background: var(--brand-soft); color: var(--brand); }
+.toc .group { margin: 14px 0 4px 10px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+.langswitch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); margin-bottom: 16px; }
+.langswitch button { border: 0; background: transparent; color: var(--muted); font: 600 0.88rem var(--font-body); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.langswitch button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+
+main { min-width: 0; }
+header.top { margin-bottom: 26px; }
+header.top .eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 2.2rem; font-weight: 800; margin: 6px 0 10px; }
+header.top p { max-width: 68ch; color: var(--muted); margin: 0; font-size: 1.05rem; }
+
+section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin-bottom: 22px; }
+section h2 { font-size: 1.45rem; font-weight: 800; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lead { color: var(--muted); max-width: 68ch; margin: 0 0 16px; }
+h3 { font-size: 1.08rem; font-weight: 700; margin: 22px 0 8px; }
+p, li { max-width: 72ch; }
+
+.who { font: 700 0.7rem/1 var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+
+ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+ol.steps > li { counter-increment: s; position: relative; padding: 2px 0 2px 42px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font: 700 0.85rem/28px var(--font-body); text-align: center; }
+ul { padding-left: 1.2em; }
+li + li { margin-top: 4px; }
+
+.ui { font-weight: 600; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); white-space: nowrap; font-family: var(--font-body); }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+td.y { color: var(--ok); font-weight: 700; }
+td.n { color: var(--muted); }
+
+.note { border-left: 4px solid var(--wait); background: color-mix(in srgb, var(--wait) 8%, transparent); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 14px 0; max-width: 76ch; }
+.note.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 9%, transparent); }
+.note > strong { display: block; margin-bottom: 2px; }
+
+figure.shot { margin: 18px 0 6px; }
+figure.shot img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); }
+figure.shot figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 6px; }
+.stage { padding: 8px 13px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: 1.5px solid currentColor; }
+.stage.draft { color: var(--muted); } .stage.rp { color: var(--warn); } .stage.final { color: var(--wait); }
+.stage.ok { color: var(--ok); } .stage.bad { color: var(--bad); }
+.arrow { color: var(--muted); font-weight: 700; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 12px; }
+.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile h4 { margin: 0 0 4px; font: 700 0.98rem/1.3 var(--font-display); }
+.tile p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
+details { border-top: 1px solid var(--line); padding: 12px 0; }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; font-weight: 600; }
+details p, details ul { color: var(--muted); margin: 8px 0 0; }
+footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; gap: 18px; padding: 20px 16px 60px; }
+  nav.toc { position: static; max-height: none; }
+  .toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .toc .group { grid-column: 1 / -1; }
+  section { padding: 20px 18px; }
+  h1 { font-size: 1.75rem; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="toc" aria-label="Contents">
+  <div class="brandmark"><span class="en">Pakka Role Profile<br>User Manual</span><span class="hi">पक्का रोल प्रोफ़ाइल<br>यूज़र मैनुअल</span></div>
+  <div class="langswitch" role="group" aria-label="Language">
+    <button type="button" id="lang-en" data-set-lang="en" aria-pressed="true">English</button>
+    <button type="button" id="lang-hi" data-set-lang="hi" aria-pressed="false">हिंदी</button>
+  </div>
+  <ol>
+    <li><a href="#start"><span class="en">Getting started</span><span class="hi">शुरुआत</span></a></li>
+    <li><a href="#roles"><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></a></li>
+    <li><a href="#concepts"><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></a></li>
+    <li class="group"><span class="en">Leaders</span><span class="hi">लीडर्स</span></li>
+    <li><a href="#create"><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span></a></li>
+    <li><a href="#approval-route"><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></a></li>
+    <li><a href="#edit"><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span></a></li>
+    <li><a href="#versions"><span class="en">Versions</span><span class="hi">वर्ज़न</span></a></li>
+    <li><a href="#assess"><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span></a></li>
+    <li><a href="#rp-approver"><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span></a></li>
+    <li class="group"><span class="en">Admin</span><span class="hi">एडमिन</span></li>
+    <li><a href="#admin-approve"><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span></a></li>
+    <li><a href="#admin-assign"><span class="en">Assign members to a profile</span><span class="hi">प्रोफ़ाइल पर मेंबर्स असाइन करना</span></a></li>
+    <li><a href="#admin-roles"><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span></a></li>
+    <li><a href="#admin-more"><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span></a></li>
+    <li class="group"><span class="en">Everyone</span><span class="hi">सभी के लिए</span></li>
+    <li><a href="#members"><span class="en">Members</span><span class="hi">मेंबर्स</span></a></li>
+    <li><a href="#reports"><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span></a></li>
+    <li><a href="#faq"><span class="en">Common questions</span><span class="hi">आम सवाल</span></a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="top">
+  <div class="eyebrow"><span class="en">How to use the portal</span><span class="hi">पोर्टल कैसे इस्तेमाल करें</span></div>
+  <h1><span class="en">Role Profile Portal — User Manual</span><span class="hi">रोल प्रोफ़ाइल पोर्टल — यूज़र मैनुअल</span></h1>
+  <p class="en">Step-by-step help for the admin (PSP Approver and LDP Admin), for leaders (RP Creators, RP Approvers and Pracharaks) and for members: writing role profiles, getting them approved, assigning them, assessing against them, and keeping them up to date.</p>
+  <p class="hi">एडमिन (PSP Approver और LDP Admin), लीडर्स (RP Creator, RP Approver और प्रचारक) और मेंबर्स के लिए स्टेप-बाय-स्टेप मदद: रोल प्रोफ़ाइल लिखना, अप्रूव करवाना, असाइन करना, उस पर असेसमेंट करना और उसे अपडेट रखना।</p>
+</header>
+
+<!-- ============================================================ start -->
+<section id="start">
+  <h2><span class="en">Getting started</span><span class="hi">शुरुआत</span></h2>
+  <p class="lead en">Sign in with your employee code and portal password. The menu on the left shows only what your role allows.</p>
+  <p class="lead hi">अपने एम्प्लॉई कोड और पोर्टल पासवर्ड से लॉग-इन करें। बाईं तरफ़ का मेन्यू सिर्फ़ वही दिखाता है जो आपकी भूमिका में आता है।</p>
+  <div class="grid2">
+    <div class="tile"><h4>Role Profiles</h4><p class="en">Every role profile you can see, with its stage, version, last updated date and your actions.</p><p class="hi">आपको दिखने वाली सभी रोल प्रोफ़ाइल — स्टेज, वर्ज़न, आख़िरी अपडेट की तारीख़ और आपके एक्शन के साथ।</p></div>
+    <div class="tile"><h4>My Members</h4><p class="en">Members who name you as their RP Creator, RP Approver or Pracharak.</p><p class="hi">वे मेंबर्स जिनके RP Creator, RP Approver या प्रचारक आप हैं।</p></div>
+    <div class="tile"><h4>Assessments</h4><p class="en">Members to assess this year, and assessments already written.</p><p class="hi">इस साल जिनका असेसमेंट करना है, और जो पहले हो चुके हैं।</p></div>
+    <div class="tile"><h4>Reports</h4><p class="en">How many role profiles are at each stage, by sangh, with filters and Excel export.</p><p class="hi">कितनी रोल प्रोफ़ाइल किस स्टेज पर हैं — संघ के हिसाब से, फ़िल्टर और Excel एक्सपोर्ट के साथ।</p></div>
+    <div class="tile"><h4>Designations</h4><p class="en">Each sangh's designations; add a new one for a role nobody has held yet.</p><p class="hi">हर संघ के डेज़िग्नेशन; नई भूमिका के लिए नया डेज़िग्नेशन जोड़ें।</p></div>
+    <div class="tile"><h4>User Manual</h4><p class="en">This page — always one click away in the sidebar.</p><p class="hi">यही पेज — साइडबार में हमेशा उपलब्ध।</p></div>
+  </div>
+  <figure class="shot">
+    <img src="img/list.jpg" alt="Role Profiles list with stage, version, last updated date and action buttons" loading="lazy" width="1280" height="889">
+    <figcaption><span class="en">Role Profiles list — status, version for the year, <b>Last updated</b> date and time, and your actions (View, Assess, Edit, Update RP, Clone).</span><span class="hi">रोल प्रोफ़ाइल लिस्ट — स्टेटस, साल का वर्ज़न, <b>Last updated</b> तारीख़-समय और आपके एक्शन (View, Assess, Edit, Update RP, Clone)।</span></figcaption>
+  </figure>
+  <div class="note"><strong><span class="en">The bell and "awaiting you"</span><span class="hi">घंटी और "awaiting you"</span></strong><span class="en">The bell lists your notifications. The yellow <span class="ui">awaiting you</span> pill counts role profiles waiting for your approval.</span><span class="hi">घंटी में आपकी सूचनाएँ हैं। पीला <span class="ui">awaiting you</span> बताता है कि कितनी प्रोफ़ाइल आपके अप्रूवल का इंतज़ार कर रही हैं।</span></div>
+</section>
+
+<!-- ============================================================ roles -->
+<section id="roles">
+  <h2><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></h2>
+  <p class="lead en">Your role comes from the member records. The admin sets who is whose RP Creator, RP Approver and Pracharak.</p>
+  <p class="lead hi">आपकी भूमिका मेंबर रिकॉर्ड से तय होती है। कौन किसका RP Creator, RP Approver और प्रचारक है — यह एडमिन सेट करते हैं।</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th><span class="en">Action</span><span class="hi">काम</span></th><th>Admin<br><span class="en">(PSP Approver / LDP Admin)</span><span class="hi">(PSP Approver / LDP Admin)</span></th><th>RP Creator</th><th>RP Approver</th><th><span class="en">Member</span><span class="hi">मेंबर</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span></td><td class="y"><span class="en">Sanghs they oversee</span><span class="hi">अपने दायरे के सभी संघ</span></td><td class="y"><span class="en">Own sanghs</span><span class="hi">अपने संघ</span></td><td class="y"><span class="en">Own sanghs</span><span class="hi">अपने संघ</span></td><td class="n">—</td></tr>
+      <tr><td><span class="en">Approve — first stage</span><span class="hi">अप्रूवल — पहला चरण</span></td><td class="n">—</td><td class="n">—</td><td class="y"><span class="en">Yes</span><span class="hi">हाँ</span></td><td class="n">—</td></tr>
+      <tr><td><span class="en">Approve — final stage</span><span class="hi">अप्रूवल — फ़ाइनल चरण</span></td><td class="y"><span class="en">Yes</span><span class="hi">हाँ</span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td><span class="en">Edit before approval</span><span class="hi">अप्रूवल से पहले एडिट</span></td><td class="y"><span class="en">At final stage</span><span class="hi">फ़ाइनल चरण पर</span></td><td class="y"><span class="en">Until RP Approver approves</span><span class="hi">RP Approver के अप्रूव करने तक</span></td><td class="y"><span class="en">While it waits on them</span><span class="hi">जब तक उनके पास है</span></td><td class="n">—</td></tr>
+      <tr><td><span class="en">Update an approved profile</span><span class="hi">अप्रूव्ड प्रोफ़ाइल अपडेट करना</span></td><td class="n">—</td><td class="y"><span class="en">Own profile, any time</span><span class="hi">अपनी प्रोफ़ाइल, कभी भी</span></td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td><span class="en">Assign members to a profile</span><span class="hi">प्रोफ़ाइल पर मेंबर्स असाइन करना</span></td><td class="y"><span class="en">Yes</span><span class="hi">हाँ</span></td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td><span class="en">Assess members (PSP)</span><span class="hi">मेंबर्स का असेसमेंट (PSP)</span></td><td class="y"><span class="en">Correct existing ones</span><span class="hi">मौजूदा को सुधारना</span></td><td class="y"><span class="en">Once a year each</span><span class="hi">हर मेंबर का साल में एक बार</span></td><td class="n">—</td><td class="n"><span class="en">View own</span><span class="hi">अपना देखना</span></td></tr>
+      <tr><td><span class="en">Assess members (LDP)</span><span class="hi">मेंबर्स का असेसमेंट (LDP)</span></td><td class="y"><span class="en">Final rating</span><span class="hi">फ़ाइनल रेटिंग</span></td><td class="n">—</td><td class="n">—</td><td class="y"><span class="en">Self-rating</span><span class="hi">सेल्फ़-रेटिंग</span></td></tr>
+      <tr><td><span class="en">Add a designation</span><span class="hi">डेज़िग्नेशन जोड़ना</span></td><td class="y"><span class="en">Sanghs they oversee</span><span class="hi">अपने दायरे के संघ</span></td><td class="y"><span class="en">Own sanghs</span><span class="hi">अपने संघ</span></td><td class="y"><span class="en">Own sanghs</span><span class="hi">अपने संघ</span></td><td class="n">—</td></tr>
+      <tr><td><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span></td><td class="y"><span class="en">Whole programme</span><span class="hi">पूरा प्रोग्राम</span></td><td class="y"><span class="en">What they can see</span><span class="hi">जो उन्हें दिखता है</span></td><td class="y"><span class="en">What they can see</span><span class="hi">जो उन्हें दिखता है</span></td><td class="n">—</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note"><strong><span class="en">PSP and LDP</span><span class="hi">PSP और LDP</span></strong>
+    <span class="en">Sanghrakshak Sangh and Seva Sangh belong to <b>LDP</b>; every other sangh is <b>PSP</b>. The <b>PSP Approver</b> gives final approval to PSP profiles and the <b>LDP Admin</b> to LDP ones. In an LDP sangh only the member's <b>RP Creator</b> writes role profiles — being someone's RP Approver there is not enough.</span>
+    <span class="hi">संघरक्षक संघ और सेवा संघ <b>LDP</b> में आते हैं; बाकी सभी संघ <b>PSP</b> हैं। PSP प्रोफ़ाइल को फ़ाइनल अप्रूवल <b>PSP Approver</b> देते हैं और LDP प्रोफ़ाइल को <b>LDP Admin</b>। LDP संघ में रोल प्रोफ़ाइल सिर्फ़ मेंबर का <b>RP Creator</b> लिखता है — वहाँ सिर्फ़ RP Approver होना काफ़ी नहीं है।</span></div>
+</section>
+
+<!-- ============================================================ concepts -->
+<section id="concepts">
+  <h2><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></h2>
+  <h3><span class="en">A role profile belongs to a designation in a sangh</span><span class="hi">रोल प्रोफ़ाइल किसी संघ के एक डेज़िग्नेशन के लिए होती है</span></h3>
+  <p class="en">Each designation in a sangh can have one role profile. It sets out the mission, key outcomes, and the skills with their weightage and attributes that members are assessed on.</p>
+  <p class="hi">किसी संघ के हर डेज़िग्नेशन की एक ही रोल प्रोफ़ाइल हो सकती है। इसमें मिशन, मुख्य परिणाम (Key Outcomes), और स्किल्स व उनके वेटेज और एट्रिब्यूट होते हैं जिन पर मेंबर्स का असेसमेंट होता है।</p>
+  <h3><span class="en">The stages of a role profile</span><span class="hi">रोल प्रोफ़ाइल के स्टेज</span></h3>
+  <div class="flow" aria-label="Approval stages">
+    <span class="stage draft">Draft</span><span class="arrow">→</span>
+    <span class="stage rp">Awaiting RP Approver</span><span class="arrow">→</span>
+    <span class="stage final">Awaiting PSP Approver / LDP Admin</span><span class="arrow">→</span>
+    <span class="stage ok">Approved</span>
+  </div>
+  <p class="en">Either approver can <b>Reject</b> it back to the creator with a reason. When the creator has no separate RP Approver, it goes straight to the final stage.</p>
+  <p class="hi">दोनों में से कोई भी अप्रूवर कारण लिखकर इसे <b>Reject</b> करके क्रिएटर को वापस भेज सकता है। अगर क्रिएटर का अलग RP Approver नहीं है तो प्रोफ़ाइल सीधे फ़ाइनल स्टेज पर जाती है।</p>
+  <h3><span class="en">Profiles are assigned, never automatic</span><span class="hi">प्रोफ़ाइल असाइन की जाती है, अपने-आप नहीं लगती</span></h3>
+  <p class="en">Approval does not put anyone on a profile. The admin assigns the members it is for — holding the designation is not enough by itself.</p>
+  <p class="hi">अप्रूवल से कोई भी मेंबर प्रोफ़ाइल पर नहीं आता। एडमिन तय करते हैं कि प्रोफ़ाइल किन मेंबर्स पर लागू होगी — सिर्फ़ डेज़िग्नेशन होना काफ़ी नहीं है।</p>
+</section>
+
+<!-- ============================================================ create -->
+<section id="create">
+  <h2><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span> <span class="who">RP Creator · RP Approver · Admin</span></h2>
+  <p class="lead en">Role Profiles → <span class="ui">Create Role Profile</span>.</p>
+  <p class="lead hi">Role Profiles → <span class="ui">Create Role Profile</span> पर क्लिक करें।</p>
+  <ol class="steps en">
+    <li><b>Choose the Sangh and Designation first.</b> This box is at the top and must be filled before anything else works. If the role is new, click <span class="ui">+ New designation</span>, type the name and <span class="ui">Add to this sangh</span>.</li>
+    <li><b>Optional shortcuts:</b> <span class="ui">Read the sheet</span> fills the form from a Pakka-format Excel file; <span class="ui">Use as a starting point</span> copies another role profile. Both keep the sangh and designation you chose.</li>
+    <li><b>Mission</b> — one or two sentences on why the role exists.</li>
+    <li><b>Key outcomes</b> — up to 3 for a PSP profile, 3 to 5 for an LDP profile.</li>
+    <li><b>Skills</b> — up to 9, each with a weight and up to 3 attributes. A skill's attribute weights must add up to its own weight, and all skill weights must total <b>100</b>. The line at the bottom turns green when everything balances. LDP profiles also take an assessment mechanism per skill.</li>
+    <li>Click <span class="ui">Save as draft</span> to finish later (only you can see it), or <span class="ui">Submit for approval</span>.</li>
+  </ol>
+  <ol class="steps hi">
+    <li><b>सबसे पहले संघ और डेज़िग्नेशन चुनें।</b> यह बॉक्स सबसे ऊपर है और इसे भरे बिना आगे कुछ नहीं होगा। अगर भूमिका नई है तो <span class="ui">+ New designation</span> पर क्लिक करें, नाम लिखें और <span class="ui">Add to this sangh</span> दबाएँ।</li>
+    <li><b>शॉर्टकट (वैकल्पिक):</b> <span class="ui">Read the sheet</span> से पक्का फ़ॉर्मेट की Excel फ़ाइल से फ़ॉर्म भर जाता है; <span class="ui">Use as a starting point</span> से किसी दूसरी प्रोफ़ाइल की कॉपी बनती है। दोनों में आपका चुना संघ और डेज़िग्नेशन बना रहता है।</li>
+    <li><b>मिशन</b> — एक-दो वाक्य कि यह भूमिका क्यों है।</li>
+    <li><b>Key Outcomes</b> — PSP प्रोफ़ाइल में 3 तक, LDP प्रोफ़ाइल में 3 से 5।</li>
+    <li><b>स्किल्स</b> — 9 तक, हर स्किल का वेटेज और 3 तक एट्रिब्यूट। एट्रिब्यूट के वेटेज का जोड़ स्किल के वेटेज के बराबर हो, और सभी स्किल का कुल वेटेज <b>100</b> हो। सब सही होने पर नीचे की लाइन हरी हो जाती है। LDP प्रोफ़ाइल में हर स्किल का असेसमेंट तरीका भी लिखना होता है।</li>
+    <li>बाद में पूरा करने के लिए <span class="ui">Save as draft</span> (सिर्फ़ आपको दिखेगा), या <span class="ui">Submit for approval</span> दबाएँ।</li>
+  </ol>
+  <figure class="shot">
+    <img src="img/create.jpg" alt="Create Role Profile form with the required Sangh and Designation box at the top" loading="lazy" width="1280" height="978">
+    <figcaption><span class="en">The Create form: the required <b>Sangh &amp; Designation</b> box first, then Excel import, copy from an existing profile, and the note saying where it will go for approval.</span><span class="hi">Create फ़ॉर्म: सबसे ऊपर ज़रूरी <b>Sangh &amp; Designation</b> बॉक्स, फिर Excel इम्पोर्ट, मौजूदा प्रोफ़ाइल से कॉपी, और नोट कि अप्रूवल किसके पास जाएगा।</span></figcaption>
+  </figure>
+  <div class="note warn"><strong><span class="en">Save buttons stay grey?</span><span class="hi">सेव बटन ग्रे ही हैं?</span></strong><span class="en">Check the sangh and designation are chosen and the weight totals at the bottom of the form are green.</span><span class="hi">देखें कि संघ और डेज़िग्नेशन चुने हैं और फ़ॉर्म के नीचे वेटेज का जोड़ हरा है।</span></div>
+</section>
+
+<!-- ============================================================ route -->
+<section id="approval-route">
+  <h2><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></h2>
+  <p class="lead en">The note above the form tells you who it will go to.</p>
+  <p class="lead hi">फ़ॉर्म के ऊपर का नोट बताता है कि प्रोफ़ाइल किसके पास जाएगी।</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th><span class="en">You are</span><span class="hi">आप हैं</span></th><th><span class="en">Writing</span><span class="hi">लिख रहे हैं</span></th><th><span class="en">Goes to</span><span class="hi">किसके पास जाती है</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="en">In a PSP sangh, with an RP Approver</span><span class="hi">PSP संघ में, आपका RP Approver है</span></td><td><span class="en">Any profile</span><span class="hi">कोई भी प्रोफ़ाइल</span></td><td><span class="en">Your RP Approver, then the PSP Approver (LDP Admin for an LDP profile)</span><span class="hi">पहले आपके RP Approver, फिर PSP Approver (LDP प्रोफ़ाइल हो तो LDP Admin)</span></td></tr>
+      <tr><td><span class="en">Your own RP Approver, or none on record</span><span class="hi">खुद अपने RP Approver हैं, या कोई दर्ज नहीं</span></td><td><span class="en">Any profile</span><span class="hi">कोई भी प्रोफ़ाइल</span></td><td><span class="en">Straight to the PSP Approver / LDP Admin</span><span class="hi">सीधे PSP Approver / LDP Admin</span></td></tr>
+      <tr><td><span class="en">In Sanghrakshak or Seva Sangh</span><span class="hi">संघरक्षक या सेवा संघ में</span></td><td><span class="en">A <b>PSP</b> profile</span><span class="hi"><b>PSP</b> प्रोफ़ाइल</span></td><td><span class="en">Straight to the PSP Approver — your RP Approver is on the LDP side</span><span class="hi">सीधे PSP Approver — आपके RP Approver LDP की तरफ़ के हैं</span></td></tr>
+      <tr><td><span class="en">In Sanghrakshak or Seva Sangh</span><span class="hi">संघरक्षक या सेवा संघ में</span></td><td><span class="en">An <b>LDP</b> profile</span><span class="hi"><b>LDP</b> प्रोफ़ाइल</span></td><td><span class="en">Your RP Approver, then the LDP Admin</span><span class="hi">पहले आपके RP Approver, फिर LDP Admin</span></td></tr>
+      <tr><td><span class="en">The admin</span><span class="hi">एडमिन</span></td><td><span class="en">Any profile</span><span class="hi">कोई भी प्रोफ़ाइल</span></td><td><span class="en">Straight back to the admin for final approval</span><span class="hi">फ़ाइनल अप्रूवल के लिए सीधे एडमिन के पास</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ============================================================ edit -->
+<section id="edit">
+  <h2><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span> <span class="who">RP Creator</span></h2>
+  <h3><span class="en">While it waits for approval</span><span class="hi">जब अप्रूवल बाकी हो</span></h3>
+  <ul class="en">
+    <li><b>Waiting on the RP Approver:</b> you and the RP Approver can both click <span class="ui">Edit before approval</span>. It stays with them, and they are told it changed.</li>
+    <li><b>Waiting on the final approver:</b> only the PSP Approver / LDP Admin can edit — unless it skipped the RP Approver, in which case you can keep editing until final approval.</li>
+    <li>While waiting, only the content can change; the sangh and designation are fixed.</li>
+  </ul>
+  <ul class="hi">
+    <li><b>RP Approver के पास हो:</b> आप और RP Approver दोनों <span class="ui">Edit before approval</span> कर सकते हैं। प्रोफ़ाइल उन्हीं के पास रहती है और उन्हें बदलाव की सूचना मिलती है।</li>
+    <li><b>फ़ाइनल अप्रूवर के पास हो:</b> सिर्फ़ PSP Approver / LDP Admin एडिट कर सकते हैं — लेकिन अगर RP Approver वाला चरण नहीं था, तो फ़ाइनल अप्रूवल तक आप भी एडिट कर सकते हैं।</li>
+    <li>इस दौरान सिर्फ़ कंटेंट बदल सकता है; संघ और डेज़िग्नेशन नहीं बदलते।</li>
+  </ul>
+  <h3><span class="en">When it is rejected</span><span class="hi">जब रिजेक्ट हो जाए</span></h3>
+  <p class="en">The reason shows at the top of the profile. Click <span class="ui">Edit and resubmit</span>, or <span class="ui">Resubmit unchanged</span>.</p>
+  <p class="hi">कारण प्रोफ़ाइल के ऊपर दिखता है। <span class="ui">Edit and resubmit</span> या <span class="ui">Resubmit unchanged</span> पर क्लिक करें।</p>
+  <h3><span class="en">Updating an approved profile — any time in the year</span><span class="hi">अप्रूव्ड प्रोफ़ाइल अपडेट करना — साल में कभी भी</span></h3>
+  <ol class="steps en">
+    <li>Open the profile and click <span class="ui">Update RP</span> (also in the Role Profiles list).</li>
+    <li>Change what you need and click <span class="ui">Submit update for approval</span>. It follows the same approval route.</li>
+    <li>Until the update is approved, the current version <b>stays in force</b>: members keep it and are assessed against it. A banner on the profile links to the version in force.</li>
+    <li>On approval it becomes the next version (v2, v3 …).</li>
+  </ol>
+  <ol class="steps hi">
+    <li>प्रोफ़ाइल खोलें और <span class="ui">Update RP</span> पर क्लिक करें (यह रोल प्रोफ़ाइल लिस्ट में भी है)।</li>
+    <li>ज़रूरी बदलाव करें और <span class="ui">Submit update for approval</span> दबाएँ। यह उसी अप्रूवल रास्ते से जाता है।</li>
+    <li>अपडेट अप्रूव होने तक मौजूदा वर्ज़न <b>लागू रहता है</b>: मेंबर्स पर वही रहता है और असेसमेंट उसी पर होता है। प्रोफ़ाइल पर बैनर लागू वर्ज़न का लिंक दिखाता है।</li>
+    <li>अप्रूव होने पर यह अगला वर्ज़न (v2, v3 …) बन जाता है।</li>
+  </ol>
+  <figure class="shot">
+    <img src="img/approved.jpg" alt="An approved role profile with the Update RP button" loading="lazy" width="1280" height="800">
+    <figcaption><span class="en">An approved profile: <span class="ui">Update RP</span> at the top right, the "last updated" time under the title, and the Download PDF button.</span><span class="hi">अप्रूव्ड प्रोफ़ाइल: ऊपर दाईं ओर <span class="ui">Update RP</span>, शीर्षक के नीचे "last updated" समय, और Download PDF बटन।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ versions -->
+<section id="versions">
+  <h2><span class="en">Versions and the yearly review</span><span class="hi">वर्ज़न और सालाना रिव्यू</span></h2>
+  <p class="en">Every approval freezes a numbered version. Open the profile's <span class="ui">Versions</span> tab to see each year's version, the reviews, and every earlier version — each opens read-only, exactly as approved, with its own PDF. Assessments stay tied to the version they were written against.</p>
+  <p class="hi">हर अप्रूवल पर एक नंबर वाला वर्ज़न सुरक्षित हो जाता है। प्रोफ़ाइल का <span class="ui">Versions</span> टैब खोलें — हर साल का वर्ज़न, रिव्यू, और सभी पुराने वर्ज़न दिखते हैं; हर वर्ज़न वैसा ही खुलता है जैसा अप्रूव हुआ था, अपनी PDF के साथ। असेसमेंट उसी वर्ज़न से जुड़ा रहता है जिस पर वह लिखा गया।</p>
+  <p class="en"><b>Yearly review:</b> for each financial year (April–March) click <span class="ui">No change</span> to carry the version forward, or <span class="ui">Update</span> to change it through approval.</p>
+  <p class="hi"><b>सालाना रिव्यू:</b> हर वित्त वर्ष (अप्रैल–मार्च) के लिए <span class="ui">No change</span> दबाकर वही वर्ज़न आगे बढ़ाएँ, या <span class="ui">Update</span> से अप्रूवल के साथ बदलें।</p>
+  <figure class="shot">
+    <img src="img/versions.jpg" alt="The Versions tab showing the year's review and version history" loading="lazy" width="1280" height="1111">
+    <figcaption><span class="en">The Versions tab while an update is awaiting approval: version 1 stays in force, the financial year table, and the version history.</span><span class="hi">अपडेट अप्रूवल में होने पर Versions टैब: वर्ज़न 1 लागू रहता है, वित्त वर्ष की टेबल और वर्ज़न हिस्ट्री।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ assess -->
+<section id="assess">
+  <h2><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span> <span class="who">RP Creator · Admin</span></h2>
+  <p class="lead en">From Assessments, or the <span class="ui">Assess</span> link on a member in the profile's Members tab.</p>
+  <p class="lead hi">Assessments पेज से, या प्रोफ़ाइल के Members टैब में मेंबर के आगे <span class="ui">Assess</span> लिंक से।</p>
+  <ul class="en">
+    <li>Rate each attribute from <b>1 to 4</b>. Score is weight × rating, so a perfect assessment scores 400; the percentage is shown.</li>
+    <li>Add a training gap note where useful. Download the assessment as a PDF.</li>
+    <li><b>PSP:</b> one assessment per member per year, final once saved. The PSP Approver can correct an existing one.</li>
+    <li><b>LDP:</b> the member submits a self-rating first; then their leader (or the PSP Approver) gives the final rating.</li>
+    <li>Only the current and the previous financial year are open for entry.</li>
+  </ul>
+  <ul class="hi">
+    <li>हर एट्रिब्यूट को <b>1 से 4</b> रेटिंग दें। स्कोर = वेटेज × रेटिंग, यानी पूरा स्कोर 400; प्रतिशत भी दिखता है।</li>
+    <li>ज़रूरत हो तो ट्रेनिंग गैप नोट लिखें। असेसमेंट की PDF डाउनलोड करें।</li>
+    <li><b>PSP:</b> हर मेंबर का साल में एक असेसमेंट, सेव होते ही फ़ाइनल। PSP Approver उसे सुधार सकते हैं।</li>
+    <li><b>LDP:</b> पहले मेंबर सेल्फ़-रेटिंग करता है; फिर उसका लीडर (या PSP Approver) फ़ाइनल रेटिंग देता है।</li>
+    <li>सिर्फ़ मौजूदा और पिछला वित्त वर्ष ही एंट्री के लिए खुला रहता है।</li>
+  </ul>
+  <figure class="shot">
+    <img src="img/assessments.jpg" alt="Assessments page listing members and their scores" loading="lazy" width="1280" height="800">
+    <figcaption><span class="en">Assessments: members to assess this year and the scores already given.</span><span class="hi">Assessments: इस साल जिनका असेसमेंट करना है और जो स्कोर दिए जा चुके हैं।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ rp approver -->
+<section id="rp-approver">
+  <h2><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span> <span class="who">RP Approver</span></h2>
+  <ol class="steps en">
+    <li>You are notified (bell) when a profile is submitted to you; the yellow <span class="ui">awaiting you</span> pill counts them.</li>
+    <li>Open it. Under <b>This profile is waiting on you</b>, type a reason if rejecting, then <span class="ui">Approve and send to PSP Approver</span> (or LDP Admin) or <span class="ui">Reject</span>.</li>
+    <li>Something small to fix? Click <span class="ui">Edit it</span> first — it stays with you to approve afterwards.</li>
+  </ol>
+  <ol class="steps hi">
+    <li>जब कोई प्रोफ़ाइल आपके पास आती है तो घंटी में सूचना आती है; पीला <span class="ui">awaiting you</span> उनकी गिनती दिखाता है।</li>
+    <li>प्रोफ़ाइल खोलें। <b>This profile is waiting on you</b> में — रिजेक्ट करना हो तो कारण लिखें — फिर <span class="ui">Approve and send to PSP Approver</span> (या LDP Admin) या <span class="ui">Reject</span> दबाएँ।</li>
+    <li>छोटा सुधार करना है? पहले <span class="ui">Edit it</span> करें — प्रोफ़ाइल अप्रूव करने के लिए आपके पास ही रहेगी।</li>
+  </ol>
+  <p class="en">You never approve your own submission. Once you approve, only the final approver can edit it.</p>
+  <p class="hi">आप अपनी खुद की सबमिट की हुई प्रोफ़ाइल अप्रूव नहीं करते। आपके अप्रूव करने के बाद सिर्फ़ फ़ाइनल अप्रूवर एडिट कर सकते हैं।</p>
+</section>
+
+<!-- ============================================================ admin approve -->
+<section id="admin-approve">
+  <h2><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span> <span class="who">Admin</span></h2>
+  <p class="lead en">The PSP Approver approves PSP profiles; the LDP Admin approves LDP ones (Sanghrakshak and Seva Sangh). One person can hold both.</p>
+  <p class="lead hi">PSP Approver, PSP प्रोफ़ाइल अप्रूव करते हैं; LDP Admin, LDP प्रोफ़ाइल (संघरक्षक और सेवा संघ)। एक ही व्यक्ति दोनों हो सकता है।</p>
+  <ol class="steps en">
+    <li>Click the <span class="ui">awaiting you</span> pill or open the profile from Role Profiles.</li>
+    <li>Edit first if needed (<span class="ui">Edit it</span>) — it stays with you.</li>
+    <li><span class="ui">Approve and make it live</span> freezes it as a version, or <span class="ui">Reject</span> with a reason.</li>
+    <li>Approval applies it to <b>nobody</b> yet — go on to assign its members.</li>
+  </ol>
+  <ol class="steps hi">
+    <li><span class="ui">awaiting you</span> पर क्लिक करें या Role Profiles से प्रोफ़ाइल खोलें।</li>
+    <li>ज़रूरत हो तो पहले एडिट करें (<span class="ui">Edit it</span>) — प्रोफ़ाइल आपके पास ही रहेगी।</li>
+    <li><span class="ui">Approve and make it live</span> से यह एक वर्ज़न के रूप में लागू हो जाती है, या कारण लिखकर <span class="ui">Reject</span> करें।</li>
+    <li>अप्रूवल से प्रोफ़ाइल अभी <b>किसी पर लागू नहीं</b> होती — इसके बाद मेंबर्स असाइन करें।</li>
+  </ol>
+  <figure class="shot">
+    <img src="img/approve.jpg" alt="A role profile waiting for the admin's final approval" loading="lazy" width="1280" height="889">
+    <figcaption><span class="en">Waiting on the admin: <span class="ui">Approve and make it live</span>, <span class="ui">Reject</span>, and <span class="ui">Edit it</span>. Here an update is in approval, so version 1 stays in force.</span><span class="hi">एडमिन के पास: <span class="ui">Approve and make it live</span>, <span class="ui">Reject</span> और <span class="ui">Edit it</span>। यहाँ अपडेट अप्रूवल में है, इसलिए वर्ज़न 1 लागू है।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ admin assign -->
+<section id="admin-assign">
+  <h2><span class="en">Assign members to a role profile</span><span class="hi">रोल प्रोफ़ाइल पर मेंबर्स असाइन करना</span> <span class="who">Admin</span></h2>
+  <ol class="steps en">
+    <li>Open the approved profile → <span class="ui">Members</span> tab.</li>
+    <li>Under <b>Assign members</b>, the sangh's members are listed — those holding the designation first, tagged <span class="ui">Holds this designation</span>; anyone already on another profile is tagged <span class="ui">Already on …</span>.</li>
+    <li>Tick the members and click <span class="ui">Assign selected</span>. They, and their RP Creator, RP Approver and Pracharak, are notified.</li>
+    <li>To take a profile off someone, click <span class="ui">Remove</span> next to them.</li>
+  </ol>
+  <ol class="steps hi">
+    <li>अप्रूव्ड प्रोफ़ाइल खोलें → <span class="ui">Members</span> टैब।</li>
+    <li><b>Assign members</b> में संघ के मेंबर्स दिखते हैं — जिनका यही डेज़िग्नेशन है वे पहले, <span class="ui">Holds this designation</span> के साथ; जो पहले से किसी दूसरी प्रोफ़ाइल पर हैं उन पर <span class="ui">Already on …</span> लिखा होता है।</li>
+    <li>मेंबर्स पर टिक करें और <span class="ui">Assign selected</span> दबाएँ। उन्हें और उनके RP Creator, RP Approver व प्रचारक को सूचना जाती है।</li>
+    <li>किसी से प्रोफ़ाइल हटानी हो तो उसके आगे <span class="ui">Remove</span> दबाएँ।</li>
+  </ol>
+  <figure class="shot">
+    <img src="img/assign.jpg" alt="Members tab with the Assign members box" loading="lazy" width="1280" height="1022">
+    <figcaption><span class="en">The Members tab: who is assigned (with Remove), and the <b>Assign members</b> box with tags for current designation and other profiles.</span><span class="hi">Members टैब: कौन असाइन है (Remove के साथ), और <b>Assign members</b> बॉक्स — डेज़िग्नेशन और दूसरी प्रोफ़ाइल के टैग के साथ।</span></figcaption>
+  </figure>
+  <div class="note"><strong><span class="en">Only the admin assigns</span><span class="hi">असाइन सिर्फ़ एडमिन करते हैं</span></strong><span class="en">Creators cannot assign or remove members. A member who leaves is dropped from the profile automatically.</span><span class="hi">क्रिएटर मेंबर्स असाइन या हटा नहीं सकते। जो मेंबर संस्था छोड़ देता है वह अपने-आप प्रोफ़ाइल से हट जाता है।</span></div>
+</section>
+
+<!-- ============================================================ admin roles -->
+<section id="admin-roles">
+  <h2><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span> <span class="who">Admin</span></h2>
+  <p class="lead en">Who writes and approves a member's role profile comes from these settings.</p>
+  <p class="lead hi">किसी मेंबर की रोल प्रोफ़ाइल कौन लिखेगा और कौन अप्रूव करेगा — यह इन्हीं सेटिंग्स से तय होता है।</p>
+  <ul class="en">
+    <li><b>Assign Roles (PSP) → By Sangh:</b> pick a sangh and set or clear the RP Approver, RP Creator and Pracharak for its members, one at a time or several at once.</li>
+    <li><b>Assign Roles (PSP) → By Member:</b> set the three roles for one member.</li>
+    <li><b>Assign Roles (LDP) → LDP Members:</b> the same for Sevak and Sanghrakshak members.</li>
+    <li><b>Member List</b> shows every member with their sangh, designation and leaders.</li>
+  </ul>
+  <ul class="hi">
+    <li><b>Assign Roles (PSP) → By Sangh:</b> संघ चुनें और उसके मेंबर्स के RP Approver, RP Creator और प्रचारक सेट करें या हटाएँ — एक-एक करके या कई एक साथ।</li>
+    <li><b>Assign Roles (PSP) → By Member:</b> एक मेंबर के तीनों रोल सेट करें।</li>
+    <li><b>Assign Roles (LDP) → LDP Members:</b> सेवक और संघरक्षक मेंबर्स के लिए यही काम।</li>
+    <li><b>Member List</b> में हर मेंबर का संघ, डेज़िग्नेशन और लीडर दिखते हैं।</li>
+  </ul>
+  <figure class="shot">
+    <img src="img/assignroles.jpg" alt="Assign by Sangh page for setting each member's RP Approver, RP Creator and Pracharak" loading="lazy" width="1280" height="889">
+    <figcaption><span class="en">Assign by Sangh: each member's RP Approver, RP Creator and Pracharak.</span><span class="hi">Assign by Sangh: हर मेंबर के RP Approver, RP Creator और प्रचारक।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ admin more -->
+<section id="admin-more">
+  <h2><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span> <span class="who">Admin</span></h2>
+  <ul class="en">
+    <li><b>Create role profiles</b> for any PSP sangh (PSP Approver) or Sanghrakshak / Seva Sangh (LDP Admin). What you submit comes straight back to you to approve.</li>
+    <li><b>Correct an assessment:</b> open it from Assessments and change the ratings — for the current or previous year.</li>
+    <li><b>Designations page:</b> add a designation to any sangh you oversee, and see each designation's holders, origin and role profile.</li>
+    <li>Your actions show as <b>Admin</b> in history and lists.</li>
+  </ul>
+  <ul class="hi">
+    <li>किसी भी PSP संघ (PSP Approver) या संघरक्षक / सेवा संघ (LDP Admin) के लिए <b>रोल प्रोफ़ाइल बनाएँ</b>। आपकी सबमिट की हुई प्रोफ़ाइल अप्रूवल के लिए सीधे आपके पास आती है।</li>
+    <li><b>असेसमेंट सुधारना:</b> Assessments से खोलें और रेटिंग बदलें — मौजूदा या पिछले साल के लिए।</li>
+    <li><b>Designations पेज:</b> अपने दायरे के किसी भी संघ में डेज़िग्नेशन जोड़ें, और हर डेज़िग्नेशन के धारक, स्रोत और रोल प्रोफ़ाइल देखें।</li>
+    <li>हिस्ट्री और लिस्ट में आपके काम <b>Admin</b> के नाम से दिखते हैं।</li>
+  </ul>
+  <figure class="shot">
+    <img src="img/designations.jpg" alt="Designations page with the add form and the list of designations" loading="lazy" width="1280" height="889">
+    <figcaption><span class="en">Designations: add a new one to a sangh, and see every designation with its programme, holders and role profile.</span><span class="hi">Designations: संघ में नया डेज़िग्नेशन जोड़ें, और हर डेज़िग्नेशन का प्रोग्राम, धारक और रोल प्रोफ़ाइल देखें।</span></figcaption>
+  </figure>
+</section>
+
+<!-- ============================================================ members -->
+<section id="members">
+  <h2><span class="en">Members</span><span class="hi">मेंबर्स</span> <span class="who"><span class="en">Member</span><span class="hi">मेंबर</span></span></h2>
+  <ul class="en">
+    <li>Role Profiles shows the role profile assigned to you — mission, outcomes, skills and versions.</li>
+    <li>You are notified when one is assigned to you, and when a new version is approved.</li>
+    <li>Assessments shows your own assessments. LDP members submit their self-rating there; it cannot be changed once submitted.</li>
+  </ul>
+  <ul class="hi">
+    <li>Role Profiles में आपको असाइन की गई रोल प्रोफ़ाइल दिखती है — मिशन, परिणाम, स्किल्स और वर्ज़न।</li>
+    <li>प्रोफ़ाइल असाइन होने पर और नया वर्ज़न अप्रूव होने पर आपको सूचना मिलती है।</li>
+    <li>Assessments में आपके अपने असेसमेंट दिखते हैं। LDP मेंबर वहीं सेल्फ़-रेटिंग सबमिट करते हैं; सबमिट होने के बाद बदल नहीं सकती।</li>
+  </ul>
+</section>
+
+<!-- ============================================================ reports -->
+<section id="reports">
+  <h2><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span> <span class="who">Admin · <span class="en">Leaders</span><span class="hi">लीडर्स</span></span></h2>
+  <p class="lead en">Reports → <b>Role Profile Report</b>.</p>
+  <p class="lead hi">Reports → <b>Role Profile Report</b> खोलें।</p>
+  <ul class="en">
+    <li><b>Stage cards</b> count profiles per stage, plus approved profiles with an update in approval. Click one to filter.</li>
+    <li><b>By sangh and stage</b> — every number is a link to exactly those profiles.</li>
+    <li><b>By programme</b> — the PSP and LDP split.</li>
+    <li><b>Filters:</b> financial year, created from / to, sangh, programme, stage, created by, RP Approver, designation, members assigned, updated (v2+), assessed this year. They apply as you change them; <span class="ui">Clear all</span> resets.</li>
+    <li><b>Export</b> the list with <span class="ui">Excel</span> or <span class="ui">CSV</span>.</li>
+  </ul>
+  <ul class="hi">
+    <li><b>स्टेज कार्ड</b> हर स्टेज की प्रोफ़ाइल गिनते हैं, साथ में वे अप्रूव्ड प्रोफ़ाइल जिनका अपडेट अप्रूवल में है। फ़िल्टर करने के लिए कार्ड पर क्लिक करें।</li>
+    <li><b>संघ और स्टेज के हिसाब से</b> — हर संख्या पर क्लिक करने से वही प्रोफ़ाइल दिखती हैं।</li>
+    <li><b>प्रोग्राम के हिसाब से</b> — PSP और LDP का बँटवारा।</li>
+    <li><b>फ़िल्टर:</b> वित्त वर्ष, बनाने की तारीख़ (से / तक), संघ, प्रोग्राम, स्टेज, किसने बनाई, RP Approver, डेज़िग्नेशन, मेंबर्स असाइन हैं या नहीं, अपडेटेड (v2+), इस साल असेसमेंट हुआ या नहीं। बदलते ही लागू होते हैं; <span class="ui">Clear all</span> से सब हटते हैं।</li>
+    <li>लिस्ट को <span class="ui">Excel</span> या <span class="ui">CSV</span> में <b>एक्सपोर्ट</b> करें।</li>
+  </ul>
+  <figure class="shot">
+    <img src="img/reports.jpg" alt="Role Profile Report with filters, stage cards and the sangh by stage table" loading="lazy" width="1280" height="1022">
+    <figcaption><span class="en">Role Profile Report: filters, stage cards, and the sangh × stage table — every number is clickable.</span><span class="hi">Role Profile Report: फ़िल्टर, स्टेज कार्ड, और संघ × स्टेज टेबल — हर संख्या क्लिक की जा सकती है।</span></figcaption>
+  </figure>
+  <p class="en">The PSP Approver sees every PSP profile and the LDP Admin every LDP one, drafts included; leaders see the profiles they can already see.</p>
+  <p class="hi">PSP Approver को सभी PSP प्रोफ़ाइल और LDP Admin को सभी LDP प्रोफ़ाइल दिखती हैं, ड्राफ़्ट समेत; लीडर्स को वही दिखती हैं जो उन्हें पहले से दिखती हैं।</p>
+</section>
+
+<!-- ============================================================ faq -->
+<section id="faq">
+  <h2><span class="en">Common questions</span><span class="hi">आम सवाल</span></h2>
+  <details>
+    <summary><span class="en">I don't see the Edit button.</span><span class="hi">मुझे Edit बटन नहीं दिख रहा।</span></summary>
+    <ul class="en">
+      <li>After your RP Approver approves, only the PSP Approver / LDP Admin can edit until final approval.</li>
+      <li>For an approved profile use <span class="ui">Update RP</span> instead.</li>
+      <li>You can only edit profiles you wrote, or that are waiting on you.</li>
+    </ul>
+    <ul class="hi">
+      <li>RP Approver के अप्रूव करने के बाद फ़ाइनल अप्रूवल तक सिर्फ़ PSP Approver / LDP Admin एडिट कर सकते हैं।</li>
+      <li>अप्रूव्ड प्रोफ़ाइल के लिए <span class="ui">Update RP</span> इस्तेमाल करें।</li>
+      <li>आप सिर्फ़ अपनी लिखी हुई, या आपके पास इंतज़ार कर रही प्रोफ़ाइल एडिट कर सकते हैं।</li>
+    </ul>
+  </details>
+  <details>
+    <summary><span class="en">The designation I need isn't in the list.</span><span class="hi">मुझे जो डेज़िग्नेशन चाहिए वह लिस्ट में नहीं है।</span></summary>
+    <p class="en">Click <span class="ui">+ New designation</span> under the list (or use the Designations page) and add it to the sangh. A designation that already has a role profile is greyed out — open that profile and update it instead.</p>
+    <p class="hi">लिस्ट के नीचे <span class="ui">+ New designation</span> पर क्लिक करें (या Designations पेज इस्तेमाल करें) और उसे संघ में जोड़ें। जिस डेज़िग्नेशन की रोल प्रोफ़ाइल पहले से है वह ग्रे दिखता है — उस प्रोफ़ाइल को खोलकर अपडेट करें।</p>
+  </details>
+  <details>
+    <summary><span class="en">Why did my profile skip my RP Approver?</span><span class="hi">मेरी प्रोफ़ाइल मेरे RP Approver के पास क्यों नहीं गई?</span></summary>
+    <p class="en">Either you are your own RP Approver (or none is recorded), or you are in Sanghrakshak / Seva Sangh writing a PSP profile. See <a href="#approval-route">Where it goes for approval</a>.</p>
+    <p class="hi">या तो आप खुद अपने RP Approver हैं (या कोई दर्ज नहीं है), या आप संघरक्षक / सेवा संघ में रहकर PSP प्रोफ़ाइल लिख रहे हैं। देखें <a href="#approval-route">अप्रूवल किसके पास जाता है</a>।</p>
+  </details>
+  <details>
+    <summary><span class="en">Approved, but my member doesn't see it.</span><span class="hi">प्रोफ़ाइल अप्रूव है, लेकिन मेंबर को नहीं दिख रही।</span></summary>
+    <p class="en">Approval does not assign anyone. Ask the admin to assign the member from the profile's Members tab.</p>
+    <p class="hi">अप्रूवल से कोई असाइन नहीं होता। एडमिन से कहें कि प्रोफ़ाइल के Members टैब से मेंबर को असाइन करें।</p>
+  </details>
+  <details>
+    <summary><span class="en">Why don't Sanghrakshak Sangh members appear under My Members?</span><span class="hi">संघरक्षक संघ के मेंबर My Members में क्यों नहीं दिखते?</span></summary>
+    <p class="en">In LDP sanghs a member appears only for their RP Creator; being their RP Approver is not enough.</p>
+    <p class="hi">LDP संघ में मेंबर सिर्फ़ अपने RP Creator को दिखता है; सिर्फ़ RP Approver होना काफ़ी नहीं है।</p>
+  </details>
+  <details>
+    <summary><span class="en">Can I change an assessment after saving?</span><span class="hi">क्या सेव करने के बाद असेसमेंट बदल सकते हैं?</span></summary>
+    <p class="en">PSP: no — it is final for the creator; the PSP Approver can correct it. LDP: the self-rating is final once submitted; the leader's final rating follows it.</p>
+    <p class="hi">PSP: नहीं — क्रिएटर के लिए यह फ़ाइनल है; PSP Approver इसे सुधार सकते हैं। LDP: सेल्फ़-रेटिंग सबमिट होते ही फ़ाइनल है; उसके बाद लीडर फ़ाइनल रेटिंग देता है।</p>
+  </details>
+  <details>
+    <summary><span class="en">Where do I see an older version?</span><span class="hi">पुराना वर्ज़न कहाँ देखें?</span></summary>
+    <p class="en">Open the profile → <span class="ui">Versions</span> → the version's row. It shows the wording as approved, which years used it, and a PDF.</p>
+    <p class="hi">प्रोफ़ाइल खोलें → <span class="ui">Versions</span> → उस वर्ज़न की लाइन। इसमें अप्रूव हुआ कंटेंट, किन सालों में लागू रहा, और PDF मिलती है।</p>
+  </details>
+</section>
+
+<footer><span class="en">Pakka Role Profile portal · This manual describes the portal as of October 2026.</span><span class="hi">पक्का रोल प्रोफ़ाइल पोर्टल · यह मैनुअल अक्टूबर 2026 के पोर्टल के अनुसार है।</span></footer>
+</main>
+</div>
+
+<script>
+  // English / Hindi toggle. The choice is remembered on this device when storage is available.
+  (function () {
+    var root = document.documentElement;
+    function setLang(lang) {
+      root.setAttribute('data-lang', lang);
+      root.setAttribute('lang', lang);
+      document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
+      });
+      try { localStorage.setItem('rpManualLang', lang); } catch (e) {}
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('rpManualLang'); } catch (e) {}
+    if (saved === 'hi' || saved === 'en') setLang(saved);
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang')); });
+    });
+  })();
+</script>
+</body>
+</html>

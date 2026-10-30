@@ -142,6 +142,12 @@ approval — which is theirs — and they approve it themselves; the Create form
 
 ## Who gives final approval
 
+The first stage is the creator's own RP Approver (from their `tbl_employee` row). One
+exception: a member of an LDP sangh (Sanghrakshak / Seva Sangh) who writes a **PSP**
+profile skips it — their RP Approver is on the LDP side — so the profile goes straight to the
+PSP Approver, for new profiles and updates alike. Their LDP profiles still go to that RP
+Approver first.
+
 Every profile is approved in two stages: the creator's RP Approver, then a final approver.
 The final approver depends on the programme:
 
@@ -275,6 +281,44 @@ role profile" picker at the top of the Create form. All three land on
 key outcomes, attributes, skills and weights, leaves the designation blank, and saves
 through the normal create path. The source is untouched — this is for
 roles that are close in shape but need their own weights or a few different skills.
+
+## User manual
+
+`public/manual/` holds the user manual — one page with an **English / हिंदी** toggle and
+screenshots of the portal, for the admin, leaders and members. It is served at `/manual/` to
+signed-in users only (the screenshots show real members) and linked as **User Manual** in
+everyone's sidebar. Edit `public/manual/index.html`; images are in `public/manual/img/`.
+
+## Reports
+
+**Reports → Role Profile Report** (`/reports/role-profiles`) counts role profiles by stage:
+Draft, Awaiting RP Approver, Awaiting final approval, Approved, Rejected, plus "Update
+awaiting approval" (approved profiles with an update in approval or sent back). It shows
+stage cards, a sangh × stage table, a PSP / LDP split, and the full list with Excel / CSV
+export. Every number links to the matching filtered view.
+
+Filters: financial year created, created from / to, sangh, programme, stage, created by,
+RP Approver, designation search, members assigned or not, updated (v2+) or first version,
+and assessed this year or not. The PSP Approver reports on every PSP profile and the LDP
+Admin on every LDP one, drafts included; RP Creators and RP Approvers on the profiles they
+can already see. The logic is in `src/models/report.js`.
+
+## Updating an approved role profile
+
+The creator can update an approved profile **at any time in the financial year** — the
+**Update RP** button on the profile and in the list. The update goes through the same
+approval as before and, once approved, becomes the next version (v2, v3 …).
+
+Until then the **version in force keeps applying**: members stay assigned and see it, the
+Members tab stays, and assessments run against that version. The page shows the proposed
+update with a banner linking to the version in force. If the update is rejected, the version
+in force simply carries on, the designation stays taken, and editing again is still an
+update — it never turns back into a draft. A profile is "live" from its first approval on
+(`isLive()` in `src/models/roleProfile.js`).
+
+When an update is approved mid-year, the rest of that year runs on the new version;
+assessments already written keep the version they were made against. Every version stays
+viewable, with its own PDF, under the **Versions** tab.
 
 ## Versions and the yearly review
 

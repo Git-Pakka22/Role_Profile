@@ -57,7 +57,7 @@
             <div class="rp-year-strip">
                 <span class="l">Financial years this version applies to:</span>
                 <% years.forEach(y => { %>
-                    <span class="rp-year-tag" title="<%= outcomeLabels[y.outcome] || y.outcome %><%= y.reviewed_by_name ? ' — ' + y.reviewed_by_name : '' %>"><%= y.financial_year %></span>
+                    <span class="rp-year-tag" title="<%= outcomeLabels[y.outcome] || y.outcome %><%= y.reviewed_by_name ? ' — ' + personName(y.reviewed_by, y.reviewed_by_name) : '' %>"><%= y.financial_year %></span>
                 <% }) %>
             </div>
         <% } %>

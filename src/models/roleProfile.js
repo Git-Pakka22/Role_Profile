@@ -192,6 +192,21 @@ function statusLabel(profile) {
 }
 
 /**
+ * Is a version of this profile in force? Once a profile has been approved it stays live on
+ * its latest frozen version — through any later update going for approval, and through that
+ * update being rejected — until the next approval replaces it. Members keep it, and it can
+ * still be assessed, the whole time.
+ */
+function isLive(profile) {
+  return profile.status === STATUS.APPROVED || !!profile.admin_action_at;
+}
+
+/** Live but with an update waiting for approval (or sent back), so the row holds the proposal. */
+function hasPendingUpdate(profile) {
+  return isLive(profile) && profile.status !== STATUS.APPROVED;
+}
+
+/**
  * Someone sees a profile when they wrote it, when it is waiting on them as RP Approver,
  * or — once approved — when it actually applies to them. Drafts stay private. The PSP
  * Approver sees every PSP profile and the LDP Admin every LDP one.
@@ -207,7 +222,7 @@ async function visibleTo(empCode, isAdmin, isLdpAdmin = false) {
     sql += ` AND (
                p.created_by = ?
             OR (p.rp_approver_code = ? AND p.status <> ?)
-            OR (p.status = ? AND ${appliesToPersonSql()})
+            OR ((p.status = ? OR p.admin_action_at IS NOT NULL) AND ${appliesToPersonSql()})
             ${reach.map((r) => `OR ${r}`).join(' ')}
            )`;
     params.push(empCode, empCode, STATUS.DRAFT, STATUS.APPROVED, ACTIVE, empCode);
@@ -223,7 +238,7 @@ async function canView(profile, empCode, isAdmin, isLdpAdmin = false) {
   if (profile.status === STATUS.DRAFT) return false;
   if (profile.rp_approver_code === empCode) return true;
   if (isFinalApprover(profile, isAdmin, isLdpAdmin)) return true;
-  if (profile.status !== STATUS.APPROVED) return false;
+  if (!isLive(profile)) return false;
 
   const members = await effectiveMembers(profile);
   return members.some((m) => m.emp_code === empCode);
@@ -284,9 +299,13 @@ function canSubmit(profile, empCode) {
   );
 }
 
-/** Is this edit a revision of something already approved, rather than a first draft? */
+/**
+ * Is this edit an update of something already approved, rather than a first draft? True for
+ * an approved profile and for one whose update was rejected — either way a version is in
+ * force, so the change goes for approval as the next version and never becomes a draft.
+ */
 function isRevision(profile) {
-  return profile.status === STATUS.APPROVED;
+  return isLive(profile) && ![STATUS.PENDING_SEVAK, STATUS.PENDING_ADMIN].includes(profile.status);
 }
 
 /** What is waiting on this person: final approvals for their programme(s), else RP approvals. */
@@ -355,7 +374,7 @@ async function explicitMembers(profileId) {
  * neither shown nor assessed.
  */
 async function effectiveMembers(profile) {
-  if (profile.status !== STATUS.APPROVED) return [];
+  if (!isLive(profile)) return [];
 
   const out = [];
   for (const row of await explicitMembers(profile.id)) {
@@ -503,7 +522,7 @@ async function takenDesignations(exceptId = null) {
   const rows = await db.query(
     `SELECT id, sangh_code, TRIM(designation_name) AS designation, status, created_by, created_by_name
      FROM rp_role_profiles
-     WHERE status <> ? ${exceptId ? 'AND id <> ?' : ''}`,
+     WHERE (status <> ? OR admin_action_at IS NOT NULL) ${exceptId ? 'AND id <> ?' : ''}`,
     exceptId ? [STATUS.REJECTED, exceptId] : [STATUS.REJECTED]
   );
 
@@ -539,7 +558,7 @@ async function lookupByDesignation(sanghInput, designationInput) {
 
   return db.first(
     `SELECT p.* FROM rp_role_profiles p
-     WHERE p.status <> ?
+     WHERE (p.status <> ? OR p.admin_action_at IS NOT NULL)
        AND LOWER(TRIM(p.designation_name)) = ?${sanghClause}
      ORDER BY FIELD(p.status, ?, ?, ?, ?) ASC, p.id DESC
      LIMIT 1`,
@@ -772,7 +791,7 @@ module.exports = {
   MIN_OUTCOMES_LDP, MAX_OUTCOMES_LDP, PROGRAM,
   STATUS, STATUS_LABELS,
   createProfile, updateProfile, find, fullProfile,
-  visibleTo, canView, canEdit, skippedRpApprover, finalApprover, isFinalApprover, statusLabel, isPendingEdit, canSubmit, isRevision, awaiting, canActOn,
+  visibleTo, canView, canEdit, isLive, hasPendingUpdate, skippedRpApprover, finalApprover, isFinalApprover, statusLabel, isPendingEdit, canSubmit, isRevision, awaiting, canActOn,
   membersWithDesignation, explicitMembers, effectiveMembers,
   assignMembers, assignedMemberName, unassignMember, assignableMembers,
   sanghsForLeader, designationsForLeader, takenDesignations, profileForDesignation,

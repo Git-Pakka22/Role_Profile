@@ -1275,7 +1275,7 @@ table.dataTable tbody > tr {
     background: var(--bg-card); border: 1px solid var(--border-color); cursor: pointer; }
 .rp-assign-item:hover { border-color: var(--sand-dark); }
 .rp-assign-item input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--maroon); }
-.rp-assign-item span { display: flex; flex-direction: column; }
+.rp-assign-item > span { display: flex; flex-direction: column; align-items: flex-start; }
 .rp-assign-item.is-done { opacity: 0.6; background: var(--sand-light); cursor: default; }
 .rp-hint { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 0.68rem; font-weight: 700; }
 .rp-hint i { font-size: 12px; }
@@ -1672,3 +1672,127 @@ table.dataTable tbody tr.rp-selected { background: rgba(248,169,27,0.1) !importa
     color: var(--maroon);
     font-weight: 700;
 }
+
+/* ===========================
+   ROLE PROFILE REPORT
+=========================== */
+.rp-rep-filters {
+    background: var(--bg-main, #faf7f2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+}
+.rp-rep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px 14px;
+}
+.rp-rep-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0;
+}
+.rp-rep-grid .rp-select,
+.rp-rep-grid .rp-input {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+}
+.rp-rep-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+.rp-rep-actions .rp-sub { margin-left: auto; }
+
+.rp-rep-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.rp-rep-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-top: 4px solid var(--rep-c, var(--maroon));
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+.rp-rep-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); text-decoration: none; color: var(--text-primary); }
+.rp-rep-card.active { box-shadow: 0 0 0 2px var(--rep-c, var(--maroon)); }
+.rp-rep-card i { font-size: 20px; color: var(--rep-c, var(--maroon)); }
+.rp-rep-card .n { font-size: 1.7rem; font-weight: 800; line-height: 1.1; }
+.rp-rep-card .l { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+
+/* One colour per stage, shared by cards, bars and legend dots */
+.rp-rep-all            { --rep-c: var(--maroon); }
+.rp-rep-draft          { --rep-c: #8a8f98; }
+.rp-rep-pending_sevak  { --rep-c: #d9822b; }
+.rp-rep-pending_admin  { --rep-c: #1ea2dc; }
+.rp-rep-approved       { --rep-c: #3f7d4e; }
+.rp-rep-rejected       { --rep-c: #c0392b; }
+.rp-rep-update_pending { --rep-c: #7b5ea7; }
+
+.rp-rep-matrix th.num, .rp-rep-matrix td.num { text-align: center; white-space: nowrap; }
+.rp-rep-matrix tfoot th { border-top: 2px solid var(--border-color); }
+.rp-rep-num {
+    display: inline-block;
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    background: rgba(163, 36, 60, 0.08);
+    color: var(--maroon);
+    text-decoration: none;
+}
+.rp-rep-num:hover { background: var(--maroon); color: #fff; text-decoration: none; }
+.rp-rep-zero { color: var(--text-muted); opacity: 0.5; }
+
+.rp-rep-programs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.rp-rep-program {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    background: var(--bg-card);
+}
+.rp-rep-program .head { margin-bottom: 10px; }
+.rp-rep-program .bar { display: flex; gap: 3px; height: 26px; border-radius: 8px; overflow: hidden; }
+.rp-rep-program .seg {
+    background: var(--rep-c);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    text-decoration: none;
+}
+.rp-rep-program .seg:hover { filter: brightness(0.9); color: #fff; text-decoration: none; }
+.rp-rep-program .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); }
+.rp-rep-program .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--rep-c); margin-right: 5px; }
+.rp-rep-matrix td a { color: var(--text-primary); text-decoration: none; }
+.rp-rep-matrix td a:hover { color: var(--maroon); }
+#reportTable td a { color: var(--text-primary); text-decoration: none; }
+#reportTable td a:hover { color: var(--maroon); text-decoration: underline; }
+
+/* Role profile list: action buttons wrap instead of widening the table */
+#profileTable .rp-actions { display: grid; grid-template-columns: 1fr; gap: 4px; white-space: nowrap; }
+#profileTable .rp-actions .rp-edit-btn { justify-content: flex-start; padding: 4px 9px; font-size: 0.74rem; }
+#profileTable td, #profileTable th { padding-left: 10px; padding-right: 10px; }
+#profileTable .rp-desig-cell { min-width: 0; max-width: 230px; }

@@ -75,7 +75,7 @@
             <div class="table-responsive">
                 <table class="display" id="profileTable" style="width:100%">
                     <thead>
-                        <tr><th>Designation</th><th>Sangh</th><th>Created by</th><th>Status</th><th><%= chosen %></th><th>Created</th><th>Action</th></tr>
+                        <tr><th>Designation</th><th>Sangh</th><th>Created by</th><th>Status</th><th><%= chosen %></th><th>Last updated</th><th>Action</th></tr>
                     </thead>
                     <tbody>
                     <% profiles.forEach(p => { const status = p.status; %>
@@ -87,7 +87,10 @@
                                 </span>
                             </td>
                             <td><span class="emp-sangh"><%= p.sangh_name || '—' %></span><span class="rp-prog rp-prog-<%= p.program === 'ldp' ? 'ldp' : 'psp' %>"><%= p.program === 'ldp' ? 'LDP' : 'PSP' %></span></td>
-                            <td><span class="emp-sangh"><%= personName(p.created_by, p.created_by_name) %></span></td>
+                            <td>
+                                <span class="emp-sangh"><%= personName(p.created_by, p.created_by_name) %></span>
+                                <div class="rp-sub">created <%= fmtDate(p.created_at) %></div>
+                            </td>
                             <td>
                                 <span class="rp-status rp-status-<%= status %>">
                                     <i class="mdi <%= statusIcons[status] || 'mdi-help-circle-outline' %>"></i>
@@ -119,16 +122,21 @@
                                     <span class="rp-none">not yet approved</span>
                                 <% } %>
                             </td>
-                            <td data-order="<%= p.created_at %>">
-                                <span class="emp-sangh"><%= fmtDate(p.created_at) %></span>
+                            <% const lastChange = p.updated_at || p.created_at; %>
+                            <td data-order="<%= lastChange ? new Date(lastChange).getTime() : 0 %>">
+                                <span class="emp-sangh"><%= fmtDate(lastChange) %></span>
+                                <% if (lastChange) { %><div class="rp-sub"><%= fmtDateTime(lastChange).split(', ').pop() %></div><% } %>
                             </td>
                             <td>
                                 <div class="rp-actions">
                                     <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>"><i class="mdi mdi-eye-outline"></i> View</a>
                                     <% if (p.fy_can_review && fyOpen) { %>
                                         <a class="rp-edit-btn rp-edit-btn-due" href="/role-profiles/<%= p.id %>?tab=versions"><i class="mdi mdi-calendar-check-outline"></i> Review <%= chosen %></a>
-                                    <% } else if (status === S.APPROVED && p.created_by === me.code) { %>
+                                    <% } else if (p.is_live && p.created_by === me.code) { %>
                                         <a class="rp-edit-btn" href="/assessments?fy=<%= encodeURIComponent(chosen) %>&profile=<%= p.id %>"><i class="mdi mdi-clipboard-edit-outline"></i> Assess</a>
+                                    <% } %>
+                                    <% if (p.can_update) { %>
+                                        <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/edit" title="Update this approved role profile; it goes for approval as a new version"><i class="mdi mdi-file-document-edit-outline"></i> Update RP</a>
                                     <% } %>
                                     <% if (p.can_edit) { %>
                                         <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/edit"><i class="mdi mdi-pencil-outline"></i> Edit</a>
