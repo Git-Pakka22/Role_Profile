@@ -1,177 +1,401 @@
 <!DOCTYPE html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-role="all">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Role Profile Portal Manual</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* The portal's own palette: maroon brand on a warm paper ground, olive for "done", sky for "waiting".
-     Layout: sticky contents rail on the left, one reading column, each section in English and Hindi. */
+  /* The portal itself: maroon sidebar, warm cream canvas, white cards, olive for done, sky for waiting.
+     Layout: fixed portal-style sidebar + sticky top bar with search, role filter and language; card sections. */
   --brand: #a3243c;
+  --brand-dark: #6b1628;
   --brand-soft: rgba(163, 36, 60, 0.08);
-  --ink: #1d1f24;
-  --muted: #5d6270;
-  --paper: #fbf8f4;
+  --ink: #1f2430;
+  --muted: #646a78;
+  --canvas: #f8f4ee;
   --card: #ffffff;
-  --line: #e9e2d8;
+  --line: #ebe4da;
+  --sand: #fbf3e6;
   --ok: #3f7d4e;
   --wait: #1a8fc4;
   --warn: #b5651d;
   --bad: #b8322a;
-  --font-display: "Manrope", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Inter", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
+  --font: "Inter", "Noto Sans Devanagari", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --brand: #e0607a; --brand-soft: rgba(224, 96, 122, 0.12); --ink: #ecebe8; --muted: #a7a9b0;
-    --paper: #17171a; --card: #202024; --line: #34343a; --ok: #7cbf8b; --wait: #5cb8e6;
-    --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
+    --brand: #e0607a; --brand-dark: #5a1323; --brand-soft: rgba(224, 96, 122, 0.12);
+    --ink: #ecebe8; --muted: #a9abb3; --canvas: #151517; --card: #1f1f23; --line: #33333a; --sand: #2a2420;
+    --ok: #7cbf8b; --wait: #5cb8e6; --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --brand: #e0607a; --brand-soft: rgba(224, 96, 122, 0.12); --ink: #ecebe8; --muted: #a7a9b0;
-  --paper: #17171a; --card: #202024; --line: #34343a; --ok: #7cbf8b; --wait: #5cb8e6;
-  --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
+  --brand: #e0607a; --brand-dark: #5a1323; --brand-soft: rgba(224, 96, 122, 0.12);
+  --ink: #ecebe8; --muted: #a9abb3; --canvas: #151517; --card: #1f1f23; --line: #33333a; --sand: #2a2420;
+  --ok: #7cbf8b; --wait: #5cb8e6; --warn: #e2a15c; --bad: #ec7b70; color-scheme: dark;
 }
 
-/* One language at a time: every text block exists twice, tagged .en / .hi */
+/* One language at a time */
 html[data-lang="hi"] .en { display: none !important; }
 html:not([data-lang="hi"]) .hi { display: none !important; }
 html[data-lang="hi"] body { line-height: 1.75; }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 16px; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.62 var(--font-body); }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 15.5px/1.6 var(--font); }
 a { color: var(--brand); }
-a:focus-visible, summary:focus-visible, button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-.shell { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 40px; max-width: 1220px; margin: 0 auto; padding: 32px 24px 80px; }
-nav.toc { position: sticky; top: 20px; align-self: start; font-size: 0.9rem; max-height: calc(100vh - 40px); overflow-y: auto; }
-.toc .brandmark { font: 800 1.05rem/1.25 var(--font-display); color: var(--brand); margin-bottom: 12px; }
-.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.toc a { display: block; padding: 6px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; }
-.toc a:hover { background: var(--brand-soft); color: var(--brand); }
-.toc .group { margin: 14px 0 4px 10px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic-sm { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-.langswitch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); margin-bottom: 16px; }
-.langswitch button { border: 0; background: transparent; color: var(--muted); font: 600 0.88rem var(--font-body); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
-.langswitch button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+/* ---------------------------------------------------------------- frame */
+.app { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 100vh; }
 
-main { min-width: 0; }
-header.top { margin-bottom: 26px; }
-header.top .eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); }
-h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.25; }
-h1 { font-size: 2.2rem; font-weight: 800; margin: 6px 0 10px; }
-header.top p { max-width: 68ch; color: var(--muted); margin: 0; font-size: 1.05rem; }
+.side {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: linear-gradient(180deg, var(--brand) 0%, #8b1e33 55%, var(--brand-dark) 100%);
+  color: #fff; display: flex; flex-direction: column;
+}
+.brand { display: flex; align-items: center; gap: 12px; padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.14); }
+.brand-ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.16); display: grid; place-items: center; }
+.brand-ic .ic { width: 22px; height: 22px; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.brand-text b { font-size: 1.02rem; font-weight: 800; }
+.brand-text small { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; margin-top: 2px; }
 
-section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin-bottom: 22px; }
-section h2 { font-size: 1.45rem; font-weight: 800; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.lead { color: var(--muted); max-width: 68ch; margin: 0 0 16px; }
-h3 { font-size: 1.08rem; font-weight: 700; margin: 22px 0 8px; }
-p, li { max-width: 72ch; }
+.nav { list-style: none; margin: 0; padding: 10px 12px 20px; }
+.nav-group { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; padding: 16px 12px 6px; }
+.nav a {
+  display: flex; align-items: center; gap: 11px; padding: 8px 12px; border-radius: 10px;
+  color: rgba(255,255,255,0.86); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+}
+.nav a .ic { width: 18px; height: 18px; opacity: 0.85; }
+.nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav a.active { background: #fbe9cf; color: var(--brand); font-weight: 700; }
+.nav a.active .ic { opacity: 1; }
+.nav li.filtered-out { display: none; }
+.side-foot { margin-top: auto; padding: 16px 20px; font-size: 0.74rem; opacity: 0.6; border-top: 1px solid rgba(255,255,255,0.12); }
 
-.who { font: 700 0.7rem/1 var(--font-body); letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px;
+  padding: 12px 28px; background: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.top-title { font-weight: 700; font-size: 1.02rem; margin-right: auto; }
+.search {
+  display: flex; align-items: center; gap: 8px; width: min(340px, 40vw);
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--canvas); color: var(--muted);
+}
+.search:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.search input { border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; width: 100%; }
+.seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--canvas); border: 1px solid var(--line); gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--brand); color: #fff; }
+.back {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px;
+  background: var(--brand-soft); color: var(--brand); font-weight: 600; font-size: 0.85rem; text-decoration: none;
+}
+.back:hover { background: var(--brand); color: #fff; }
+.icon-btn { border: 1px solid var(--line); background: var(--card); width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; }
+.menu-btn { display: none; }
 
-ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
-ol.steps > li { counter-increment: s; position: relative; padding: 2px 0 2px 42px; }
-ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font: 700 0.85rem/28px var(--font-body); text-align: center; }
-ul { padding-left: 1.2em; }
-li + li { margin-top: 4px; }
+.content { padding: 26px 28px 70px; display: grid; gap: 20px; max-width: 1180px; width: 100%; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 2px rgba(16,24,40,0.04), 0 6px 18px rgba(16,24,40,0.04); }
 
-.ui { font-weight: 600; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); white-space: nowrap; font-family: var(--font-body); }
-.tablewrap { overflow-x: auto; margin: 12px 0; }
-table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
-td.y { color: var(--ok); font-weight: 700; }
+/* ---------------------------------------------------------------- hero */
+.hero { padding: 26px 28px; background: linear-gradient(135deg, var(--sand), var(--card) 60%); }
+.hero-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 18px; margin-bottom: 20px; }
+.eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand); }
+.hero h1 { margin: 4px 0 6px; font-size: 1.85rem; font-weight: 800; letter-spacing: -0.01em; text-wrap: balance; }
+.hero p { margin: 0; color: var(--muted); max-width: 52ch; }
+.roles { display: flex; flex-direction: column; gap: 6px; }
+.roles-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.roles .seg { background: var(--card); }
+
+.tasks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.task {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--card); text-decoration: none; color: var(--ink);
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+.task:hover { border-color: var(--brand); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(163,36,60,0.1); }
+.task-ic { width: 40px; height: 40px; border-radius: 11px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; flex: none; }
+.task-text { display: flex; flex-direction: column; min-width: 0; }
+.task-text b { font-size: 0.93rem; line-height: 1.3; }
+.task-text small { color: var(--muted); font-size: 0.78rem; }
+.task-go { margin-left: auto; color: var(--muted); }
+.task:hover .task-go { color: var(--brand); }
+.task.filtered-out { display: none; }
+
+/* ---------------------------------------------------------------- sections */
+.sec { padding: 24px 28px; }
+.sec.filtered-out { display: none; }
+.sec-title { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0 0 12px; font-size: 1.32rem; font-weight: 800; letter-spacing: -0.005em; text-wrap: balance; }
+.sec-ic { width: 40px; height: 40px; border-radius: 12px; background: var(--brand); color: #fff; display: grid; place-items: center; flex: none; }
+.who { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+.lead { color: var(--muted); margin: 0 0 14px; max-width: 72ch; }
+.sec h3 { font-size: 1.02rem; font-weight: 700; margin: 22px 0 8px; display: flex; align-items: center; gap: 8px; }
+.sec h3::before { content: ""; width: 6px; height: 18px; border-radius: 3px; background: var(--brand); }
+.sec p, .sec li { max-width: 76ch; }
+.sec ul { padding-left: 1.2em; margin: 8px 0; }
+.sec ul li { margin: 5px 0; }
+.sec ul li::marker { color: var(--brand); }
+
+/* Steps: numbered cards */
+ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 12px 0 4px; display: grid; gap: 10px; }
+ol.steps > li {
+  counter-increment: s; position: relative; padding: 13px 16px 13px 58px; border-radius: 14px;
+  background: var(--canvas); border: 1px solid var(--line); max-width: none;
+}
+ol.steps > li::before {
+  content: counter(s); position: absolute; left: 14px; top: 12px; width: 30px; height: 30px; border-radius: 9px;
+  background: var(--brand); color: #fff; font-weight: 800; font-size: 0.86rem; display: grid; place-items: center;
+}
+
+.ui { font-weight: 600; font-size: 0.86em; padding: 2px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--card); white-space: nowrap; box-shadow: 0 1px 0 var(--line); }
+
+.tablewrap { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 14px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 700; background: var(--sand); }
+td.y { color: var(--ok); font-weight: 600; }
+td.y::before { content: "✓ "; }
 td.n { color: var(--muted); }
 
-.note { border-left: 4px solid var(--wait); background: color-mix(in srgb, var(--wait) 8%, transparent); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 14px 0; max-width: 76ch; }
-.note.warn { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 9%, transparent); }
-.note > strong { display: block; margin-bottom: 2px; }
+.note { display: block; border: 1px solid color-mix(in srgb, var(--wait) 30%, var(--line)); background: color-mix(in srgb, var(--wait) 7%, var(--card)); padding: 14px 16px 14px 18px; border-radius: 14px; margin: 14px 0; max-width: 80ch; border-left: 4px solid var(--wait); }
+.note.warn { border-color: color-mix(in srgb, var(--warn) 30%, var(--line)); border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 7%, var(--card)); }
+.note > strong { display: block; margin-bottom: 3px; }
 
-figure.shot { margin: 18px 0 6px; }
-figure.shot img { display: block; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); }
-figure.shot figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
-
-.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 6px; }
-.stage { padding: 8px 13px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: 1.5px solid currentColor; }
-.stage.draft { color: var(--muted); } .stage.rp { color: var(--warn); } .stage.final { color: var(--wait); }
-.stage.ok { color: var(--ok); } .stage.bad { color: var(--bad); }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 8px; padding: 14px; border-radius: 14px; background: var(--canvas); border: 1px solid var(--line); }
+.stage { padding: 7px 12px; border-radius: 999px; font-weight: 600; font-size: 0.84rem; background: var(--card); border: 1.5px solid currentColor; }
+.stage.draft { color: var(--muted); } .stage.rp { color: var(--warn); } .stage.final { color: var(--wait); } .stage.ok { color: var(--ok); }
 .arrow { color: var(--muted); font-weight: 700; }
 
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 12px; }
-.tile { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
-.tile h4 { margin: 0 0 4px; font: 700 0.98rem/1.3 var(--font-display); }
-.tile p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; background: var(--canvas); }
+.tile h4 { margin: 0 0 4px; font-size: 0.95rem; font-weight: 700; }
+.tile p { margin: 0; color: var(--muted); font-size: 0.88rem; }
 
-details { border-top: 1px solid var(--line); padding: 12px 0; }
-details:last-of-type { border-bottom: 1px solid var(--line); }
-summary { cursor: pointer; font-weight: 600; }
-details p, details ul { color: var(--muted); margin: 8px 0 0; }
-footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
-
-@media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; gap: 18px; padding: 20px 16px 60px; }
-  nav.toc { position: static; max-height: none; }
-  .toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .toc .group { grid-column: 1 / -1; }
-  section { padding: 20px 18px; }
-  h1 { font-size: 1.75rem; }
+/* Screenshots: a framed preview at reading size, full size on click */
+figure.shot { margin: 18px 0 6px; max-width: 760px; }
+.shot-frame {
+  display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  background: var(--card); cursor: zoom-in; text-align: left;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.10); transition: transform .15s, box-shadow .15s;
 }
+.shot-frame:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(16, 24, 40, 0.16); }
+.shot-bar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; background: var(--sand); border-bottom: 1px solid var(--line); }
+.shot-bar i { width: 10px; height: 10px; border-radius: 50%; background: #e3c7b0; }
+.shot-bar i:nth-child(1) { background: #e58a7c; } .shot-bar i:nth-child(2) { background: #e9c46a; } .shot-bar i:nth-child(3) { background: #8fbf86; }
+.shot-zoom { margin-left: auto; color: var(--muted); display: inline-flex; }
+.shot-frame img { display: block; width: 100%; height: auto; }
+figure.shot figcaption { font-size: 0.84rem; color: var(--muted); margin-top: 8px; padding-left: 2px; }
+
+details { border: 1px solid var(--line); border-radius: 12px; padding: 0; margin: 8px 0; background: var(--canvas); }
+summary { cursor: pointer; font-weight: 600; padding: 13px 16px; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-weight: 700; color: var(--brand); }
+details[open] summary::after { content: "–"; }
+details > *:not(summary) { margin: 0 16px 14px; color: var(--muted); }
+
+.no-results { padding: 30px; display: flex; align-items: center; gap: 14px; color: var(--muted); }
+.no-results .ic { width: 28px; height: 28px; }
+
+/* ---------------------------------------------------------------- lightbox */
+.lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(15, 12, 14, 0.82); display: grid; place-items: center; padding: 30px; }
+.lightbox[hidden] { display: none; }
+.lightbox figure { margin: 0; max-width: min(1300px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; }
+.lightbox img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 12px; background: #fff; }
+.lightbox figcaption { color: #f1ece6; font-size: 0.9rem; text-align: center; }
+.lb-close { position: absolute; top: 18px; right: 18px; background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+/* ---------------------------------------------------------------- narrow */
+.scrim { display: none; }
+@media (max-width: 960px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: fixed; z-index: 40; left: 0; top: 0; width: 280px; transform: translateX(-100%); transition: transform .2s; }
+  .side.open { transform: none; }
+  .scrim:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.35); }
+  .menu-btn { display: grid; }
+  .topbar { padding: 10px 16px; flex-wrap: wrap; }
+  .search { order: 5; width: 100%; }
+  .content { padding: 18px 16px 60px; }
+  .sec, .hero { padding: 20px 18px; }
+  .back span { display: none; }
+}
+
 </style>
 </head>
 <body>
-<div class="shell">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5 3.5-5 3.5z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 13.6c3 .2 5.5 2.2 5.5 5.4"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 13l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M19 8v6M16 11h6"/></symbol>
+    <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4 3.4-7 7.5-7s7.5 3 7.5 7"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M8 16v-4M12 16V8M16 16v-6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.2v.1"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
+  </defs>
+</svg>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="brand-ic"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>
+      <span class="brand-text"><b><span class="en">Pakka Role Profile</span><span class="hi">पक्का रोल प्रोफ़ाइल</span></b>
+      <small><span class="en">Help &amp; user manual</span><span class="hi">मदद और यूज़र मैनुअल</span></small></span>
+    </div>
+    <nav aria-label="Manual sections">
+      <ol class="nav">
+        <li data-roles="all"><a href="#start" data-nav="start"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg><span class="en">Getting started</span><span class="hi">शुरुआत</span></a></li>
+        <li data-roles="all"><a href="#roles" data-nav="roles"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></a></li>
+        <li data-roles="all"><a href="#concepts" data-nav="concepts"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></a></li>
+        <li class="nav-group"><span class="en">Leaders</span><span class="hi">लीडर्स</span></li>
+        <li data-roles="leaders admin"><a href="#create" data-nav="create"><svg class="ic" aria-hidden="true"><use href="#i-file-plus"/></svg><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span></a></li>
+        <li data-roles="leaders admin"><a href="#approval-route" data-nav="approval-route"><svg class="ic" aria-hidden="true"><use href="#i-route"/></svg><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></a></li>
+        <li data-roles="leaders"><a href="#edit" data-nav="edit"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span></a></li>
+        <li data-roles="leaders admin"><a href="#versions" data-nav="versions"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg><span class="en">Versions</span><span class="hi">वर्ज़न</span></a></li>
+        <li data-roles="leaders admin"><a href="#assess" data-nav="assess"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span></a></li>
+        <li data-roles="leaders"><a href="#rp-approver" data-nav="rp-approver"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span></a></li>
+        <li class="nav-group"><span class="en">Admin</span><span class="hi">एडमिन</span></li>
+        <li data-roles="admin"><a href="#admin-approve" data-nav="admin-approve"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span></a></li>
+        <li data-roles="admin"><a href="#admin-assign" data-nav="admin-assign"><svg class="ic" aria-hidden="true"><use href="#i-user-plus"/></svg><span class="en">Assign members to a profile</span><span class="hi">प्रोफ़ाइल पर मेंबर्स असाइन करना</span></a></li>
+        <li data-roles="admin"><a href="#admin-roles" data-nav="admin-roles"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span></a></li>
+        <li data-roles="admin"><a href="#admin-more" data-nav="admin-more"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span></a></li>
+        <li class="nav-group"><span class="en">Everyone</span><span class="hi">सभी के लिए</span></li>
+        <li data-roles="members"><a href="#members" data-nav="members"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="en">Members</span><span class="hi">मेंबर्स</span></a></li>
+        <li data-roles="leaders admin"><a href="#reports" data-nav="reports"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span></a></li>
+        <li data-roles="all"><a href="#faq" data-nav="faq"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span class="en">Common questions</span><span class="hi">आम सवाल</span></a></li>
+      </ol>
+    </nav>
+    <div class="side-foot"><span class="en">Pakka Role Profile portal · This manual describes the portal as of October 2026.</span><span class="hi">पक्का रोल प्रोफ़ाइल पोर्टल · यह मैनुअल अक्टूबर 2026 के पोर्टल के अनुसार है।</span></div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
 
-<nav class="toc" aria-label="Contents">
-  <div class="brandmark"><span class="en">Pakka Role Profile<br>User Manual</span><span class="hi">पक्का रोल प्रोफ़ाइल<br>यूज़र मैनुअल</span></div>
-  <div class="langswitch" role="group" aria-label="Language">
-    <button type="button" id="lang-en" data-set-lang="en" aria-pressed="true">English</button>
-    <button type="button" id="lang-hi" data-set-lang="hi" aria-pressed="false">हिंदी</button>
-  </div>
-  <ol>
-    <li><a href="#start"><span class="en">Getting started</span><span class="hi">शुरुआत</span></a></li>
-    <li><a href="#roles"><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></a></li>
-    <li><a href="#concepts"><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></a></li>
-    <li class="group"><span class="en">Leaders</span><span class="hi">लीडर्स</span></li>
-    <li><a href="#create"><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span></a></li>
-    <li><a href="#approval-route"><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></a></li>
-    <li><a href="#edit"><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span></a></li>
-    <li><a href="#versions"><span class="en">Versions</span><span class="hi">वर्ज़न</span></a></li>
-    <li><a href="#assess"><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span></a></li>
-    <li><a href="#rp-approver"><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span></a></li>
-    <li class="group"><span class="en">Admin</span><span class="hi">एडमिन</span></li>
-    <li><a href="#admin-approve"><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span></a></li>
-    <li><a href="#admin-assign"><span class="en">Assign members to a profile</span><span class="hi">प्रोफ़ाइल पर मेंबर्स असाइन करना</span></a></li>
-    <li><a href="#admin-roles"><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span></a></li>
-    <li><a href="#admin-more"><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span></a></li>
-    <li class="group"><span class="en">Everyone</span><span class="hi">सभी के लिए</span></li>
-    <li><a href="#members"><span class="en">Members</span><span class="hi">मेंबर्स</span></a></li>
-    <li><a href="#reports"><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span></a></li>
-    <li><a href="#faq"><span class="en">Common questions</span><span class="hi">आम सवाल</span></a></li>
-  </ol>
-</nav>
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" id="menuBtn" aria-label="Open sections" aria-controls="side" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <div class="top-title"><span class="en">User Manual</span><span class="hi">यूज़र मैनुअल</span></div>
+      <label class="search" for="q">
+        <svg class="ic-sm" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="q" type="search" autocomplete="off" placeholder="Search the manual…" data-ph-en="Search the manual…" data-ph-hi="मैनुअल में खोजें…">
+      </label>
+      <div class="seg lang" role="group" aria-label="Language">
+        <button type="button" id="lang-en" data-set-lang="en" aria-pressed="true">EN</button>
+        <button type="button" id="lang-hi" data-set-lang="hi" aria-pressed="false">हिंदी</button>
+      </div>
+      <a class="back" id="backToPortal" href="/role-profiles" hidden><svg class="ic-sm" aria-hidden="true"><use href="#i-back"/></svg><span class="en">Back to portal</span><span class="hi">पोर्टल पर वापस</span></a>
+    </header>
 
-<main>
-<header class="top">
-  <div class="eyebrow"><span class="en">How to use the portal</span><span class="hi">पोर्टल कैसे इस्तेमाल करें</span></div>
-  <h1><span class="en">Role Profile Portal — User Manual</span><span class="hi">रोल प्रोफ़ाइल पोर्टल — यूज़र मैनुअल</span></h1>
-  <p class="en">Step-by-step help for the admin (PSP Approver and LDP Admin), for leaders (RP Creators, RP Approvers and Pracharaks) and for members: writing role profiles, getting them approved, assigning them, assessing against them, and keeping them up to date.</p>
-  <p class="hi">एडमिन (PSP Approver और LDP Admin), लीडर्स (RP Creator, RP Approver और प्रचारक) और मेंबर्स के लिए स्टेप-बाय-स्टेप मदद: रोल प्रोफ़ाइल लिखना, अप्रूव करवाना, असाइन करना, उस पर असेसमेंट करना और उसे अपडेट रखना।</p>
-</header>
+    <div class="content">
+      <div class="hero card">
+        <div class="hero-head">
+          <div>
+            <div class="eyebrow"><span class="en">Help centre</span><span class="hi">हेल्प सेंटर</span></div>
+            <h1><span class="en">How can we help?</span><span class="hi">हम कैसे मदद करें?</span></h1>
+            <p><span class="en">Pick what you want to do, or show only the steps for your role.</span><span class="hi">आप क्या करना चाहते हैं चुनें, या सिर्फ़ अपनी भूमिका के स्टेप देखें।</span></p>
+          </div>
+          <div class="roles" role="group" aria-label="Show steps for">
+            <span class="roles-label"><span class="en">Show steps for</span><span class="hi">किसके लिए स्टेप</span></span>
+            <div class="seg">
+              <button type="button" data-set-role="all" aria-pressed="true"><span class="en">Everyone</span><span class="hi">सभी</span></button>
+              <button type="button" data-set-role="admin" aria-pressed="false"><span class="en">Admin</span><span class="hi">एडमिन</span></button>
+              <button type="button" data-set-role="leaders" aria-pressed="false"><span class="en">Leaders</span><span class="hi">लीडर्स</span></button>
+              <button type="button" data-set-role="members" aria-pressed="false"><span class="en">Members</span><span class="hi">मेंबर्स</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="tasks">
+        <a class="task" href="#create" data-roles="leaders admin">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-file-plus"/></svg></span>
+          <span class="task-text"><b><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाएँ</span></b>
+          <small><span class="en">Leaders · Admin</span><span class="hi">लीडर्स · एडमिन</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#rp-approver" data-roles="leaders">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span>
+          <span class="task-text"><b><span class="en">Approve as RP Approver</span><span class="hi">RP अप्रूवर के रूप में अप्रूव करें</span></b>
+          <small><span class="en">RP Approver</span><span class="hi">RP अप्रूवर</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#admin-approve" data-roles="admin">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></span>
+          <span class="task-text"><b><span class="en">Give final approval</span><span class="hi">फ़ाइनल अप्रूवल दें</span></b>
+          <small><span class="en">Admin</span><span class="hi">एडमिन</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#admin-assign" data-roles="admin">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-user-plus"/></svg></span>
+          <span class="task-text"><b><span class="en">Assign members to a profile</span><span class="hi">प्रोफ़ाइल पर मेंबर्स असाइन करें</span></b>
+          <small><span class="en">Admin</span><span class="hi">एडमिन</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#edit" data-roles="leaders">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></span>
+          <span class="task-text"><b><span class="en">Update an approved profile</span><span class="hi">अप्रूव्ड प्रोफ़ाइल अपडेट करें</span></b>
+          <small><span class="en">RP Creator</span><span class="hi">RP Creator</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#assess" data-roles="leaders admin">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></span>
+          <span class="task-text"><b><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट करें</span></b>
+          <small><span class="en">Leaders · Admin</span><span class="hi">लीडर्स · एडमिन</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#reports" data-roles="leaders admin">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span>
+          <span class="task-text"><b><span class="en">See the report</span><span class="hi">रिपोर्ट देखें</span></b>
+          <small><span class="en">Leaders · Admin</span><span class="hi">लीडर्स · एडमिन</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="task" href="#faq" data-roles="all">
+          <span class="task-ic"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></span>
+          <span class="task-text"><b><span class="en">Something not working?</span><span class="hi">कुछ ठीक नहीं चल रहा?</span></b>
+          <small><span class="en">Everyone</span><span class="hi">सभी</span></small></span>
+          <svg class="ic-sm task-go" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        </div>
+      </div>
+
+      <div class="no-results card" id="noResults" hidden>
+        <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+        <p><span class="en">Nothing matches your search. Try another word, or clear the search.</span><span class="hi">आपकी खोज से कुछ नहीं मिला। कोई दूसरा शब्द आज़माएँ या खोज हटाएँ।</span></p>
+      </div>
+
 
 <!-- ============================================================ start -->
-<section id="start">
-  <h2><span class="en">Getting started</span><span class="hi">शुरुआत</span></h2>
-  <p class="lead en">Sign in with your employee code and portal password. The menu on the left shows only what your role allows.</p>
-  <p class="lead hi">अपने एम्प्लॉई कोड और पोर्टल पासवर्ड से लॉग-इन करें। बाईं तरफ़ का मेन्यू सिर्फ़ वही दिखाता है जो आपकी भूमिका में आता है।</p>
+<section id="start" class="card sec" data-roles="all">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></span><span class="sec-name"><span class="en">Getting started</span><span class="hi">शुरुआत</span></span></h2>
+  <p class="lead en">Sign in with your member code and portal password. The menu on the left shows only what your role allows.</p>
+  <p class="lead hi">अपने मेंबर कोड और पोर्टल पासवर्ड से लॉग-इन करें। बाईं तरफ़ का मेन्यू सिर्फ़ वही दिखाता है जो आपकी भूमिका में आता है।</p>
   <div class="grid2">
     <div class="tile"><h4>Role Profiles</h4><p class="en">Every role profile you can see, with its stage, version, last updated date and your actions.</p><p class="hi">आपको दिखने वाली सभी रोल प्रोफ़ाइल — स्टेज, वर्ज़न, आख़िरी अपडेट की तारीख़ और आपके एक्शन के साथ।</p></div>
     <div class="tile"><h4>My Members</h4><p class="en">Members who name you as their RP Creator, RP Approver or Pracharak.</p><p class="hi">वे मेंबर्स जिनके RP Creator, RP Approver या प्रचारक आप हैं।</p></div>
@@ -181,15 +405,15 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <div class="tile"><h4>User Manual</h4><p class="en">This page — always one click away in the sidebar.</p><p class="hi">यही पेज — साइडबार में हमेशा उपलब्ध।</p></div>
   </div>
   <figure class="shot">
-    <img src="img/list.jpg" alt="Role Profiles list with stage, version, last updated date and action buttons" loading="lazy" width="1280" height="889">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/list.jpg" alt="Role Profiles list with stage, version, last updated date and action buttons" loading="lazy" width="1280" height="889"></button>
     <figcaption><span class="en">Role Profiles list — status, version for the year, <b>Last updated</b> date and time, and your actions (View, Assess, Edit, Update RP, Clone).</span><span class="hi">रोल प्रोफ़ाइल लिस्ट — स्टेटस, साल का वर्ज़न, <b>Last updated</b> तारीख़-समय और आपके एक्शन (View, Assess, Edit, Update RP, Clone)।</span></figcaption>
   </figure>
   <div class="note"><strong><span class="en">The bell and "awaiting you"</span><span class="hi">घंटी और "awaiting you"</span></strong><span class="en">The bell lists your notifications. The yellow <span class="ui">awaiting you</span> pill counts role profiles waiting for your approval.</span><span class="hi">घंटी में आपकी सूचनाएँ हैं। पीला <span class="ui">awaiting you</span> बताता है कि कितनी प्रोफ़ाइल आपके अप्रूवल का इंतज़ार कर रही हैं।</span></div>
 </section>
 
 <!-- ============================================================ roles -->
-<section id="roles">
-  <h2><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></h2>
+<section id="roles" class="card sec" data-roles="all">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span><span class="sec-name"><span class="en">Who can do what</span><span class="hi">कौन क्या कर सकता है</span></span></h2>
   <p class="lead en">Your role comes from the member records. The admin sets who is whose RP Creator, RP Approver and Pracharak.</p>
   <p class="lead hi">आपकी भूमिका मेंबर रिकॉर्ड से तय होती है। कौन किसका RP Creator, RP Approver और प्रचारक है — यह एडमिन सेट करते हैं।</p>
   <div class="tablewrap">
@@ -215,8 +439,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ concepts -->
-<section id="concepts">
-  <h2><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></h2>
+<section id="concepts" class="card sec" data-roles="all">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-bulb"/></svg></span><span class="sec-name"><span class="en">Key ideas</span><span class="hi">मुख्य बातें</span></span></h2>
   <h3><span class="en">A role profile belongs to a designation in a sangh</span><span class="hi">रोल प्रोफ़ाइल किसी संघ के एक डेज़िग्नेशन के लिए होती है</span></h3>
   <p class="en">Each designation in a sangh can have one role profile. It sets out the mission, key outcomes, and the skills with their weightage and attributes that members are assessed on.</p>
   <p class="hi">किसी संघ के हर डेज़िग्नेशन की एक ही रोल प्रोफ़ाइल हो सकती है। इसमें मिशन, मुख्य परिणाम (Key Outcomes), और स्किल्स व उनके वेटेज और एट्रिब्यूट होते हैं जिन पर मेंबर्स का असेसमेंट होता है।</p>
@@ -235,8 +459,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ create -->
-<section id="create">
-  <h2><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span> <span class="who">RP Creator · RP Approver · Admin</span></h2>
+<section id="create" class="card sec" data-roles="leaders admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-file-plus"/></svg></span><span class="sec-name"><span class="en">Create a role profile</span><span class="hi">रोल प्रोफ़ाइल बनाना</span></span> <span class="who">RP Creator · RP Approver · Admin</span></h2>
   <p class="lead en">Role Profiles → <span class="ui">Create Role Profile</span>.</p>
   <p class="lead hi">Role Profiles → <span class="ui">Create Role Profile</span> पर क्लिक करें।</p>
   <ol class="steps en">
@@ -256,15 +480,15 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>बाद में पूरा करने के लिए <span class="ui">Save as draft</span> (सिर्फ़ आपको दिखेगा), या <span class="ui">Submit for approval</span> दबाएँ।</li>
   </ol>
   <figure class="shot">
-    <img src="img/create.jpg" alt="Create Role Profile form with the required Sangh and Designation box at the top" loading="lazy" width="1280" height="978">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/create.jpg" alt="Create Role Profile form with the required Sangh and Designation box at the top" loading="lazy" width="1280" height="978"></button>
     <figcaption><span class="en">The Create form: the required <b>Sangh &amp; Designation</b> box first, then Excel import, copy from an existing profile, and the note saying where it will go for approval.</span><span class="hi">Create फ़ॉर्म: सबसे ऊपर ज़रूरी <b>Sangh &amp; Designation</b> बॉक्स, फिर Excel इम्पोर्ट, मौजूदा प्रोफ़ाइल से कॉपी, और नोट कि अप्रूवल किसके पास जाएगा।</span></figcaption>
   </figure>
   <div class="note warn"><strong><span class="en">Save buttons stay grey?</span><span class="hi">सेव बटन ग्रे ही हैं?</span></strong><span class="en">Check the sangh and designation are chosen and the weight totals at the bottom of the form are green.</span><span class="hi">देखें कि संघ और डेज़िग्नेशन चुने हैं और फ़ॉर्म के नीचे वेटेज का जोड़ हरा है।</span></div>
 </section>
 
 <!-- ============================================================ route -->
-<section id="approval-route">
-  <h2><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></h2>
+<section id="approval-route" class="card sec" data-roles="leaders admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-route"/></svg></span><span class="sec-name"><span class="en">Where it goes for approval</span><span class="hi">अप्रूवल किसके पास जाता है</span></span></h2>
   <p class="lead en">The note above the form tells you who it will go to.</p>
   <p class="lead hi">फ़ॉर्म के ऊपर का नोट बताता है कि प्रोफ़ाइल किसके पास जाएगी।</p>
   <div class="tablewrap">
@@ -282,8 +506,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ edit -->
-<section id="edit">
-  <h2><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span> <span class="who">RP Creator</span></h2>
+<section id="edit" class="card sec" data-roles="leaders">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg></span><span class="sec-name"><span class="en">Edit, resubmit, update</span><span class="hi">एडिट, दोबारा सबमिट, अपडेट</span></span> <span class="who">RP Creator</span></h2>
   <h3><span class="en">While it waits for approval</span><span class="hi">जब अप्रूवल बाकी हो</span></h3>
   <ul class="en">
     <li><b>Waiting on the RP Approver:</b> you and the RP Approver can both click <span class="ui">Edit before approval</span>. It stays with them, and they are told it changed.</li>
@@ -312,27 +536,27 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>अप्रूव होने पर यह अगला वर्ज़न (v2, v3 …) बन जाता है।</li>
   </ol>
   <figure class="shot">
-    <img src="img/approved.jpg" alt="An approved role profile with the Update RP button" loading="lazy" width="1280" height="800">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/approved.jpg" alt="An approved role profile with the Update RP button" loading="lazy" width="1280" height="800"></button>
     <figcaption><span class="en">An approved profile: <span class="ui">Update RP</span> at the top right, the "last updated" time under the title, and the Download PDF button.</span><span class="hi">अप्रूव्ड प्रोफ़ाइल: ऊपर दाईं ओर <span class="ui">Update RP</span>, शीर्षक के नीचे "last updated" समय, और Download PDF बटन।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ versions -->
-<section id="versions">
-  <h2><span class="en">Versions and the yearly review</span><span class="hi">वर्ज़न और सालाना रिव्यू</span></h2>
+<section id="versions" class="card sec" data-roles="leaders admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg></span><span class="sec-name"><span class="en">Versions and the yearly review</span><span class="hi">वर्ज़न और सालाना रिव्यू</span></span></h2>
   <p class="en">Every approval freezes a numbered version. Open the profile's <span class="ui">Versions</span> tab to see each year's version, the reviews, and every earlier version — each opens read-only, exactly as approved, with its own PDF. Assessments stay tied to the version they were written against.</p>
   <p class="hi">हर अप्रूवल पर एक नंबर वाला वर्ज़न सुरक्षित हो जाता है। प्रोफ़ाइल का <span class="ui">Versions</span> टैब खोलें — हर साल का वर्ज़न, रिव्यू, और सभी पुराने वर्ज़न दिखते हैं; हर वर्ज़न वैसा ही खुलता है जैसा अप्रूव हुआ था, अपनी PDF के साथ। असेसमेंट उसी वर्ज़न से जुड़ा रहता है जिस पर वह लिखा गया।</p>
   <p class="en"><b>Yearly review:</b> for each financial year (April–March) click <span class="ui">No change</span> to carry the version forward, or <span class="ui">Update</span> to change it through approval.</p>
   <p class="hi"><b>सालाना रिव्यू:</b> हर वित्त वर्ष (अप्रैल–मार्च) के लिए <span class="ui">No change</span> दबाकर वही वर्ज़न आगे बढ़ाएँ, या <span class="ui">Update</span> से अप्रूवल के साथ बदलें।</p>
   <figure class="shot">
-    <img src="img/versions.jpg" alt="The Versions tab showing the year's review and version history" loading="lazy" width="1280" height="1111">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/versions.jpg" alt="The Versions tab showing the year's review and version history" loading="lazy" width="1280" height="1111"></button>
     <figcaption><span class="en">The Versions tab while an update is awaiting approval: version 1 stays in force, the financial year table, and the version history.</span><span class="hi">अपडेट अप्रूवल में होने पर Versions टैब: वर्ज़न 1 लागू रहता है, वित्त वर्ष की टेबल और वर्ज़न हिस्ट्री।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ assess -->
-<section id="assess">
-  <h2><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span> <span class="who">RP Creator · Admin</span></h2>
+<section id="assess" class="card sec" data-roles="leaders admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg></span><span class="sec-name"><span class="en">Assess your members</span><span class="hi">मेंबर्स का असेसमेंट</span></span> <span class="who">RP Creator · Admin</span></h2>
   <p class="lead en">From Assessments, or the <span class="ui">Assess</span> link on a member in the profile's Members tab.</p>
   <p class="lead hi">Assessments पेज से, या प्रोफ़ाइल के Members टैब में मेंबर के आगे <span class="ui">Assess</span> लिंक से।</p>
   <ul class="en">
@@ -350,14 +574,14 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>सिर्फ़ मौजूदा और पिछला वित्त वर्ष ही एंट्री के लिए खुला रहता है।</li>
   </ul>
   <figure class="shot">
-    <img src="img/assessments.jpg" alt="Assessments page listing members and their scores" loading="lazy" width="1280" height="800">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/assessments.jpg" alt="Assessments page listing members and their scores" loading="lazy" width="1280" height="800"></button>
     <figcaption><span class="en">Assessments: members to assess this year and the scores already given.</span><span class="hi">Assessments: इस साल जिनका असेसमेंट करना है और जो स्कोर दिए जा चुके हैं।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ rp approver -->
-<section id="rp-approver">
-  <h2><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span> <span class="who">RP Approver</span></h2>
+<section id="rp-approver" class="card sec" data-roles="leaders">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="sec-name"><span class="en">RP Approvers</span><span class="hi">RP अप्रूवर</span></span> <span class="who">RP Approver</span></h2>
   <ol class="steps en">
     <li>You are notified (bell) when a profile is submitted to you; the yellow <span class="ui">awaiting you</span> pill counts them.</li>
     <li>Open it. Under <b>This profile is waiting on you</b>, type a reason if rejecting, then <span class="ui">Approve and send to PSP Approver</span> (or LDP Admin) or <span class="ui">Reject</span>.</li>
@@ -373,8 +597,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ admin approve -->
-<section id="admin-approve">
-  <h2><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span> <span class="who">Admin</span></h2>
+<section id="admin-approve" class="card sec" data-roles="admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></span><span class="sec-name"><span class="en">Final approval</span><span class="hi">फ़ाइनल अप्रूवल</span></span> <span class="who">Admin</span></h2>
   <p class="lead en">The PSP Approver approves PSP profiles; the LDP Admin approves LDP ones (Sanghrakshak and Seva Sangh). One person can hold both.</p>
   <p class="lead hi">PSP Approver, PSP प्रोफ़ाइल अप्रूव करते हैं; LDP Admin, LDP प्रोफ़ाइल (संघरक्षक और सेवा संघ)। एक ही व्यक्ति दोनों हो सकता है।</p>
   <ol class="steps en">
@@ -390,14 +614,14 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>अप्रूवल से प्रोफ़ाइल अभी <b>किसी पर लागू नहीं</b> होती — इसके बाद मेंबर्स असाइन करें।</li>
   </ol>
   <figure class="shot">
-    <img src="img/approve.jpg" alt="A role profile waiting for the admin's final approval" loading="lazy" width="1280" height="889">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/approve.jpg" alt="A role profile waiting for the admin's final approval" loading="lazy" width="1280" height="889"></button>
     <figcaption><span class="en">Waiting on the admin: <span class="ui">Approve and make it live</span>, <span class="ui">Reject</span>, and <span class="ui">Edit it</span>. Here an update is in approval, so version 1 stays in force.</span><span class="hi">एडमिन के पास: <span class="ui">Approve and make it live</span>, <span class="ui">Reject</span> और <span class="ui">Edit it</span>। यहाँ अपडेट अप्रूवल में है, इसलिए वर्ज़न 1 लागू है।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ admin assign -->
-<section id="admin-assign">
-  <h2><span class="en">Assign members to a role profile</span><span class="hi">रोल प्रोफ़ाइल पर मेंबर्स असाइन करना</span> <span class="who">Admin</span></h2>
+<section id="admin-assign" class="card sec" data-roles="admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-user-plus"/></svg></span><span class="sec-name"><span class="en">Assign members to a role profile</span><span class="hi">रोल प्रोफ़ाइल पर मेंबर्स असाइन करना</span></span> <span class="who">Admin</span></h2>
   <ol class="steps en">
     <li>Open the approved profile → <span class="ui">Members</span> tab.</li>
     <li>Under <b>Assign members</b>, the sangh's members are listed — those holding the designation first, tagged <span class="ui">Holds this designation</span>; anyone already on another profile is tagged <span class="ui">Already on …</span>.</li>
@@ -411,15 +635,15 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>किसी से प्रोफ़ाइल हटानी हो तो उसके आगे <span class="ui">Remove</span> दबाएँ।</li>
   </ol>
   <figure class="shot">
-    <img src="img/assign.jpg" alt="Members tab with the Assign members box" loading="lazy" width="1280" height="1022">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/assign.jpg" alt="Members tab with the Assign members box" loading="lazy" width="1280" height="1022"></button>
     <figcaption><span class="en">The Members tab: who is assigned (with Remove), and the <b>Assign members</b> box with tags for current designation and other profiles.</span><span class="hi">Members टैब: कौन असाइन है (Remove के साथ), और <b>Assign members</b> बॉक्स — डेज़िग्नेशन और दूसरी प्रोफ़ाइल के टैग के साथ।</span></figcaption>
   </figure>
   <div class="note"><strong><span class="en">Only the admin assigns</span><span class="hi">असाइन सिर्फ़ एडमिन करते हैं</span></strong><span class="en">Creators cannot assign or remove members. A member who leaves is dropped from the profile automatically.</span><span class="hi">क्रिएटर मेंबर्स असाइन या हटा नहीं सकते। जो मेंबर संस्था छोड़ देता है वह अपने-आप प्रोफ़ाइल से हट जाता है।</span></div>
 </section>
 
 <!-- ============================================================ admin roles -->
-<section id="admin-roles">
-  <h2><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span> <span class="who">Admin</span></h2>
+<section id="admin-roles" class="card sec" data-roles="admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg></span><span class="sec-name"><span class="en">Assign leaders to members</span><span class="hi">मेंबर्स के लीडर तय करना</span></span> <span class="who">Admin</span></h2>
   <p class="lead en">Who writes and approves a member's role profile comes from these settings.</p>
   <p class="lead hi">किसी मेंबर की रोल प्रोफ़ाइल कौन लिखेगा और कौन अप्रूव करेगा — यह इन्हीं सेटिंग्स से तय होता है।</p>
   <ul class="en">
@@ -435,14 +659,14 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li><b>Member List</b> में हर मेंबर का संघ, डेज़िग्नेशन और लीडर दिखते हैं।</li>
   </ul>
   <figure class="shot">
-    <img src="img/assignroles.jpg" alt="Assign by Sangh page for setting each member's RP Approver, RP Creator and Pracharak" loading="lazy" width="1280" height="889">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/assignroles.jpg" alt="Assign by Sangh page for setting each member's RP Approver, RP Creator and Pracharak" loading="lazy" width="1280" height="889"></button>
     <figcaption><span class="en">Assign by Sangh: each member's RP Approver, RP Creator and Pracharak.</span><span class="hi">Assign by Sangh: हर मेंबर के RP Approver, RP Creator और प्रचारक।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ admin more -->
-<section id="admin-more">
-  <h2><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span> <span class="who">Admin</span></h2>
+<section id="admin-more" class="card sec" data-roles="admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></span><span class="sec-name"><span class="en">Create, correct, designations</span><span class="hi">बनाना, सुधारना, डेज़िग्नेशन</span></span> <span class="who">Admin</span></h2>
   <ul class="en">
     <li><b>Create role profiles</b> for any PSP sangh (PSP Approver) or Sanghrakshak / Seva Sangh (LDP Admin). What you submit comes straight back to you to approve.</li>
     <li><b>Correct an assessment:</b> open it from Assessments and change the ratings — for the current or previous year.</li>
@@ -456,14 +680,14 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>हिस्ट्री और लिस्ट में आपके काम <b>Admin</b> के नाम से दिखते हैं।</li>
   </ul>
   <figure class="shot">
-    <img src="img/designations.jpg" alt="Designations page with the add form and the list of designations" loading="lazy" width="1280" height="889">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/designations.jpg" alt="Designations page with the add form and the list of designations" loading="lazy" width="1280" height="889"></button>
     <figcaption><span class="en">Designations: add a new one to a sangh, and see every designation with its programme, holders and role profile.</span><span class="hi">Designations: संघ में नया डेज़िग्नेशन जोड़ें, और हर डेज़िग्नेशन का प्रोग्राम, धारक और रोल प्रोफ़ाइल देखें।</span></figcaption>
   </figure>
 </section>
 
 <!-- ============================================================ members -->
-<section id="members">
-  <h2><span class="en">Members</span><span class="hi">मेंबर्स</span> <span class="who"><span class="en">Member</span><span class="hi">मेंबर</span></span></h2>
+<section id="members" class="card sec" data-roles="members">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></span><span class="sec-name"><span class="en">Members</span><span class="hi">मेंबर्स</span></span> <span class="who"><span class="en">Member</span><span class="hi">मेंबर</span></span></h2>
   <ul class="en">
     <li>Role Profiles shows the role profile assigned to you — mission, outcomes, skills and versions.</li>
     <li>You are notified when one is assigned to you, and when a new version is approved.</li>
@@ -477,8 +701,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ reports -->
-<section id="reports">
-  <h2><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span> <span class="who">Admin · <span class="en">Leaders</span><span class="hi">लीडर्स</span></span></h2>
+<section id="reports" class="card sec" data-roles="leaders admin">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span class="sec-name"><span class="en">Reports</span><span class="hi">रिपोर्ट्स</span></span> <span class="who">Admin · <span class="en">Leaders</span><span class="hi">लीडर्स</span></span></h2>
   <p class="lead en">Reports → <b>Role Profile Report</b>.</p>
   <p class="lead hi">Reports → <b>Role Profile Report</b> खोलें।</p>
   <ul class="en">
@@ -496,7 +720,7 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
     <li>लिस्ट को <span class="ui">Excel</span> या <span class="ui">CSV</span> में <b>एक्सपोर्ट</b> करें।</li>
   </ul>
   <figure class="shot">
-    <img src="img/reports.jpg" alt="Role Profile Report with filters, stage cards and the sangh by stage table" loading="lazy" width="1280" height="1022">
+    <button type="button" class="shot-frame" aria-label="Enlarge screenshot"><span class="shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="shot-zoom"><svg class="ic-sm" aria-hidden="true"><use href="#i-zoom"/></svg></span></span><img src="img/reports.jpg" alt="Role Profile Report with filters, stage cards and the sangh by stage table" loading="lazy" width="1280" height="1022"></button>
     <figcaption><span class="en">Role Profile Report: filters, stage cards, and the sangh × stage table — every number is clickable.</span><span class="hi">Role Profile Report: फ़िल्टर, स्टेज कार्ड, और संघ × स्टेज टेबल — हर संख्या क्लिक की जा सकती है।</span></figcaption>
   </figure>
   <p class="en">The PSP Approver sees every PSP profile and the LDP Admin every LDP one, drafts included; leaders see the profiles they can already see.</p>
@@ -504,8 +728,8 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
 </section>
 
 <!-- ============================================================ faq -->
-<section id="faq">
-  <h2><span class="en">Common questions</span><span class="hi">आम सवाल</span></h2>
+<section id="faq" class="card sec" data-roles="all">
+  <h2 class="sec-title"><span class="sec-ic"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></span><span class="sec-name"><span class="en">Common questions</span><span class="hi">आम सवाल</span></span></h2>
   <details>
     <summary><span class="en">I don't see the Edit button.</span><span class="hi">मुझे Edit बटन नहीं दिख रहा।</span></summary>
     <ul class="en">
@@ -551,29 +775,134 @@ footer { color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
   </details>
 </section>
 
-<footer><span class="en">Pakka Role Profile portal · This manual describes the portal as of October 2026.</span><span class="hi">पक्का रोल प्रोफ़ाइल पोर्टल · यह मैनुअल अक्टूबर 2026 के पोर्टल के अनुसार है।</span></footer>
-</main>
+
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Screenshot">
+  <button type="button" class="icon-btn lb-close" id="lbClose" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
 </div>
 
 <script>
-  // English / Hindi toggle. The choice is remembered on this device when storage is available.
-  (function () {
-    var root = document.documentElement;
-    function setLang(lang) {
-      root.setAttribute('data-lang', lang);
-      root.setAttribute('lang', lang);
-      document.querySelectorAll('[data-set-lang]').forEach(function (b) {
-        b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
-      });
-      try { localStorage.setItem('rpManualLang', lang); } catch (e) {}
-    }
-    var saved = null;
-    try { saved = localStorage.getItem('rpManualLang'); } catch (e) {}
-    if (saved === 'hi' || saved === 'en') setLang(saved);
+(function () {
+  var root = document.documentElement;
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  var sections = Array.prototype.slice.call(document.querySelectorAll('.sec'));
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav a[data-nav]'));
+  var search = document.getElementById('q');
+
+  // Inside the portal the manual lives at /manual/: offer the way back.
+  if (location.pathname.indexOf('/manual') === 0) document.getElementById('backToPortal').hidden = false;
+
+  /* ---------------------------------------------------------------- language */
+  function setLang(lang) {
+    root.setAttribute('data-lang', lang);
+    root.setAttribute('lang', lang);
     document.querySelectorAll('[data-set-lang]').forEach(function (b) {
-      b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang')); });
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
     });
-  })();
+    search.placeholder = search.getAttribute('data-ph-' + lang);
+    store.set('rpManualLang', lang);
+    applyFilters();
+  }
+
+  /* ---------------------------------------------------------------- role + search */
+  var role = 'all';
+  function matchesRole(el) {
+    if (role === 'all') return true;
+    var roles = (el.getAttribute('data-roles') || 'all').split(' ');
+    return roles.indexOf('all') !== -1 || roles.indexOf(role) !== -1;
+  }
+  function visibleText(el) {
+    // Only the language being read counts for search.
+    var clone = el.cloneNode(true);
+    var other = root.getAttribute('data-lang') === 'hi' ? '.en' : '.hi';
+    clone.querySelectorAll(other).forEach(function (n) { n.remove(); });
+    return clone.textContent.toLowerCase();
+  }
+  function applyFilters() {
+    var q = (search.value || '').trim().toLowerCase();
+    var shown = 0;
+    sections.forEach(function (s) {
+      var ok = matchesRole(s) && (!q || visibleText(s).indexOf(q) !== -1);
+      s.classList.toggle('filtered-out', !ok);
+      if (ok) shown++;
+    });
+    document.querySelectorAll('.nav li[data-roles], .task').forEach(function (el) {
+      var target = el.querySelector('a[data-nav]') ? el.querySelector('a[data-nav]').getAttribute('data-nav')
+        : (el.getAttribute('href') || '').slice(1);
+      var sec = document.getElementById(target);
+      el.classList.toggle('filtered-out', !!sec && sec.classList.contains('filtered-out'));
+    });
+    document.getElementById('noResults').hidden = shown > 0;
+  }
+  function setRole(r) {
+    role = r;
+    root.setAttribute('data-role', r);
+    document.querySelectorAll('[data-set-role]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-set-role') === r));
+    });
+    store.set('rpManualRole', r);
+    applyFilters();
+  }
+
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-set-lang')); });
+  });
+  document.querySelectorAll('[data-set-role]').forEach(function (b) {
+    b.addEventListener('click', function () { setRole(b.getAttribute('data-set-role')); });
+  });
+  search.addEventListener('input', applyFilters);
+  search.addEventListener('keydown', function (e) { if (e.key === 'Escape') { search.value = ''; applyFilters(); } });
+
+  /* ---------------------------------------------------------------- active section in the sidebar */
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        navLinks.forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-nav') === en.target.id); });
+      });
+    }, { rootMargin: '-90px 0px -65% 0px' });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---------------------------------------------------------------- mobile sidebar */
+  var side = document.getElementById('side'), scrim = document.getElementById('scrim'), menuBtn = document.getElementById('menuBtn');
+  function menu(open) {
+    side.classList.toggle('open', open); scrim.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open));
+  }
+  menuBtn.addEventListener('click', function () { menu(!side.classList.contains('open')); });
+  scrim.addEventListener('click', function () { menu(false); });
+  navLinks.forEach(function (a) { a.addEventListener('click', function () { menu(false); }); });
+
+  /* ---------------------------------------------------------------- screenshot lightbox */
+  var lb = document.getElementById('lightbox'), lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
+  var lastFocus = null;
+  function closeLb() { lb.hidden = true; if (lastFocus) lastFocus.focus(); }
+  document.querySelectorAll('.shot-frame').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var img = btn.querySelector('img'), cap = btn.parentNode.querySelector('figcaption');
+      lbImg.src = img.src; lbImg.alt = img.alt;
+      var lang = root.getAttribute('data-lang') === 'hi' ? '.hi' : '.en';
+      lbCap.textContent = cap && cap.querySelector(lang) ? cap.querySelector(lang).textContent : '';
+      lastFocus = btn; lb.hidden = false; document.getElementById('lbClose').focus();
+    });
+  });
+  document.getElementById('lbClose').addEventListener('click', closeLb);
+  lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) closeLb(); });
+
+  /* ---------------------------------------------------------------- restore choices */
+  var savedLang = store.get('rpManualLang'), savedRole = store.get('rpManualRole');
+  if (savedRole && document.querySelector('[data-set-role="' + savedRole + '"]')) setRole(savedRole);
+  setLang(savedLang === 'hi' ? 'hi' : 'en');
+})();
+
 </script>
 </body>
 </html>
