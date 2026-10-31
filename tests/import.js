@@ -87,7 +87,7 @@ function upload(port, who, filePath, fields = {}) {
     (await db.first('SELECT COUNT(*) n FROM rp_role_profiles')).n, before);
   check('it says which file and sheet',
     /Read from[\s\S]{0,400}Sheet &#34;Proposed&#34;|Read from[\s\S]{0,400}Sheet "Proposed"/.test(res.body), true);
-  check('it reports what it found', /9 attributes, 27 technical skills/.test(res.body), true);
+  check('it reports what it found', /9 skills, 27 attributes/.test(res.body), true);
   check('the mission came through', /Lead the design, development/.test(res.body), true);
   // Seeded content is handed to the page as JSON, so it is not HTML-escaped there.
   check('the attributes came through', /Coding Languages & Frameworks/.test(res.body), true);

@@ -44,7 +44,7 @@ const isHeaderRow = (cells) => {
 
 /**
  * Which column is which, read off the header row itself rather than assumed fixed
- * positions — LDP's sheets add an "Assessment Mechanism" column between Technical Skills and
+ * positions — LDP's sheets add an "Assessment Mechanism" column between Skills and
  * Weightage that PSP's plain 5-column layout doesn't have, shifting everything after it.
  * Falls back to the original SN/Attribute/Skill/Weightage/Sub-Weightage positions for
  * anything the header text doesn't clearly identify.
@@ -55,23 +55,17 @@ function detectColumns(cells) {
     const t = text(cell).toLowerCase();
     if (!t) return;
     if (idx.sn === undefined && /^(sn|s\.n\.?|sr\.?\s*no\.?)$/.test(t)) idx.sn = i;
-    else if (idx.skill === undefined && /tech/.test(t) && t.includes('skill')) idx.skill = i;
     else if (idx.attribute === undefined && t.includes('attribute')) idx.attribute = i;
-    else if (idx.plainSkill === undefined && t.includes('skill')) idx.plainSkill = i;
+    else if (idx.skill === undefined && t.includes('skill')) idx.skill = i;
     else if (idx.assessment === undefined && t.includes('assessment')) idx.assessment = i;
     else if (idx.subWeight === undefined && (t.includes('sub-weight') || t.includes('sub weight') || t.includes('individual weight'))) idx.subWeight = i;
     else if (idx.weight === undefined && t.includes('weight')) idx.weight = i;
   });
-  // "Technical Skills" names the sub-lines outright. A plain "Skill" column is the portal's
-  // earlier wording, where "Skill | Attributes" meant attribute | technical skills — so a
-  // "Skill" heading placed before "Attributes" is the attribute, and "Attributes" the skills.
-  if (idx.skill === undefined && idx.plainSkill !== undefined) {
-    if (idx.attribute !== undefined && idx.plainSkill < idx.attribute) {
-      idx.skill = idx.attribute;
-      idx.attribute = idx.plainSkill;
-    } else {
-      idx.skill = idx.plainSkill;
-    }
+  // The two name columns are told apart by position, not by their wording: the left one is
+  // the weighted main line, the right one the sub-weighted lines under it. Sheets have used
+  // "Attribute | Technical Skills", "Skill | Attributes" and "Technical Skills | Attribute".
+  if (idx.attribute !== undefined && idx.skill !== undefined && idx.skill < idx.attribute) {
+    [idx.attribute, idx.skill] = [idx.skill, idx.attribute];
   }
   return {
     sn: idx.sn ?? 0,
@@ -219,12 +213,12 @@ function parseSheet(sheet) {
   const MAX_O = roleProfile.MAX_OUTCOMES_LDP;
 
   if (attributes.length > MAX_A) {
-    warnings.push(`The sheet has ${attributes.length} attributes; only the first ${MAX_A} were taken.`);
+    warnings.push(`The sheet has ${attributes.length} skills; only the first ${MAX_A} were taken.`);
   }
   const kept = attributes.slice(0, MAX_A);
   for (const attr of kept) {
     if (attr.skills.length > MAX_S) {
-      warnings.push(`"${attr.attribute}" has ${attr.skills.length} technical skills; only the first ${MAX_S} were taken.`);
+      warnings.push(`"${attr.attribute}" has ${attr.skills.length} attributes; only the first ${MAX_S} were taken.`);
       attr.skills = attr.skills.slice(0, MAX_S);
     }
   }
@@ -235,13 +229,13 @@ function parseSheet(sheet) {
   /* ---------------------------------------------------------------- totals */
   const attrTotal = kept.reduce((t, a) => t + (a.weight || 0), 0);
   if (Math.abs(attrTotal - roleProfile.TOTAL_WEIGHT) > 0.001) {
-    warnings.push(`The attribute weights add up to ${attrTotal}, not ${roleProfile.TOTAL_WEIGHT}. `
+    warnings.push(`The skill weights add up to ${attrTotal}, not ${roleProfile.TOTAL_WEIGHT}. `
       + 'Fix them below before submitting.');
   }
   for (const attr of kept) {
     const sum = attr.skills.reduce((t, s) => t + (s.weight || 0), 0);
     if (attr.weight !== null && Math.abs(sum - attr.weight) > 0.001) {
-      warnings.push(`"${attr.attribute}": its technical skill weights total ${sum}, but the attribute weight is ${attr.weight}.`);
+      warnings.push(`"${attr.attribute}": its attribute weights total ${sum}, but the skill weight is ${attr.weight}.`);
     }
   }
 

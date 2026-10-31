@@ -92,10 +92,10 @@
         </form>
 
         <div class="rp-legend">
-            <span>Rate each technical skill from <b>1</b> to <b>4</b>.</span>
+            <span>Rate each attribute from <b>1</b> to <b>4</b>.</span>
             <span>Score for a line is <b>weight &times; rating</b>.</span>
             <span>All weights total <b><%= trim2(weightSum) %></b>, so a full <b>4</b> everywhere scores <b><%= trim2(weightSum * 4) %></b>.</span>
-            <span>Note a <b>training gap</b> against any technical skill that needs development — required when the rating is <b>2</b> or below, optional otherwise.</span>
+            <span>Note a <b>training gap</b> against any attribute that needs development — required when the rating is <b>2</b> or below, optional otherwise.</span>
         </div>
 
         <form method="post" action="/role-profiles/<%= profile.id %>/assess/<%= encodeURIComponent(member.emp_code) %>">
@@ -104,14 +104,14 @@
             <div class="table-responsive">
                 <table class="rp-assess-table">
                     <thead>
-                        <tr><th>Technical Skill</th><th class="num">Weight</th><th class="num">Rating</th><th class="num">Weight &times; Rating</th><th>Training gap</th></tr>
+                        <tr><th>Attribute</th><th class="num">Weight</th><th class="num">Rating</th><th class="num">Weight &times; Rating</th><th>Training gap</th></tr>
                     </thead>
                     <tbody>
                     <% skills.forEach(s => { %>
                         <% if (lastAttr !== s.attribute_no) { lastAttr = s.attribute_no; %>
                             <tr class="rp-attr-row">
                                 <td colspan="5"><%= s.attribute_no %>. <%= s.attribute %>
-                                    <span class="wt">attribute weight <%= trim2(s.attribute_weight) %></span></td>
+                                    <span class="wt">skill weight <%= trim2(s.attribute_weight) %></span></td>
                             </tr>
                         <% } %>
                         <% const rating = s.rating === null ? '' : Number(s.rating); %>
@@ -158,7 +158,7 @@
                     </a>
                 <% } else if (!readOnly) { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
-                        <span id="ratedCount">0</span> of <%= skills.length %> technical skills rated — unrated technical skills are left out of the total.
+                        <span id="ratedCount">0</span> of <%= skills.length %> attributes rated — unrated attributes are left out of the total.
                         Training gaps save with the assessment.
                     </span>
                     <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>">Cancel</a>

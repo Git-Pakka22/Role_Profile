@@ -73,11 +73,11 @@
         </form>
 
         <div class="rp-legend">
-            <span>Rate each technical skill from <b>1</b> to <b>4</b>.</span>
+            <span>Rate each attribute from <b>1</b> to <b>4</b>.</span>
             <span>Each stage's score is <b>weight &times; that stage's rating</b>.</span>
             <span>All weights total <b><%= trim2(weightSum) %></b>.</span>
             <span>The member self-rates and submits first; only then can the leader give the final rating.</span>
-            <span>Note a <b>development plan</b> against any technical skill that needs it — required when the leader's rating is <b>2</b> or below, optional otherwise.</span>
+            <span>Note a <b>development plan</b> against any attribute that needs it — required when the leader's rating is <b>2</b> or below, optional otherwise.</span>
         </div>
 
         <form method="post" action="/role-profiles/<%= profile.id %>/assess/<%= encodeURIComponent(member.emp_code) %>" id="ldpAssessForm">
@@ -88,7 +88,7 @@
                 <table class="rp-assess-table">
                     <thead>
                         <tr>
-                            <th>Technical Skill</th><th class="num">Weight</th><th>Assessment Mechanism</th>
+                            <th>Attribute</th><th class="num">Weight</th><th>Assessment Mechanism</th>
                             <th class="num">Self Marking</th><th class="num">Final Score</th>
                             <th class="num">Leader Scoring</th><th class="num">Final Scoring</th>
                             <th>Development Plan</th>
@@ -99,7 +99,7 @@
                         <% if (lastAttr !== s.attribute_no) { lastAttr = s.attribute_no; %>
                             <tr class="rp-attr-row">
                                 <td colspan="8"><%= s.attribute_no %>. <%= s.attribute %>
-                                    <span class="wt">attribute weight <%= trim2(s.attribute_weight) %></span></td>
+                                    <span class="wt">skill weight <%= trim2(s.attribute_weight) %></span></td>
                             </tr>
                         <% } %>
                         <% const selfRating = s.self_rating === null ? '' : Number(s.self_rating); %>

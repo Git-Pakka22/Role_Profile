@@ -201,8 +201,8 @@ function diff(oldV, newV, oldDetails, newDetails, oldOutcomes, newOutcomes) {
   const newKeys = new Set(newDetails.map(key));
   const added = newDetails.filter((d) => !oldKeys.has(key(d))).length;
   const removed = oldDetails.filter((d) => !newKeys.has(key(d))).length;
-  if (added) changes.push(`${added} technical skill line${added > 1 ? 's' : ''} added or reworded`);
-  if (removed) changes.push(`${removed} technical skill line${removed > 1 ? 's' : ''} removed or replaced`);
+  if (added) changes.push(`${added} skill line${added > 1 ? 's' : ''} added or reworded`);
+  if (removed) changes.push(`${removed} skill line${removed > 1 ? 's' : ''} removed or replaced`);
 
   const attrs = (list) => [...new Set(list.map((d) => `${d.attribute_no}:${d.attribute_weight}`))].join(',');
   if (attrs(oldDetails) !== attrs(newDetails)) changes.push('Attribute weights changed');
