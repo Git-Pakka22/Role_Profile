@@ -1115,6 +1115,41 @@ router.get('/:id(\\d+)/versions/:versionId(\\d+)/pdf', async (req, res) => {
   }).pipe(res);
 });
 
+/* ------------------------------------------------------------------ view */
+
+/**
+ * The role profile as a sheet — the same layout as the PDF (mission, key outcomes, then
+ * SN / Skill / Attributes / Weightage / Sub-Weightage) — in any stage, for anyone who may
+ * see it. The admin may open every profile of their programme, drafts included.
+ */
+router.get('/:id(\\d+)/view', async (req, res) => {
+  const actor = me(req);
+  const id = Number(req.params.id);
+  const profile = await roleProfile.fullProfile(id);
+  if (!profile) return gone(req, res);
+  if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
+    req.session.flashError = 'That role profile is not yours to view.';
+    return res.redirect('/role-profiles');
+  }
+  const versions = await version.listFor(id);
+  const attributes = profile.attributes || [];
+  await res.page('role_profiles/sheet', {
+    profile,
+    attributes,
+    totalWeight: attributes.reduce((t, a) => t + Number(a.attribute_weight || 0), 0),
+    subTotal: attributes.reduce((t, a) => t + a.skills.reduce((u, k) => u + Number(k.tech_weight || 0), 0), 0),
+    hasMechanism: attributes.some((a) => String(a.assessment || '').trim() !== ''),
+    inForce: versions.length ? versions[0] : null,
+    pendingUpdate: roleProfile.hasPendingUpdate(profile),
+    statusText: roleProfile.statusLabel(profile),
+    finalBy: roleProfile.finalApprover(profile).label,
+    S,
+    title: `${profile.designation_name} — Role Profile`,
+    pageTitle: `Role Profile · ${profile.designation_name}`,
+    activeNav: 'role-profiles',
+  });
+});
+
 /* ------------------------------------------------------------------- pdf */
 
 /** The approved role profile as a PDF, laid out like the master spreadsheet. */

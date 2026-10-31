@@ -1,0 +1,117 @@
+<%
+  const status = profile.status;
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : '—'; };
+  const outcomes = (profile.outcomes || []).filter((o) => String(o || '').trim());
+  const isLdp = profile.program === 'ldp';
+%>
+<div class="rps-toolbar">
+    <a class="rp-back-link" href="/role-profiles"><i class="mdi mdi-arrow-left"></i> All role profiles</a>
+    <div class="rps-actions">
+        <a class="rp-edit-btn" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-information-outline"></i> Details</a>
+        <% if (status === S.APPROVED) { %>
+            <a class="rp-edit-btn" href="/role-profiles/<%= profile.id %>/pdf"><i class="mdi mdi-file-pdf-box"></i> Download PDF</a>
+        <% } %>
+        <button type="button" class="rp-edit-btn" onclick="window.print()"><i class="mdi mdi-printer-outline"></i> Print</button>
+    </div>
+</div>
+
+<% if (pendingUpdate && inForce) { %>
+    <div class="rp-version-banner rps-note">
+        <i class="mdi mdi-source-branch"></i>
+        <div>
+            This sheet shows the <strong><%= status === S.REJECTED ? 'update that was sent back' : 'update awaiting approval' %></strong>.
+            Version <%= inForce.version_no %> is in force for members until it is approved —
+            <a href="/role-profiles/<%= profile.id %>/versions/<%= inForce.id %>">view version <%= inForce.version_no %></a>.
+        </div>
+    </div>
+<% } else if (status !== S.APPROVED) { %>
+    <div class="rp-version-banner rps-note">
+        <i class="mdi mdi-progress-clock"></i>
+        <div>This role profile is <strong><%= statusText %></strong> — it is not in force for anyone yet.</div>
+    </div>
+<% } %>
+
+<article class="rps-sheet">
+    <header class="rps-band">
+        <img src="/img/pakka-logo.png" alt="Pakka" class="rps-logo">
+        <div class="rps-band-text">
+            <div class="rps-kicker">Role Profile</div>
+            <h1><%= profile.designation_name %></h1>
+        </div>
+        <span class="rps-status rps-status-<%= status %>"><%= statusText %></span>
+    </header>
+
+    <dl class="rps-chips">
+        <div><dt>Sangh</dt><dd><%= profile.sangh_name || profile.sangh_code || '—' %></dd></div>
+        <div><dt>Programme</dt><dd><%= isLdp ? 'LDP' : 'PSP' %></dd></div>
+        <div><dt>Written by</dt><dd><%= personName(profile.created_by, profile.created_by_name) %></dd></div>
+        <div><dt>RP Approver</dt><dd><%= profile.rp_approver_code ? personName(profile.rp_approver_code, profile.rp_approver_name) + (profile.rp_approver_action_at ? ' · ' + fmtDate(profile.rp_approver_action_at) : '') : 'Not required' %></dd></div>
+        <div><dt><%= finalBy %></dt><dd><%= profile.admin_action_at ? fmtDate(profile.admin_action_at) : 'Pending' %></dd></div>
+        <div><dt>Version</dt><dd><%= inForce ? 'v' + inForce.version_no + (pendingUpdate ? ' in force' : '') : 'Not yet approved' %></dd></div>
+        <div><dt>Last updated</dt><dd><%= fmtDate(profile.updated_at || profile.created_at) %></dd></div>
+    </dl>
+
+    <section class="rps-panel">
+        <h2 class="rps-panel-title rps-maroon">Mission</h2>
+        <p class="rps-mission"><%= String(profile.mission || '').trim() || '—' %></p>
+    </section>
+
+    <section class="rps-panel">
+        <h2 class="rps-panel-title rps-blue">Key Outcomes</h2>
+        <% if (!outcomes.length) { %>
+            <p class="rps-empty">No key outcomes written yet.</p>
+        <% } else { %>
+            <ol class="rps-outcomes">
+                <% outcomes.forEach((o) => { %><li><%= o %></li><% }) %>
+            </ol>
+        <% } %>
+    </section>
+
+    <div class="rps-tablewrap">
+        <table class="rps-table">
+            <thead>
+                <tr>
+                    <th class="c">SN</th>
+                    <th>Skill</th>
+                    <th>Attributes</th>
+                    <th class="c">Weightage</th>
+                    <th class="c">Sub-Weightage</th>
+                    <% if (hasMechanism) { %><th>Assessment Mechanism</th><% } %>
+                </tr>
+            </thead>
+            <tbody>
+            <% if (!attributes.length) { %>
+                <tr><td colspan="<%= hasMechanism ? 6 : 5 %>" class="rps-empty">No skills written yet.</td></tr>
+            <% } %>
+            <% attributes.forEach((a, i) => {
+                 const skills = a.skills.length ? a.skills : [{ tech_skill: '', tech_weight: null }];
+                 const span = skills.length; %>
+                <% skills.forEach((k, j) => { %>
+                    <tr class="<%= j === 0 ? 'rps-first' : '' %>">
+                        <% if (j === 0) { %>
+                            <td class="c rps-sn" rowspan="<%= span %>"><%= i + 1 %></td>
+                            <td class="rps-skill" rowspan="<%= span %>"><%= a.attribute %></td>
+                        <% } %>
+                        <td><%= k.tech_skill || '—' %></td>
+                        <% if (j === 0) { %>
+                            <td class="c rps-weight" rowspan="<%= span %>"><%= num(a.attribute_weight) %></td>
+                        <% } %>
+                        <td class="c"><%= k.tech_weight == null || k.tech_weight === '' ? '—' : num(k.tech_weight) %></td>
+                        <% if (hasMechanism && j === 0) { %>
+                            <td rowspan="<%= span %>"><%= a.assessment || '—' %></td>
+                        <% } %>
+                    </tr>
+                <% }) %>
+            <% }) %>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">Total</td>
+                    <td class="c"><%= num(totalWeight) %></td>
+                    <td class="c"><%= num(subTotal) %></td>
+                    <% if (hasMechanism) { %><td></td><% } %>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</article>

@@ -1,30 +1,66 @@
-<div class="rp-login-wrap">
-    <div class="rp-card rp-login-card">
-        <div class="rp-card-header">
-            <div class="rp-card-header-left">
-                <div class="rp-card-header-icon"><i class="mdi mdi-lock-outline"></i></div>
-                <div>
-                    <div class="rp-card-title">Sign In</div>
-                    <div class="rp-card-subtitle">Use your Pakka member code and password</div>
-                </div>
-            </div>
+<div class="lg">
+    <section class="lg-brand">
+        <div class="lg-brand-top">
+            <img src="/img/pakka-logo.png" alt="Pakka" class="lg-logo">
         </div>
-        <div class="rp-card-body">
-            <form method="post" action="/login" autocomplete="on">
+        <div class="lg-brand-mid">
+            <div class="lg-kicker">Role Profile Portal</div>
+            <h1>Clear roles.<br>Fair assessments.<br>Growing members.</h1>
+            <p>Write, approve and keep role profiles up to date — and assess every member against the role that is truly theirs.</p>
+            <ul class="lg-points">
+                <li><span><i class="mdi mdi-file-document-edit-outline"></i></span>Role profiles for every designation, in every sangh</li>
+                <li><span><i class="mdi mdi-shield-check-outline"></i></span>Two-step approval, with every version kept</li>
+                <li><span><i class="mdi mdi-chart-box-outline"></i></span>Dashboards and reports at a glance</li>
+            </ul>
+        </div>
+        <div class="lg-brand-foot">Pakka &copy; <%= new Date().getFullYear() %></div>
+        <div class="lg-ring lg-ring-a" aria-hidden="true"></div>
+        <div class="lg-ring lg-ring-b" aria-hidden="true"></div>
+    </section>
+
+    <section class="lg-form-side">
+        <div class="lg-card">
+            <div class="lg-card-icon"><i class="mdi mdi-account-lock-outline"></i></div>
+            <h2>Welcome back</h2>
+            <p class="lg-sub">Sign in with your Pakka member code and password.</p>
+
+            <% if (flashError) { %>
+                <div class="rp-alert rp-alert-error"><i class="mdi mdi-alert-circle-outline"></i> <%= flashError %></div>
+            <% } %>
+            <% if (flashSuccess) { %>
+                <div class="rp-alert rp-alert-success"><i class="mdi mdi-check-circle-outline"></i> <%= flashSuccess %></div>
+            <% } %>
+
+            <form method="post" action="/login" autocomplete="on" class="lg-form">
                 <input type="hidden" name="csrf_test_name" value="<%= csrfToken %>">
-                <div class="rp-field">
-                    <label for="emp_code">Member Code</label>
-                    <input type="text" id="emp_code" name="emp_code" required autofocus
-                           autocapitalize="characters" autocomplete="username" placeholder="e.g. M00000">
-                </div>
-                <div class="rp-field">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required
-                           autocomplete="current-password" placeholder="Your password">
-                </div>
-                <button type="submit" class="rp-btn"><i class="mdi mdi-login"></i> Sign In</button>
+                <label class="lg-field" for="emp_code">
+                    <span>Member code</span>
+                    <span class="lg-input"><i class="mdi mdi-card-account-details-outline"></i>
+                        <input type="text" id="emp_code" name="emp_code" required autofocus
+                               autocapitalize="characters" autocomplete="username" placeholder="e.g. M00000">
+                    </span>
+                </label>
+                <label class="lg-field" for="password">
+                    <span>Password</span>
+                    <span class="lg-input"><i class="mdi mdi-lock-outline"></i>
+                        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Your password">
+                        <button type="button" class="lg-eye" id="lgEye" aria-label="Show password"><i class="mdi mdi-eye-outline"></i></button>
+                    </span>
+                </label>
+                <button type="submit" class="lg-submit">Sign in <i class="mdi mdi-arrow-right"></i></button>
             </form>
-            <p class="rp-login-note">Sign in to view members and role profiles.</p>
+            <p class="lg-note"><i class="mdi mdi-information-outline"></i> Trouble signing in? Contact the portal admin.</p>
         </div>
-    </div>
+    </section>
 </div>
+<script>
+    (function () {
+        var eye = document.getElementById('lgEye'), pw = document.getElementById('password');
+        eye.addEventListener('click', function () {
+            var show = pw.type === 'password';
+            pw.type = show ? 'text' : 'password';
+            eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            eye.querySelector('i').className = 'mdi ' + (show ? 'mdi-eye-off-outline' : 'mdi-eye-outline');
+        });
+    })();
+</script>

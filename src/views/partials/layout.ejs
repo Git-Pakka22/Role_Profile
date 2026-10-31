@@ -40,6 +40,10 @@
 
         <nav class="rp-sidebar-nav">
             <% if (loggedIn) { %>
+                <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %>
+                    <div class="rp-nav-section">Overview</div>
+                    <%- navItem('dashboard', '/dashboard', 'mdi-view-dashboard-outline', 'Dashboard') %>
+                <% } %>
                 <% if (rpLeads > 0 || me.isAdmin) { %>
                     <div class="rp-nav-section">Browse</div>
                     <% if (rpLeads > 0) { %><%- navItem('my-members', '/my-members', 'mdi-account-supervisor-outline', 'My Members') %><% } %>
@@ -108,8 +112,8 @@
                         <% if (rpUnread > 0) { %><span class="rp-bell-count"><%= rpUnread > 99 ? '99+' : rpUnread %></span><% } %>
                     </a>
                     <% if (rpPending > 0) { %>
-                        <a class="rp-pending-pill" href="/role-profiles">
-                            <i class="mdi mdi-clock-alert-outline"></i> <%= rpPending %> awaiting you
+                        <a class="rp-pending-pill" href="/role-profiles" title="<%= rpPending %> awaiting your approval">
+                            <i class="mdi mdi-clock-alert-outline"></i> <%= rpPending %><span class="rp-pill-text"> awaiting you</span>
                         </a>
                     <% } %>
                 <% } %>
@@ -146,6 +150,15 @@
         function toggle() { sidebar.classList.toggle('open'); scrim.classList.toggle('open'); }
         document.getElementById('rpMenuToggle').addEventListener('click', toggle);
         scrim.addEventListener('click', toggle);
+
+        // Tables marked rp-cards-sm become one card per row on phones: each cell is labelled
+        // with its column heading (shown by CSS only at narrow widths).
+        document.querySelectorAll('table.rp-cards-sm').forEach(function (t) {
+            var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+            t.querySelectorAll('tbody tr').forEach(function (tr) {
+                Array.prototype.forEach.call(tr.children, function (td, i) { if (heads[i]) td.setAttribute('data-label', heads[i]); });
+            });
+        });
     })();
 </script>
 <%- typeof pageScript !== 'undefined' ? pageScript : '' %>

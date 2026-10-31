@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get('/login', async (req, res) => {
   if (req.session.logged_in) return res.redirect(await mw.landingUrl(req));
-  await res.page('login', { title: 'Sign In — Pakka Role Profile', pageTitle: 'Sign In', activeNav: 'login' });
+  await res.page('login', { title: 'Sign In — Pakka Role Profile', pageTitle: 'Sign In', activeNav: 'login', bare: true });
 });
 
 router.post('/login', async (req, res) => {

@@ -10,12 +10,14 @@ const S = roleProfile.STATUS;
  * approval" is not a status of its own: it is an approved profile whose update is going
  * through approval (or was sent back), so it is counted on top of its status.
  */
+// This order keeps the brand maroon (Rejected) and olive (Approved) apart, which colour-blind
+// readers could otherwise confuse in stacked bars.
 const STAGES = [
   { key: S.DRAFT, label: 'Draft', icon: 'mdi-content-save-outline' },
+  { key: S.REJECTED, label: 'Rejected', icon: 'mdi-close-circle-outline' },
   { key: S.PENDING_SEVAK, label: 'Awaiting RP Approver', icon: 'mdi-clock-outline' },
   { key: S.PENDING_ADMIN, label: 'Awaiting final approval', icon: 'mdi-clock-fast' },
   { key: S.APPROVED, label: 'Approved', icon: 'mdi-check-circle-outline' },
-  { key: S.REJECTED, label: 'Rejected', icon: 'mdi-close-circle-outline' },
 ];
 const UPDATE_PENDING = 'update_pending';
 
@@ -73,6 +75,18 @@ const day = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) ? String(s) : nu
 function fyRange(fy) {
   const m = /^(\d{4})-(\d{4})$/.exec(String(fy || ''));
   return m ? [`${m[1]}-04-01`, `${m[2]}-03-31`] : null;
+}
+
+/**
+ * Designation coverage: for every sangh in this person's reach, its designations (held by an
+ * active member now, or created in the portal) and whether each has a role profile yet.
+ * Designations only former members held are left out — there is nobody to write one for.
+ */
+async function coverage(actor) {
+  const sanghs = await roleProfile.sanghsFor(actor.code, actor.name, { psp: !!actor.isAdmin, ldp: !!actor.isLdpAdmin });
+  const rows = (await roleProfile.designationOverview(sanghs.map((x) => x.sangh_code)))
+    .filter((d) => d.active > 0 || d.created);
+  return { sanghs, rows };
 }
 
 /** Normalise the query string into the filters the report understands. */
@@ -150,15 +164,30 @@ async function build(actor, query, financialYear) {
   const all = await enrich(await baseProfiles(actor), financialYear);
   const rows = applyFilters(all, f);
 
+  // Coverage follows the sangh, programme and designation filters; stages do not apply to it.
+  const cov = await coverage(actor);
+  const q = f.q.toLowerCase();
+  const covRows = cov.rows.filter((d) => (!f.sangh || d.sangh_code === f.sangh)
+    && (!f.program || d.program === f.program)
+    && (!q || d.designation.toLowerCase().includes(q)));
+  const covCount = (list) => ({ designations: list.length, created: list.filter((d) => d.profile).length });
+
+  // Every sangh in reach gets a row, with or without role profiles.
   const bySangh = new Map();
+  for (const sg of cov.sanghs) {
+    if (f.program && sg.program !== f.program) continue;
+    bySangh.set(sg.sangh_code, { sangh_code: sg.sangh_code, sangh_name: sg.sangh_name, program: sg.program, rows: [] });
+  }
   for (const p of applyFilters(all, f, ['sangh'])) {
     const key = p.sangh_code || '—';
     if (!bySangh.has(key)) bySangh.set(key, { sangh_code: key, sangh_name: p.sangh_name || key, program: p.program, rows: [] });
     bySangh.get(key).rows.push(p);
   }
+  const covAll = cov.rows.filter((d) => (!f.program || d.program === f.program) && (!q || d.designation.toLowerCase().includes(q)));
   const sanghRows = [...bySangh.values()]
-    .map((g) => ({ ...g, counts: stageCounts(g.rows) }))
-    .sort((a, b) => b.counts.total - a.counts.total || String(a.sangh_name).localeCompare(String(b.sangh_name)));
+    .map((g) => ({ ...g, counts: stageCounts(g.rows), cov: covCount(covAll.filter((d) => d.sangh_code === g.sangh_code)) }))
+    .sort((a, b) => b.cov.designations - a.cov.designations || b.counts.total - a.counts.total
+      || String(a.sangh_name).localeCompare(String(b.sangh_name)));
 
   const programRows = ['psp', 'ldp'].map((prog) => ({
     program: prog,
@@ -169,7 +198,9 @@ async function build(actor, query, financialYear) {
   const uniq = (list) => [...new Map(list.filter((x) => x.code).map((x) => [x.code, x])).values()]
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const options = {
-    sanghs: uniq(all.map((p) => ({ code: p.sangh_code, name: p.sangh_name || p.sangh_code, program: p.program }))),
+    // Every sangh in reach, not only those that already have role profiles.
+    sanghs: uniq(cov.sanghs.map((x) => ({ code: x.sangh_code, name: x.sangh_name || x.sangh_code, program: x.program }))
+      .concat(all.map((p) => ({ code: p.sangh_code, name: p.sangh_name || p.sangh_code, program: p.program })))),
     creators: uniq(all.map((p) => ({ code: p.created_by, name: p.created_by_name || p.created_by }))),
     approvers: uniq(all.map((p) => ({ code: p.rp_approver_code, name: p.rp_approver_name || p.rp_approver_code }))),
   };
@@ -182,8 +213,10 @@ async function build(actor, query, financialYear) {
     programRows,
     options,
     totalVisible: all.length,
+    coverage: { ...covCount(covRows), missing: covRows.filter((d) => !d.profile)
+      .sort((a, b) => b.active - a.active || a.designation.localeCompare(b.designation)) },
     activeFilters: Object.entries(f).filter(([, v]) => v).length,
   };
 }
 
-module.exports = { STAGES, UPDATE_PENDING, build, readFilters, fyRange };
+module.exports = { STAGES, UPDATE_PENDING, build, readFilters, fyRange, baseProfiles, enrich, coverage, stageCounts };

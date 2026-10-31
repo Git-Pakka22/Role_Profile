@@ -73,7 +73,7 @@
             </div>
         <% } else { %>
             <div class="table-responsive">
-                <table class="display" id="profileTable" style="width:100%">
+                <table class="display rp-cards-sm" id="profileTable" style="width:100%">
                     <thead>
                         <tr><th>Designation</th><th>Sangh</th><th>Created by</th><th>Status</th><th><%= chosen %></th><th>Last updated</th><th>Action</th></tr>
                     </thead>
@@ -129,17 +129,18 @@
                             </td>
                             <td>
                                 <div class="rp-actions">
-                                    <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>"><i class="mdi mdi-eye-outline"></i> View</a>
+                                    <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/view" title="View — the role profile sheet" aria-label="View"><i class="mdi mdi-eye-outline"></i> View</a>
+                                    <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>" title="Details — members, versions, history, approvals" aria-label="Details"><i class="mdi mdi-information-outline"></i> Details</a>
                                     <% if (p.fy_can_review && fyOpen) { %>
-                                        <a class="rp-edit-btn rp-edit-btn-due" href="/role-profiles/<%= p.id %>?tab=versions"><i class="mdi mdi-calendar-check-outline"></i> Review <%= chosen %></a>
+                                        <a class="rp-edit-btn rp-edit-btn-due" title="Review" href="/role-profiles/<%= p.id %>?tab=versions"><i class="mdi mdi-calendar-check-outline"></i> Review <%= chosen %></a>
                                     <% } else if (p.is_live && p.created_by === me.code) { %>
-                                        <a class="rp-edit-btn" href="/assessments?fy=<%= encodeURIComponent(chosen) %>&profile=<%= p.id %>"><i class="mdi mdi-clipboard-edit-outline"></i> Assess</a>
+                                        <a class="rp-edit-btn" title="Assess" aria-label="Assess" href="/assessments?fy=<%= encodeURIComponent(chosen) %>&profile=<%= p.id %>"><i class="mdi mdi-clipboard-edit-outline"></i> Assess</a>
                                     <% } %>
                                     <% if (p.can_update) { %>
                                         <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/edit" title="Update this approved role profile; it goes for approval as a new version"><i class="mdi mdi-file-document-edit-outline"></i> Update RP</a>
                                     <% } %>
                                     <% if (p.can_edit) { %>
-                                        <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/edit"><i class="mdi mdi-pencil-outline"></i> Edit</a>
+                                        <a class="rp-edit-btn" title="Edit" aria-label="Edit" href="/role-profiles/<%= p.id %>/edit"><i class="mdi mdi-pencil-outline"></i> Edit</a>
                                     <% } %>
                                     <% if (canCreate) { %>
                                         <a class="rp-edit-btn" href="/role-profiles/<%= p.id %>/clone" title="Start a new role profile from this one"><i class="mdi mdi-content-copy"></i> Clone</a>

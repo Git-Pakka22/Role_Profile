@@ -21,6 +21,10 @@
     <div class="rp-card-body">
 
         <!-- ------------------------------------------------------------ filters -->
+        <button type="button" class="rp-rep-filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="reportFilters">
+            <i class="mdi mdi-filter-variant"></i> Filters<% if (activeFilters) { %> <span class="rp-count-pill"><%= activeFilters %> on</span><% } %>
+            <i class="mdi mdi-chevron-down"></i>
+        </button>
         <form method="get" action="/reports/role-profiles" class="rp-rep-filters" id="reportFilters">
             <div class="rp-rep-grid">
                 <label>Financial year (created)
@@ -107,6 +111,24 @@
             </div>
         </form>
 
+        <!-- ----------------------------------------------------- designation coverage -->
+        <% const pct = coverage.designations ? Math.round(coverage.created / coverage.designations * 100) : 0; %>
+        <div class="rp-cov">
+            <div class="rp-cov-main">
+                <div class="rp-cov-label">Role profile coverage<%= f.sangh ? '' : ' — all sanghs' %></div>
+                <div class="rp-cov-big"><span><%= pct %>%</span> of designations have a role profile</div>
+                <div class="rp-cov-bar" role="img" aria-label="<%= coverage.created %> of <%= coverage.designations %> designations have a role profile">
+                    <span class="done" style="width:<%= pct %>%"></span>
+                </div>
+            </div>
+            <div class="rp-cov-tiles">
+                <div class="rp-cov-tile"><span class="n"><%= coverage.designations %></span><span class="l">Designations</span></div>
+                <div class="rp-cov-tile ok"><span class="n"><%= coverage.created %></span><span class="l">RP created</span></div>
+                <a class="rp-cov-tile todo" href="#missing"><span class="n"><%= coverage.designations - coverage.created %></span><span class="l">RP not created yet</span></a>
+            </div>
+        </div>
+        <p class="rp-sub" style="margin:-6px 0 18px">Designations held by an active member, or added in the portal. "RP created" counts any role profile in progress or approved; a rejected first draft does not count.</p>
+
         <!-- -------------------------------------------------------- stage cards -->
         <div class="rp-rep-cards">
             <% cards.forEach((c) => { const active = f.stage === c.key; %>
@@ -117,33 +139,41 @@
                 </a>
             <% }) %>
         </div>
-        <p class="rp-sub" style="margin:-6px 0 18px">Click a stage to filter by it. "Awaiting final approval" is the PSP Approver for PSP profiles and the LDP Admin for LDP ones. "Update awaiting approval" counts approved profiles with an update going through approval or sent back — their earlier version stays in force.</p>
+        <p class="rp-sub" style="margin:-6px 0 18px">Role profiles by stage — click one to filter. "Awaiting final approval" is the PSP Approver for PSP profiles and the LDP Admin for LDP ones. "Update awaiting approval" counts approved profiles with an update in approval or sent back.</p>
 
-        <!-- --------------------------------------------------- sangh × stage table -->
-        <div class="rp-section"><h3><i class="mdi mdi-table-large"></i> By sangh and stage</h3></div>
+        <!-- --------------------------------------------------- sangh table -->
+        <div class="rp-section"><h3><i class="mdi mdi-table-large"></i> By sangh</h3></div>
         <% if (!sanghRows.length) { %>
-            <div class="rp-empty-inline">No role profiles match these filters.</div>
+            <div class="rp-empty-inline">No sanghs match these filters.</div>
         <% } else { %>
         <div class="table-responsive">
             <table class="rp-member-table rp-rep-matrix">
                 <thead>
                     <tr>
-                        <th>Sangh</th>
-                        <% stages.forEach((s) => { %><th class="num"><%= s.label %></th><% }) %>
-                        <th class="num">Update pending</th>
-                        <th class="num">Total</th>
+                        <th rowspan="2">Sangh</th>
+                        <th colspan="4" class="num grp">Designations</th>
+                        <th colspan="<%= stages.length + 1 %>" class="num grp">Role profiles by stage</th>
+                    </tr>
+                    <tr>
+                        <th class="num">Total</th><th class="num">RP created</th><th class="num">Not created</th><th>Coverage</th>
+                        <% const short = { draft: 'Draft', rejected: 'Rejected', pending_sevak: 'With RP Approver', pending_admin: 'With final approver', approved: 'Approved' }; %>
+                        <% stages.forEach((s) => { %><th class="num" title="<%= s.label %>"><%= short[s.key] || s.label %></th><% }) %>
+                        <th class="num">All</th>
                     </tr>
                 </thead>
                 <tbody>
-                <% const totals = { total: 0, [UPDATE_PENDING]: 0 }; stages.forEach((s) => { totals[s.key] = 0; }); %>
-                <% sanghRows.forEach((g) => { %>
+                <% const totals = { total: 0, d: 0, c: 0 }; stages.forEach((s) => { totals[s.key] = 0; }); %>
+                <% sanghRows.forEach((g) => { const miss = g.cov.designations - g.cov.created; const gp = g.cov.designations ? Math.round(g.cov.created / g.cov.designations * 100) : 0;
+                     totals.d += g.cov.designations; totals.c += g.cov.created; totals.total += g.counts.total; %>
                     <tr<%= f.sangh === g.sangh_code ? ' class="is-current"' : '' %>>
                         <td><a href="<%= link({ sangh: g.sangh_code }) %>"><strong><%= g.sangh_name %></strong></a> <%- progTag(g.program) %></td>
+                        <td class="num"><%= g.cov.designations %></td>
+                        <td class="num"><%- g.cov.created ? `<span class="rp-rep-num ok">${g.cov.created}</span>` : '<span class="rp-rep-zero">0</span>' %></td>
+                        <td class="num"><%- miss ? `<a class="rp-rep-num todo" href="${link({ sangh: g.sangh_code })}#missing">${miss}</a>` : '<span class="rp-rep-zero">0</span>' %></td>
+                        <td class="rp-cov-cell"><span class="rp-mini-bar" title="<%= gp %>% covered"><span style="width:<%= gp %>%"></span></span> <span class="rp-sub"><%= gp %>%</span></td>
                         <% stages.forEach((s) => { totals[s.key] += g.counts[s.key] || 0; %>
                             <td class="num"><%- cell(g.counts[s.key] || 0, { sangh: g.sangh_code, stage: s.key }) %></td>
                         <% }) %>
-                        <% totals[UPDATE_PENDING] += g.counts[UPDATE_PENDING]; totals.total += g.counts.total; %>
-                        <td class="num"><%- cell(g.counts[UPDATE_PENDING], { sangh: g.sangh_code, stage: UPDATE_PENDING }) %></td>
                         <td class="num"><%- cell(g.counts.total, { sangh: g.sangh_code, stage: '' }) %></td>
                     </tr>
                 <% }) %>
@@ -151,8 +181,11 @@
                 <tfoot>
                     <tr>
                         <th>All sanghs</th>
+                        <th class="num"><%= totals.d %></th>
+                        <th class="num"><%= totals.c %></th>
+                        <th class="num"><%= totals.d - totals.c %></th>
+                        <th><span class="rp-sub"><%= totals.d ? Math.round(totals.c / totals.d * 100) : 0 %>%</span></th>
                         <% stages.forEach((s) => { %><th class="num"><%- cell(totals[s.key], { sangh: '', stage: s.key }) %></th><% }) %>
-                        <th class="num"><%- cell(totals[UPDATE_PENDING], { sangh: '', stage: UPDATE_PENDING }) %></th>
                         <th class="num"><%- cell(totals.total, { sangh: '', stage: '' }) %></th>
                     </tr>
                 </tfoot>
@@ -182,13 +215,36 @@
         </div>
         <% } %>
 
+        <!-- ------------------------------------------------ designations without an RP -->
+        <div class="rp-section" style="margin-top:22px" id="missing"><h3><i class="mdi mdi-file-alert-outline"></i> Designations without a role profile<%= f.sangh ? '' : '' %> <span class="rp-count-pill"><%= coverage.missing.length %></span></h3></div>
+        <% if (!coverage.missing.length) { %>
+            <div class="rp-empty-inline">Every designation here has a role profile.</div>
+        <% } else { %>
+        <div class="table-responsive">
+            <table class="display rp-cards-sm" id="missingTable" style="width:100%">
+                <thead><tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Active holders</th><th>Origin</th></tr></thead>
+                <tbody>
+                <% coverage.missing.forEach((d) => { %>
+                    <tr>
+                        <td><span class="emp-name"><%= d.designation %></span></td>
+                        <td><%= (options.sanghs.find((x) => x.code === d.sangh_code) || {}).name || d.sangh_code %></td>
+                        <td data-order="<%= d.program %>"><%= d.program === 'ldp' ? 'LDP' : 'PSP' %></td>
+                        <td data-order="<%= d.active %>"><%= d.active || '—' %></td>
+                        <td><%= d.created ? 'Added in the portal' : 'Held by members' %></td>
+                    </tr>
+                <% }) %>
+                </tbody>
+            </table>
+        </div>
+        <% } %>
+
         <!-- --------------------------------------------------------- detail list -->
         <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-format-list-bulleted"></i> Role profiles<%= f.stage ? ' — ' + stageLabel(f.stage) : '' %></h3></div>
         <% if (!rows.length) { %>
             <div class="rp-empty-inline">No role profiles match these filters.</div>
         <% } else { %>
         <div class="table-responsive">
-            <table class="display" id="reportTable" style="width:100%">
+            <table class="display rp-cards-sm" id="reportTable" style="width:100%">
                 <thead>
                     <tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Stage</th><th>Created by</th><th>RP Approver</th>
                         <th>Created</th><th>Last change</th><th>Version</th><th>Members</th><th>Assessed <%= fyNow %></th></tr>
@@ -223,6 +279,21 @@
 $(function () {
     // Filters apply as soon as a dropdown or date changes; the search box on Enter.
     $('#reportFilters').on('change', 'select, input[type="date"]', function () { this.form.submit(); });
+    $('#filterToggle').on('click', function () {
+        var open = $('#reportFilters').toggleClass('is-open').hasClass('is-open');
+        $(this).attr('aria-expanded', String(open)).toggleClass('is-open', open);
+    });
+    if ($('#missingTable').length) {
+        new DataTable('#missingTable', {
+            pageLength: 10, order: [[3, 'desc']],
+            layout: { topStart: { buttons: [
+                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: 'Designations without a role profile' },
+                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: 'Designations without a role profile' }
+            ] } },
+            language: { search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search designations...',
+                info: 'Showing _START_ to _END_ of _TOTAL_ designations', zeroRecords: 'No designations match your search' }
+        });
+    }
     if ($('#reportTable').length) {
         new DataTable('#reportTable', {
             pageLength: 25, order: [[6, 'desc']],

@@ -282,6 +282,25 @@ key outcomes, attributes, skills and weights, leaves the designation blank, and 
 through the normal create path. The source is untouched — this is for
 roles that are close in shape but need their own weights or a few different skills.
 
+## Dashboard, View and Details
+
+* **Dashboard** (`/dashboard`) is the landing page for the admin and leaders: role profiles by
+  stage, designation coverage by sangh, approvals waiting, this year's assessments, recently
+  updated profiles and activity. Members land on Role Profiles. Numbers come from
+  `src/models/dashboard.js`, built on the report so the two always agree.
+* **View** (`/role-profiles/{id}/view`) shows the role profile as a sheet laid out like the
+  PDF — mission, key outcomes, then SN / Skill / Attributes / Weightage / Sub-Weightage — in any
+  stage, printable. **Details** (`/role-profiles/{id}`) is the full page with members,
+  versions, history and approvals.
+* The PSP Approver sees every PSP profile and the LDP Admin every LDP one, **in any stage,
+  drafts included**; editing a draft stays with its author.
+* The report lists **every sangh** in reach and shows **designation coverage**: how many of
+  each sangh's designations (held by an active member, or added in the portal) have a role
+  profile, with the list of those that do not.
+* Chart colours come from the brand palette in a fixed stage order — Draft, Rejected, Awaiting
+  RP Approver, Awaiting final approval, Approved — so maroon and olive never sit side by side
+  (colour-blind safe); every chart also shows its numbers as text.
+
 ## User manual
 
 `public/manual/` holds the user manual — one page with an **English / हिंदी** toggle and

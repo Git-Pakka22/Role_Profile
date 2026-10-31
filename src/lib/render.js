@@ -3,6 +3,8 @@ const path = require('path');
 const ejs = require('ejs');
 
 const LAYOUT = path.join(__dirname, '..', 'views', 'partials', 'layout.ejs');
+// A page on its own, without the sidebar and top bar — the sign-in screen.
+const BARE = path.join(__dirname, '..', 'views', 'partials', 'bare.ejs');
 
 /**
  * Render a page inside the shared layout. EJS has no template inheritance, so the page
@@ -18,7 +20,7 @@ function attach(app) {
           locals,
           { async: true }
         );
-        const html = await ejs.renderFile(LAYOUT, { ...locals, body }, { async: true });
+        const html = await ejs.renderFile(locals.bare ? BARE : LAYOUT, { ...locals, body }, { async: true });
         res.send(html);
       } catch (err) {
         next(err);

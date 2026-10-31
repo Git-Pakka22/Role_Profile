@@ -207,37 +207,30 @@ function hasPendingUpdate(profile) {
 }
 
 /**
- * Someone sees a profile when they wrote it, when it is waiting on them as RP Approver,
- * or — once approved — when it actually applies to them. Drafts stay private. The PSP
- * Approver sees every PSP profile and the LDP Admin every LDP one.
+ * Someone sees a profile when they wrote it, when it is waiting on them as RP Approver, or —
+ * once live — when it is assigned to them. Other people's drafts stay private, except to the
+ * admin: the PSP Approver sees every PSP profile and the LDP Admin every LDP one, in any stage.
  */
 async function visibleTo(empCode, isAdmin, isLdpAdmin = false) {
-  let sql = `SELECT p.* FROM rp_role_profiles p WHERE (p.status <> ? OR p.created_by = ?)`;
-  const params = [STATUS.DRAFT, empCode];
-
-  if (!(isAdmin && isLdpAdmin)) {
-    const reach = [];
-    if (isAdmin) reach.push(`p.program <> '${PROGRAM.LDP}'`);
-    if (isLdpAdmin) reach.push(`p.program = '${PROGRAM.LDP}'`);
-    sql += ` AND (
-               p.created_by = ?
-            OR (p.rp_approver_code = ? AND p.status <> ?)
-            OR ((p.status = ? OR p.admin_action_at IS NOT NULL) AND ${appliesToPersonSql()})
-            ${reach.map((r) => `OR ${r}`).join(' ')}
-           )`;
-    params.push(empCode, empCode, STATUS.DRAFT, STATUS.APPROVED, ACTIVE, empCode);
-  }
-
-  sql += ' ORDER BY p.created_at DESC';
-  return db.query(sql, params);
+  const reach = [];
+  if (isAdmin) reach.push(`p.program <> '${PROGRAM.LDP}'`);
+  if (isLdpAdmin) reach.push(`p.program = '${PROGRAM.LDP}'`);
+  const sql = `SELECT p.* FROM rp_role_profiles p
+     WHERE p.created_by = ?
+        OR (p.status <> ? AND p.rp_approver_code = ?)
+        OR ((p.status = ? OR p.admin_action_at IS NOT NULL) AND ${appliesToPersonSql()})
+        ${reach.map((r) => `OR ${r}`).join(' ')}
+     ORDER BY p.created_at DESC`;
+  return db.query(sql, [empCode, STATUS.DRAFT, empCode, STATUS.APPROVED, ACTIVE, empCode]);
 }
 
 /** Same rule as visibleTo(), for one row. */
 async function canView(profile, empCode, isAdmin, isLdpAdmin = false) {
   if (profile.created_by === empCode) return true;
+  // The admin sees every profile of their programme, drafts included.
+  if (isFinalApprover(profile, isAdmin, isLdpAdmin)) return true;
   if (profile.status === STATUS.DRAFT) return false;
   if (profile.rp_approver_code === empCode) return true;
-  if (isFinalApprover(profile, isAdmin, isLdpAdmin)) return true;
   if (!isLive(profile)) return false;
 
   const members = await effectiveMembers(profile);

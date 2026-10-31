@@ -46,6 +46,36 @@ const card = (body, label) => Number((new RegExp(`class="n">(\\d+)</span>\\s*<sp
   check('the matrix links into filtered views', psp.includes(`/reports/role-profiles?sangh=${sangh}&amp;stage=`) || psp.includes(`/reports/role-profiles?sangh=${sangh}&stage=`), true);
   check('Excel / CSV export offered', psp.includes("extend: 'excel'") && psp.includes("extend: 'csv'"), true);
 
+  /* ------------------------------------------- every sangh, and designation coverage */
+  const sanghsInDb = Number((await db.first("SELECT COUNT(DISTINCT sangh_code) n FROM tbl_employee WHERE status = 0 AND TRIM(sangh_code) <> '' AND sangh_code NOT IN ('SS','SS1')")).n);
+  const sanghOptions = (psp.match(/<optgroup label="PSP sanghs">([\s\S]*?)<\/optgroup>/) || ['', ''])[1].match(/<option /g) || [];
+  check('sangh dropdown lists every PSP sangh, with or without role profiles', sanghOptions.length, sanghsInDb);
+  check('coverage panel shown', psp.includes('Role profile coverage') && psp.includes('RP not created yet'), true);
+  check('designations without a role profile are listed', psp.includes('id="missingTable"'), true);
+
+  /* ------------------------------------------------ admin sees every stage, incl. drafts */
+  const CREATOR = { code: 'M00151', name: 'Ujjwal Agarwal', isAdmin: false };
+  signIn(CREATOR);
+  const roleProfile = require('../src/models/roleProfile');
+  const d = `Draft For Admin ${Date.now()}`;
+  await roleProfile.createDesignation('DVS', d, CREATOR);
+  const draftId = await roleProfile.createProfile({ designation_name: d, sangh_code: 'DVS', sangh_name: 'Dakshta Vikas Sangh',
+    mission: 'Draft mission', program: 'psp', status: 'draft', created_by: CREATOR.code, created_by_name: CREATOR.name,
+    rp_approver_code: '', rp_approver_name: '' }, ['One'], [{ attribute: 'Skill', attribute_weight: '100', skills: [{ skill: 'Attr', weight: '100' }] }]);
+  check('admin\'s list includes someone else\'s draft', (await roleProfile.visibleTo(PSP.code, true, false)).some((p) => p.id === draftId), true);
+  check('a member\'s does not', (await roleProfile.visibleTo(MEMBER.code, false, false)).some((p) => p.id === draftId), false);
+  const sheet = await get(port, `/role-profiles/${draftId}/view`, PSP.code);
+  check('admin opens the draft as a sheet', `${sheet.status}|${sheet.body.includes('rps-table')}|${sheet.body.includes('Draft mission')}`, '200|true|true');
+  check('member cannot open it', (await get(port, `/role-profiles/${draftId}/view`, MEMBER.code)).location, '/role-profiles');
+  const list = (await get(port, '/role-profiles', PSP.code)).body;
+  check('list: View opens the sheet, Details the full page', list.includes(`/role-profiles/${draftId}/view`) && list.includes(`href="/role-profiles/${draftId}"`), true);
+
+  /* ------------------------------------------------------------------ dashboard */
+  const dash = await get(port, '/dashboard', PSP.code);
+  check('dashboard opens for the admin', `${dash.status}|${dash.body.includes('Role profiles by stage')}|${dash.body.includes('Coverage by sangh')}`, '200|true|true');
+  check('dashboard opens for a leader', (await get(port, '/dashboard', CREATOR.code)).status, 200);
+  check('a member is sent to role profiles', (await get(port, '/dashboard', MEMBER.code)).location, '/role-profiles');
+
   const member = await get(port, '/reports/role-profiles', MEMBER.code);
   check('a member who leads nobody is sent away', member.location, '/role-profiles');
 

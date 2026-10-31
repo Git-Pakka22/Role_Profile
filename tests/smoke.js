@@ -18,6 +18,7 @@ function build() {
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
   app.use('/css', express.static(path.join(__dirname, '..', 'public', 'css')));
+  app.use('/img', express.static(path.join(__dirname, '..', 'public', 'img')));
 
   // Session stub: the "who" comes from a test header.
   app.use((req, res, next) => {
@@ -41,6 +42,7 @@ function build() {
   app.use('/role-profiles', require('../src/routes/roleProfiles'));
   app.use('/assessments', require('../src/routes/assessments'));
   app.use('/designations', require('../src/routes/designations'));
+  app.use('/dashboard', require('../src/routes/dashboard'));
   app.use('/reports', require('../src/routes/reports'));
   app.use('/manual', mw.loggedIn, express.static(path.join(__dirname, '..', 'public', 'manual')));
   app.use('/assign', require('../src/routes/assign'));

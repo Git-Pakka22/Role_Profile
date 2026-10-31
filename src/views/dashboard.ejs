@@ -1,0 +1,196 @@
+<%
+  const covPct = coverage.designations ? Math.round(coverage.created / coverage.designations * 100) : 0;
+  const notCreated = coverage.designations - coverage.created;
+  const assessPct = membersOnProfiles ? Math.round(assessed / membersOnProfiles * 100) : 0;
+  const approved = stages.approved || 0;
+  // Donut geometry: one ring, a 2px gap between segments, total in the middle.
+  const R = 62, C = 2 * Math.PI * R;
+  let offset = 0;
+  const segs = stagesList.map((s) => ({ ...s, n: stages[s.key] || 0 })).filter((s) => s.n > 0).map((s) => {
+    const len = (s.n / Math.max(total, 1)) * C;
+    const seg = { ...s, dash: Math.max(len - 2, 1), offset };
+    offset += len;
+    return seg;
+  });
+  const topSanghs = sanghCoverage.slice(0, 8);
+%>
+<div class="db">
+
+  <!-- ------------------------------------------------------------ hero -->
+  <section class="db-hero">
+    <div class="db-hero-text">
+      <div class="db-kicker"><%= fy %> · <%= scopeNote %></div>
+      <h1><%= greeting %>, <%= me.name || me.code %></h1>
+      <p>
+        <% if (awaiting.length) { %><strong><%= awaiting.length %></strong> role profile<%= awaiting.length === 1 ? ' is' : 's are' %> waiting for your approval. <% } %>
+        <strong><%= covPct %>%</strong> of designations have a role profile so far.
+      </p>
+    </div>
+    <div class="db-hero-actions">
+      <a class="db-btn primary" href="/role-profiles/create"><i class="mdi mdi-plus"></i> Create Role Profile</a>
+      <a class="db-btn" href="/reports/role-profiles"><i class="mdi mdi-chart-box-outline"></i> Reports</a>
+      <a class="db-btn" href="/designations"><i class="mdi mdi-badge-account-outline"></i> Designations</a>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------ KPIs -->
+  <section class="db-kpis">
+    <a class="db-kpi" href="/reports/role-profiles">
+      <span class="db-kpi-ic maroon"><i class="mdi mdi-file-document-multiple-outline"></i></span>
+      <span class="db-kpi-n"><%= total %></span>
+      <span class="db-kpi-l">Role profiles</span>
+    </a>
+    <a class="db-kpi" href="/reports/role-profiles?stage=approved">
+      <span class="db-kpi-ic green"><i class="mdi mdi-check-decagram-outline"></i></span>
+      <span class="db-kpi-n"><%= approved %></span>
+      <span class="db-kpi-l">Approved</span>
+    </a>
+    <a class="db-kpi" href="/reports/role-profiles?stage=pending_admin">
+      <span class="db-kpi-ic blue"><i class="mdi mdi-progress-clock"></i></span>
+      <span class="db-kpi-n"><%= inApproval %></span>
+      <span class="db-kpi-l">In approval</span>
+    </a>
+    <a class="db-kpi" href="/reports/role-profiles#missing">
+      <span class="db-kpi-ic yellow"><i class="mdi mdi-file-alert-outline"></i></span>
+      <span class="db-kpi-n"><%= notCreated %></span>
+      <span class="db-kpi-l">Designations without an RP</span>
+    </a>
+    <a class="db-kpi" href="/assessments">
+      <span class="db-kpi-ic maroon"><i class="mdi mdi-clipboard-check-outline"></i></span>
+      <span class="db-kpi-n"><%= assessed %><small> / <%= membersOnProfiles %></small></span>
+      <span class="db-kpi-l">Assessed in <%= fy %></span>
+    </a>
+  </section>
+
+  <!-- ------------------------------------------------------------ charts -->
+  <section class="db-row">
+    <div class="db-card">
+      <div class="db-card-head"><h2>Role profiles by stage</h2><a href="/reports/role-profiles">Open report <i class="mdi mdi-arrow-right"></i></a></div>
+      <div class="db-donut-wrap">
+        <svg class="db-donut" viewBox="0 0 160 160" role="img" aria-label="Role profiles by stage">
+          <circle cx="80" cy="80" r="<%= R %>" class="db-donut-track"/>
+          <% segs.forEach((s) => { %>
+            <circle cx="80" cy="80" r="<%= R %>" class="db-donut-seg rp-rep-<%= s.key %>"
+                    stroke-dasharray="<%= s.dash.toFixed(2) %> <%= (C - s.dash).toFixed(2) %>"
+                    stroke-dashoffset="<%= (-s.offset).toFixed(2) %>"><title><%= s.label %>: <%= s.n %></title></circle>
+          <% }) %>
+          <text x="80" y="78" class="db-donut-n"><%= total %></text>
+          <text x="80" y="98" class="db-donut-l">role profiles</text>
+        </svg>
+        <ul class="db-legend">
+          <% stagesList.forEach((s) => { const n = stages[s.key] || 0; %>
+            <li class="rp-rep-<%= s.key %>">
+              <a href="/reports/role-profiles?stage=<%= s.key %>"><i class="dot"></i><span><%= s.label %></span><b><%= n %></b></a>
+            </li>
+          <% }) %>
+          <% if (stages.update_pending) { %>
+            <li class="rp-rep-update_pending"><a href="/reports/role-profiles?stage=update_pending"><i class="dot"></i><span>Update awaiting approval</span><b><%= stages.update_pending %></b></a></li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+
+    <div class="db-card">
+      <div class="db-card-head"><h2>Coverage by sangh</h2><a href="/reports/role-profiles#missing">What's missing <i class="mdi mdi-arrow-right"></i></a></div>
+      <div class="db-cov-sum">
+        <span class="db-cov-pct"><%= covPct %>%</span>
+        <span><%= coverage.created %> of <%= coverage.designations %> designations across <%= coverage.sanghs %> sanghs have a role profile</span>
+      </div>
+      <% if (!topSanghs.length) { %>
+        <p class="db-empty">No designations in your sanghs yet.</p>
+      <% } else { %>
+      <ul class="db-bars">
+        <% topSanghs.forEach((g) => { const p = Math.round(g.created / g.total * 100); %>
+          <li>
+            <a href="/reports/role-profiles?sangh=<%= encodeURIComponent(g.code) %>" title="<%= g.name %>: <%= g.created %> of <%= g.total %> designations have a role profile">
+              <span class="db-bar-name"><%= g.name %> <span class="rp-prog rp-prog-<%= g.program %>" style="margin-left:4px"><%= g.program === 'ldp' ? 'LDP' : 'PSP' %></span></span>
+              <span class="db-bar"><span class="fill" style="width:<%= p %>%"></span></span>
+              <span class="db-bar-v"><b><%= g.created %></b> / <%= g.total %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+      <div class="db-legend-inline"><span><i class="dot green"></i>RP created</span><span><i class="dot sand"></i>Not created yet</span></div>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="db-row three">
+    <div class="db-card">
+      <div class="db-card-head"><h2>Waiting for you</h2><% if (awaiting.length) { %><span class="db-badge"><%= awaiting.length %></span><% } %></div>
+      <% if (!awaiting.length) { %>
+        <div class="db-empty"><i class="mdi mdi-check-all"></i> Nothing is waiting for your approval.</div>
+      <% } else { %>
+        <ul class="db-list">
+          <% awaiting.slice(0, 5).forEach((p) => { %>
+            <li><a href="/role-profiles/<%= p.id %>">
+              <span class="db-list-main"><b><%= p.designation_name %></b><small><%= p.sangh_name %> · from <%= personName(p.created_by, p.created_by_name) %></small></span>
+              <span class="db-go">Review <i class="mdi mdi-arrow-right"></i></span>
+            </a></li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+
+    <div class="db-card">
+      <div class="db-card-head"><h2>Assessments <%= fy %></h2><a href="/assessments">Open <i class="mdi mdi-arrow-right"></i></a></div>
+      <div class="db-progress">
+        <div class="db-progress-n"><%= assessPct %>%</div>
+        <div class="db-progress-bar"><span style="width:<%= assessPct %>%"></span></div>
+        <div class="db-progress-l"><b><%= assessed %></b> of <%= membersOnProfiles %> assigned members assessed · <b><%= Math.max(membersOnProfiles - assessed, 0) %></b> to go</div>
+      </div>
+    </div>
+
+    <div class="db-card">
+      <div class="db-card-head"><h2>By programme</h2></div>
+      <% if (!byProgram.length) { %>
+        <p class="db-empty">No role profiles yet.</p>
+      <% } else { %>
+        <% byProgram.forEach((x) => { const p = x.total ? Math.round(x.approved / x.total * 100) : 0; %>
+          <div class="db-prog">
+            <div class="db-prog-head"><span class="rp-prog rp-prog-<%= x.program %>" style="margin-left:0"><%= x.program === 'ldp' ? 'LDP' : 'PSP' %></span>
+              <span><b><%= x.total %></b> role profile<%= x.total === 1 ? '' : 's' %> · <b><%= x.approved %></b> approved</span></div>
+            <div class="db-progress-bar thin"><span style="width:<%= p %>%"></span></div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="db-row">
+    <div class="db-card">
+      <div class="db-card-head"><h2>Recently updated</h2><a href="/role-profiles">All role profiles <i class="mdi mdi-arrow-right"></i></a></div>
+      <% if (!recent.length) { %>
+        <p class="db-empty">No role profiles yet.</p>
+      <% } else { %>
+        <ul class="db-list">
+          <% recent.forEach((p) => { %>
+            <li><a href="/role-profiles/<%= p.id %>/view">
+              <span class="db-list-main"><b><%= p.designation_name %></b><small><%= p.sangh_name %> · updated <%= fmtDate(p.updated_at || p.created_at) %></small></span>
+              <span class="rp-status rp-status-<%= p.status %>"><%= statusText(p) %></span>
+            </a></li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+
+    <div class="db-card">
+      <div class="db-card-head"><h2>Recent activity</h2></div>
+      <% if (!activity.length) { %>
+        <p class="db-empty">No activity yet.</p>
+      <% } else { %>
+        <ul class="db-feed">
+          <% activity.forEach((ev) => { const meta = historyMeta[ev.action] || [ev.action, 'mdi-circle-small', 'muted']; %>
+            <li>
+              <span class="db-feed-ic <%= meta[2] %>"><i class="mdi <%= meta[1] %>"></i></span>
+              <span class="db-feed-text">
+                <span><b><%= meta[0] %></b> · <a href="/role-profiles/<%= ev.role_profile_id %>"><%= ev.designation_name %></a></span>
+                <small>by <%= personName(ev.actor_code, ev.actor_name) %> · <%= fmtDateTime(ev.created_at) %></small>
+              </span>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  </section>
+</div>

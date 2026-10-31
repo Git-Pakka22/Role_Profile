@@ -22,6 +22,9 @@
             </div>
         </div>
         <div class="rp-header-actions">
+            <a class="rp-edit-btn" href="/role-profiles/<%= profile.id %>/view" title="The role profile sheet">
+                <i class="mdi mdi-eye-outline"></i> View
+            </a>
             <% if (canClone) { %>
                 <a class="rp-edit-btn" href="/role-profiles/<%= profile.id %>/clone" title="Start a new role profile from this one">
                     <i class="mdi mdi-content-copy"></i> Clone

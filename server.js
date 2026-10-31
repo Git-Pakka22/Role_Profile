@@ -15,6 +15,7 @@ app.set('views', path.join(__dirname, 'src', 'views'));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(express.json({ limit: '2mb' }));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/img', express.static(path.join(__dirname, 'public', 'img')));
 
 app.use(
   session({
@@ -63,6 +64,7 @@ app.use('/role-profiles/:id(\\d+)/assess', require('./src/routes/assess'));
 app.use('/role-profiles', require('./src/routes/roleProfiles'));
 app.use('/assessments', require('./src/routes/assessments'));
 app.use('/designations', require('./src/routes/designations'));
+app.use('/dashboard', require('./src/routes/dashboard'));
 app.use('/reports', require('./src/routes/reports'));
 // The user manual (English / Hindi) with its screenshots. Signed-in users only: the
 // screenshots show real members.

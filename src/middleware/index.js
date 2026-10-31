@@ -28,9 +28,9 @@ async function leadsCount(req) {
  * pointing anyone else there would bounce them straight back.
  */
 async function landingUrl(req) {
-  if (req.session.is_admin) return '/assign/sangh';
-  if (req.session.is_ldp_admin) return '/ldp-assign';
-  return (await leadsCount(req)) > 0 ? '/my-members' : '/role-profiles';
+  // The admin and leaders land on the dashboard; members on their role profiles.
+  if (req.session.is_admin || req.session.is_ldp_admin) return '/dashboard';
+  return (await leadsCount(req)) > 0 ? '/dashboard' : '/role-profiles';
 }
 
 /* ------------------------------------------------------------------ CSRF */
