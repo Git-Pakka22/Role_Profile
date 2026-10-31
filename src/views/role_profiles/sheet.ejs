@@ -72,8 +72,8 @@
             <thead>
                 <tr>
                     <th class="c">SN</th>
-                    <th>Skill</th>
-                    <th>Attributes</th>
+                    <th>Attribute</th>
+                    <th>Technical Skills</th>
                     <th class="c">Weightage</th>
                     <th class="c">Sub-Weightage</th>
                     <% if (hasMechanism) { %><th>Assessment Mechanism</th><% } %>
@@ -81,7 +81,7 @@
             </thead>
             <tbody>
             <% if (!attributes.length) { %>
-                <tr><td colspan="<%= hasMechanism ? 6 : 5 %>" class="rps-empty">No skills written yet.</td></tr>
+                <tr><td colspan="<%= hasMechanism ? 6 : 5 %>" class="rps-empty">No attributes written yet.</td></tr>
             <% } %>
             <% attributes.forEach((a, i) => {
                  const skills = a.skills.length ? a.skills : [{ tech_skill: '', tech_weight: null }];

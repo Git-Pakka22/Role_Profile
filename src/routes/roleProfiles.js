@@ -197,20 +197,20 @@ function checkSkillWeights(attributes) {
 
     const attrWeight = attr.attribute_weight === '' ? null : Number(attr.attribute_weight);
     const skillTotal = skills.reduce((sum, s) => sum + (s.weight === '' ? 0 : Number(s.weight)), 0);
-    const label = `Skill ${i + 1} (${String(attr.attribute).trim()})`;
+    const label = `Attribute ${i + 1} (${String(attr.attribute).trim()})`;
 
     if (attrWeight === null) {
-      return `Please check total — ${label} has attribute weights but no skill weight. Give it a weight of ${num(skillTotal)}.`;
+      return `Please check total — ${label} has technical skill weights but no attribute weight. Give it a weight of ${num(skillTotal)}.`;
     }
     if (Math.abs(attrWeight - skillTotal) > 0.001) {
-      return `Please check total — ${label}: its attribute weights total ${num(skillTotal)}, which must equal the skill weight of ${num(attrWeight)}.`;
+      return `Please check total — ${label}: its technical skill weights total ${num(skillTotal)}, which must equal the attribute weight of ${num(attrWeight)}.`;
     }
   }
 
   const attributeTotal = attributes.reduce(
     (sum, a) => sum + (a.attribute_weight === '' ? 0 : Number(a.attribute_weight)), 0);
   if (Math.abs(attributeTotal - roleProfile.TOTAL_WEIGHT) > 0.001) {
-    return `Please check total — the skill weights add up to ${num(attributeTotal)}, but they must total ${roleProfile.TOTAL_WEIGHT}.`;
+    return `Please check total — the attribute weights add up to ${num(attributeTotal)}, but they must total ${roleProfile.TOTAL_WEIGHT}.`;
   }
   return null;
 }
@@ -266,7 +266,7 @@ async function validateSubmission(body, actor, exceptId = null, locked = null) {
   }
 
   const attributes = collectAttributes(body);
-  if (!attributes.length) return 'Add at least one skill.';
+  if (!attributes.length) return 'Add at least one attribute.';
 
   const weightError = checkSkillWeights(attributes);
   if (weightError) return weightError;

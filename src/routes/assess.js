@@ -240,7 +240,7 @@ router.post('/:empCode', async (req, res) => {
   }
 
   if (!Object.keys(ratings).length && !Object.keys(gaps).length) {
-    req.session.flashError = 'Rate at least one skill, or note a training gap, before saving. Nothing was changed.';
+    req.session.flashError = 'Rate at least one technical skill, or note a training gap, before saving. Nothing was changed.';
     return res.redirect(back);
   }
 
@@ -265,7 +265,7 @@ router.post('/:empCode', async (req, res) => {
 
   req.session.flashSuccess = result.changed
     ? `Assessment saved for ${chosen} — ${num(result.percentage)}% `
-      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} skills`
+      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} technical skills`
       + (result.gaps > 0 ? `, ${result.gaps} training gap${result.gaps === 1 ? '' : 's'} noted` : '') + '.'
     : `Nothing changed — ${member.name || empCode} still stands at ${num(result.percentage)}% `
       + `for ${chosen}, so the history is unchanged.`;
@@ -356,7 +356,7 @@ async function handleLdpPost(req, res, profile, member, actor) {
       return res.redirect(back);
     }
     if (!Object.keys(ratings).length) {
-      req.session.flashError = 'Rate at least one skill before submitting. Nothing was changed.';
+      req.session.flashError = 'Rate at least one technical skill before submitting. Nothing was changed.';
       return res.redirect(back);
     }
 
@@ -393,7 +393,7 @@ async function handleLdpPost(req, res, profile, member, actor) {
       if (t !== '') gaps[detailId] = t;
     }
     if (!Object.keys(ratings).length && !Object.keys(gaps).length) {
-      req.session.flashError = 'Rate at least one skill, or note a development plan, before saving. Nothing was changed.';
+      req.session.flashError = 'Rate at least one technical skill, or note a development plan, before saving. Nothing was changed.';
       return res.redirect(back);
     }
 
@@ -421,7 +421,7 @@ async function handleLdpPost(req, res, profile, member, actor) {
       `role-profiles/${id}/assess/${empCode}?fy=${encodeURIComponent(chosen)}`, id, actor.code);
 
     req.session.flashSuccess = `Final rating saved for ${chosen} — ${num(result.percentage)}% `
-      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} skills`
+      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} technical skills`
       + (result.gaps > 0 ? `, ${result.gaps} development note${result.gaps === 1 ? '' : 's'} recorded` : '') + '.';
     return res.redirect(back);
   }

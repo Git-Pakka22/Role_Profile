@@ -197,12 +197,12 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
   const scored = !!assessment;
   // Widths are relative; the two weightage columns need enough room for their headings.
   const cols = layout(doc, scored
-    ? [{ label: 'SN', w: 4, align: 'center' }, { label: 'Skill', w: 19 },
-       { label: 'Attributes', w: 36 }, { label: 'Weightage', w: 9, align: 'center' },
+    ? [{ label: 'SN', w: 4, align: 'center' }, { label: 'Attribute', w: 19 },
+       { label: 'Technical Skills', w: 36 }, { label: 'Weightage', w: 9, align: 'center' },
        { label: 'Sub-Weightage', w: 11, align: 'center' }, { label: 'Rating', w: 6, align: 'center' },
        { label: 'Score', w: 6, align: 'center' }, { label: 'Training Gap', w: 15 }]
-    : [{ label: 'SN', w: 5, align: 'center' }, { label: 'Skill', w: 24 },
-       { label: 'Attributes', w: 51 }, { label: 'Weightage', w: 9, align: 'center' },
+    : [{ label: 'SN', w: 5, align: 'center' }, { label: 'Attribute', w: 24 },
+       { label: 'Technical Skills', w: 51 }, { label: 'Weightage', w: 9, align: 'center' },
        { label: 'Sub-Weightage', w: 11, align: 'center' }]);
 
   const title = profile.designation_name;

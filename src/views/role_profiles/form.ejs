@@ -91,7 +91,7 @@
                     This role profile is <strong>awaiting <%= pending.label %></strong>. Saving your changes keeps it
                     there — nothing is approved or sent back, and the others involved are told it changed.
                     <% if (lockedFields) { %>
-                        You can change the mission, key outcomes, skills, attributes, their weightage and the assessment mechanism; the sangh and designation stay as submitted.
+                        You can change the mission, key outcomes, attributes, technical skills, their weightage and the assessment mechanism; the sangh and designation stay as submitted.
                     <% } %>
                 </div>
             </div>
@@ -116,7 +116,7 @@
                 <div>
                     Copied from <strong><%= cloneFrom.designation %></strong> (<%= cloneFrom.sangh %>).
                     Everything below is a copy you can change — pick the designation this one is for,
-                    then adjust the skills and weights. The original is untouched.
+                    then adjust the attributes and weights. The original is untouched.
                 </div>
             </div>
         <% } %>
@@ -148,7 +148,7 @@
                         <div class="rp-sub">
                             Sheet "<%= importedFrom.sheet %>"<% if (importedFrom.designation) { %>,
                             written for "<%= importedFrom.designation %>"<% } %> —
-                            <%= importedFrom.attributes %> skills, <%= importedFrom.skills %> attributes,
+                            <%= importedFrom.attributes %> attributes, <%= importedFrom.skills %> technical skills,
                             <%= importedFrom.outcomes %> key outcome<%= importedFrom.outcomes === 1 ? '' : 's' %>.
                             Check it below and save.
                         </div>
@@ -184,7 +184,7 @@
                     <div>
                         <strong>Fill it in from an Excel sheet</strong>
                         <div class="rp-sub">Reads the Pakka format — mission, key outcomes, and the
-                        SN / Skill / Attributes / Weightage / Sub-Weightage table. Nothing is
+                        SN / Attribute / Technical Skills / Weightage / Sub-Weightage table. Nothing is
                         saved until you submit it yourself. Choose the sangh and designation above first.</div>
                     </div>
                 </div>
@@ -204,7 +204,7 @@
                     <i class="mdi mdi-content-copy"></i>
                     <div>
                         <strong>Start from an existing role profile</strong>
-                        <div class="rp-sub">Copies its mission, outcomes, skills and weights so you can
+                        <div class="rp-sub">Copies its mission, outcomes, attributes and weights so you can
                         adjust them for this designation. The one you copy from is not changed.</div>
                     </div>
                 </div>
@@ -282,14 +282,14 @@
             </div>
 
             <div class="rp-form-section">
-                <h3><i class="mdi mdi-format-list-numbered"></i> Skills</h3>
+                <h3><i class="mdi mdi-format-list-numbered"></i> Attributes</h3>
                 <div class="rp-form-hint">
-                    Each skill carries its weight and the attributes behind it. Weights are percentages.
-                    Up to <%= maxAttributes %> skills, each with up to <%= maxSkills %> attributes.
-                    <strong>A skill's attribute weights must add up to that skill's own weight.</strong>
+                    Each attribute carries its weight and the technical skills behind it. Weights are percentages.
+                    Up to <%= maxAttributes %> attributes, each with up to <%= maxSkills %> technical skills.
+                    <strong>An attribute's technical skill weights must add up to that attribute's own weight.</strong>
                 </div>
                 <div id="attrList"></div>
-                <button type="button" class="rp-btn-add" id="addAttr"><i class="mdi mdi-plus"></i> Add skill</button>
+                <button type="button" class="rp-btn-add" id="addAttr"><i class="mdi mdi-plus"></i> Add attribute</button>
                 <span class="rp-limit-note" id="attrCount"></span>
             </div>
 
@@ -469,26 +469,26 @@ $(function () {
 
     function skillRow(ai) {
         return '<div class="rp-skill-row">'
-             + '<input type="text" class="rp-input" name="tech_skill[' + ai + '][]" placeholder="Attribute">'
+             + '<input type="text" class="rp-input" name="tech_skill[' + ai + '][]" placeholder="Technical skill">'
              + '<input type="number" step="0.5" min="0" class="rp-input" name="tech_weight[' + ai + '][]" placeholder="Wt">'
              + '<button type="button" class="rp-btn-remove js-remove-skill"><i class="mdi mdi-close"></i></button>'
              + '</div>';
     }
     function attrBlock(ai) {
         return '<div class="rp-attr-block" data-index="' + ai + '">'
-             + '  <div class="rp-attr-head"><span class="rp-attr-no">Skill <span class="js-attr-no"></span></span>'
+             + '  <div class="rp-attr-head"><span class="rp-attr-no">Attribute <span class="js-attr-no"></span></span>'
              + '    <button type="button" class="rp-btn-remove js-remove-attr"><i class="mdi mdi-delete-outline"></i> Remove</button></div>'
-             + '  <div class="rp-field"><label>Skill</label>'
+             + '  <div class="rp-field"><label>Attribute</label>'
              + '    <input type="text" class="rp-input" name="attribute[' + ai + ']" placeholder="e.g. Digital Transformation Leadership"></div>'
              + '  <div class="rp-weight-field"><div class="rp-field"><label>Weight</label>'
              + '    <input type="number" step="0.5" min="0" class="rp-input js-attr-weight" name="attribute_weight[' + ai + ']" placeholder="e.g. 15"></div></div>'
-             + '  <div class="rp-mini-label rp-skill-head">Attributes <span style="text-transform:none;font-weight:600">&nbsp;(max ' + MAX_SKILLS + ')</span>'
+             + '  <div class="rp-mini-label rp-skill-head">Technical Skills <span style="text-transform:none;font-weight:600">&nbsp;(max ' + MAX_SKILLS + ')</span>'
              + '    <span class="rp-balance idle js-balance"></span></div>'
              + '  <div class="js-skill-list">' + skillRow(ai) + '</div>'
-             + '  <button type="button" class="rp-btn-add js-add-skill"><i class="mdi mdi-plus"></i> Add attribute</button>'
+             + '  <button type="button" class="rp-btn-add js-add-skill"><i class="mdi mdi-plus"></i> Add technical skill</button>'
              + '  <div class="rp-field js-assessment-wrap" style="' + (currentProgram === 'ldp' ? '' : 'display:none') + '">'
              + '    <label>Assessment Mechanism</label>'
-             + '    <input type="text" class="rp-input js-assessment" name="assessment[' + ai + ']" placeholder="How this skill is assessed">'
+             + '    <input type="text" class="rp-input js-assessment" name="assessment[' + ai + ']" placeholder="How this attribute is assessed">'
              + '  </div>'
              + '</div>';
     }
@@ -498,7 +498,7 @@ $(function () {
     function refreshLimits() {
         var count = $('#attrList .rp-attr-block').length, atMax = count >= MAX_ATTRS;
         $('#addAttr').prop('disabled', atMax);
-        $('#attrCount').text(count + ' of ' + MAX_ATTRS + ' skills' + (atMax ? ' — limit reached' : '')).toggleClass('at-max', atMax);
+        $('#attrCount').text(count + ' of ' + MAX_ATTRS + ' attributes' + (atMax ? ' — limit reached' : '')).toggleClass('at-max', atMax);
         $('#attrList .rp-attr-block').each(function () {
             $(this).find('.js-add-skill').prop('disabled', $(this).find('.rp-skill-row').length >= MAX_SKILLS);
         });
@@ -526,13 +526,13 @@ $(function () {
 
             if (isNaN(attrWt)) {
                 offBy++;
-                $badge.attr('class', 'rp-balance off').html('<i class="mdi mdi-alert-outline"></i>Attributes total ' + fmt(total) + ' — set the skill weight');
+                $badge.attr('class', 'rp-balance off').html('<i class="mdi mdi-alert-outline"></i>Technical skills total ' + fmt(total) + ' — set the attribute weight');
             } else if (Math.abs(total - attrWt) < 0.001) {
-                $badge.attr('class', 'rp-balance ok').html('<i class="mdi mdi-check-circle-outline"></i>Attributes total ' + fmt(total) + ' of ' + fmt(attrWt));
+                $badge.attr('class', 'rp-balance ok').html('<i class="mdi mdi-check-circle-outline"></i>Technical skills total ' + fmt(total) + ' of ' + fmt(attrWt));
             } else {
                 offBy++;
                 var diff = fmt(attrWt - total);
-                $badge.attr('class', 'rp-balance off').html('<i class="mdi mdi-alert-outline"></i>Attributes total ' + fmt(total) + ' of ' + fmt(attrWt)
+                $badge.attr('class', 'rp-balance off').html('<i class="mdi mdi-alert-outline"></i>Technical skills total ' + fmt(total) + ' of ' + fmt(attrWt)
                     + ' (' + (diff > 0 ? diff + ' short' : Math.abs(diff) + ' over') + ')');
             }
         });
@@ -553,9 +553,9 @@ $(function () {
         // Both actions stay inert until everything balances.
         $('#btnDraft, #btnSubmit').prop('disabled', !canSave);
 
-        var parts = ['<span class="' + (totalOk ? 'ok' : 'off') + '">Skill weight total: ' + fmt(total) + ' of ' + TOTAL_WEIGHT + '</span>'];
+        var parts = ['<span class="' + (totalOk ? 'ok' : 'off') + '">Attribute weight total: ' + fmt(total) + ' of ' + TOTAL_WEIGHT + '</span>'];
         if (!desigOk) parts.unshift('<span class="off">Choose the sangh and designation at the top first</span>');
-        if (offBy > 0) parts.push('<span class="off">Please check total — ' + offBy + ' skill' + (offBy === 1 ? '' : 's') + ' whose attribute weights do not match</span>');
+        if (offBy > 0) parts.push('<span class="off">Please check total — ' + offBy + ' attribute' + (offBy === 1 ? '' : 's') + ' whose technical skill weights do not match</span>');
         if (!outcomesOk) parts.push('<span class="off">LDP role profiles need at least ' + MIN_OUTCOMES_LDP + ' key outcomes — ' + namedOutcomes + ' given</span>');
         if (canSave) parts.push('<span class="ok">Ready to save or submit</span>');
         $('#totalsLine').html(parts.join('<br>'));
@@ -628,8 +628,8 @@ $(function () {
     $('#profileForm').on('submit', function (e) {
         if (!recalcWeights()) {
             e.preventDefault();
-            var msg = 'Please check total.\n\nSkill weights must add up to ' + TOTAL_WEIGHT
-                + ', and each skill’s attribute weights must equal that skill’s own weight.';
+            var msg = 'Please check total.\n\nAttribute weights must add up to ' + TOTAL_WEIGHT
+                + ', and each attribute’s technical skill weights must equal that attribute’s own weight.';
             if (currentProgram === 'ldp') {
                 msg += '\n\nLDP role profiles also need ' + MIN_OUTCOMES_LDP + ' to ' + MAX_OUTCOMES_LDP + ' key outcomes.';
             }
