@@ -1253,6 +1253,9 @@ table.dataTable tbody > tr {
     letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 10px; border-bottom: 1px solid var(--border-color); }
 .rp-member-table td { padding: 10px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
 .rp-sub { font-size: 0.75rem; color: var(--text-muted); }
+.rp-assigned { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.rp-searching .rp-assigned { display: block; }
+#profileTable_wrapper .dt-search input { width: 300px; max-width: 100%; }
 .rp-src { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; margin-right: 4px;
     border-radius: 50px; font-size: 0.71rem; font-weight: 700; white-space: nowrap; }
 .rp-src i { font-size: 12px; }

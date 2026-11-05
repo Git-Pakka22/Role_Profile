@@ -28,7 +28,7 @@ const count = (b, re) => (b.match(re) || []).length;
 
   // --- member list (admin) --------------------------------------------------
   // The app leaves SS/SS1 out — they belong to LDP, not PSP.
-  const SCOPE = "status=0 AND sangh_code NOT IN ('SS','SS1')";
+  const SCOPE = "status=0 AND sangh_code NOT IN ('SS','SS1','CT')";
   const active = (await db.first(`SELECT COUNT(*) n FROM tbl_employee WHERE ${SCOPE}`)).n;
   const list = await G('/', 'MM008');
   check('member list rows', rows(list, 'memberTable'), active);
@@ -44,7 +44,7 @@ const count = (b, re) => (b.match(re) || []).length;
     const set = (await db.first(
       `SELECT COUNT(*) n FROM tbl_employee e
        LEFT JOIN pakka_lms.emp_master m ON m.emp_code = e.emp_code
-       WHERE e.status=0 AND e.sangh_code NOT IN ('SS','SS1') AND TRIM(${col})<>''`)).n;
+       WHERE e.status=0 AND e.sangh_code NOT IN ('SS','SS1','CT') AND TRIM(${col})<>''`)).n;
     const shown = Number((assign.match(new RegExp(`<div class="n">([\\d,]+) <span[^>]*>/`, 'g')) || [])[['sevak','sanghrakshak','pracharak'].indexOf(role)]?.match(/([\d,]+)/)[1].replace(/,/g,'') || -1);
     check(`assign coverage ${role}`, shown, set);
   }
@@ -63,7 +63,7 @@ const count = (b, re) => (b.match(re) || []).length;
 
   // --- my members -----------------------------------------------------------
   const led = (await db.first(
-    "SELECT COUNT(*) n FROM tbl_employee WHERE status=0 AND (sevak_code='M00151' OR sanghrakshak_code='M00151' OR pracharak_code='M00151') AND sangh_code NOT IN ('SS','SS1')")).n;
+    "SELECT COUNT(*) n FROM tbl_employee WHERE status=0 AND (sevak_code='M00151' OR sanghrakshak_code='M00151' OR pracharak_code='M00151') AND sangh_code NOT IN ('SS','SS1','CT')")).n;
   const mine = await G('/my-members', 'M00151');
   check('my members rows', rows(mine, 'myMemberTable'), led);
 

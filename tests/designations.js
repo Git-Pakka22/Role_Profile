@@ -172,7 +172,7 @@ const bySangh = (html) => JSON.parse(/var BY_SANGH = (.*?);\n/.exec(html)[1]);
   page = await get(port, '/designations', LDP_ADMIN.code);
   check('LDP Admin opens the page', page.status, 200);
   check('...offered SS and SS1, under LDP', page.body.includes('<option value="SS"') && page.body.includes('<option value="SS1"')
-    && page.body.includes('Sanghrakshak &amp; Seva Sangh'), true);
+    && page.body.includes('Sanghrakshak, Seva Sangh &amp; Core Teams'), true);
   check('...and no PSP sangh', page.body.includes('<option value="VSS"'), false);
   r = await post(port, '/designations', LDP_ADMIN.code, { sangh_code: 'SS', designation_name: 'Sanghrakshak Mentor' });
   check('LDP Admin adds to SS', SESSIONS[LDP_ADMIN.code].flashSuccess.startsWith('"Sanghrakshak Mentor" added'), true);

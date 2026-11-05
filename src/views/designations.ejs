@@ -12,8 +12,8 @@
         <div class="rp-form-section">
             <h3><i class="mdi mdi-plus-circle-outline"></i> New designation</h3>
             <div class="rp-form-hint">
-                A designation belongs to one sangh, and so to its programme: Sanghrakshak Sangh and Seva Sangh
-                (SS/SS1) are <strong>LDP</strong>, every other sangh is <strong>PSP</strong>. If the sangh already has it — in any capitalisation —
+                A designation belongs to one sangh, and so to its programme: Sanghrakshak Sangh, Seva Sangh and Core Teams
+                (SS/SS1/CT) are <strong>LDP</strong>, every other sangh is <strong>PSP</strong>. If the sangh already has it — in any capitalisation —
                 the existing one is kept and nothing is added.
             </div>
             <form method="post" action="/designations">
@@ -23,7 +23,7 @@
                         <label for="sangh_code">Sangh</label>
                         <select class="rp-select" name="sangh_code" id="sangh_code" required>
                             <% if (sanghs.length > 1) { %><option value="">— Choose a sangh —</option><% } %>
-                            <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak & Seva Sangh']].forEach(([prog, groupLabel]) => {
+                            <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                                  const group = sanghs.filter(s => s.program === prog);
                                  if (!group.length) return; %>
                                 <optgroup label="<%= groupLabel %>">
@@ -53,7 +53,7 @@
                     Showing:
                     <select class="rp-select" id="sanghFilter" style="display:inline-block;width:auto;margin-left:6px">
                         <option value="">All sanghs</option>
-                        <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak & Seva Sangh']].forEach(([prog, groupLabel]) => {
+                        <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                              const group = sanghs.filter(s => s.program === prog);
                              if (!group.length) return; %>
                             <optgroup label="<%= groupLabel %>">

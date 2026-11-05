@@ -100,6 +100,19 @@ const flash = (who, kind) => { const v = SESSIONS[who] && SESSIONS[who][kind]; i
   await post(port, `/role-profiles/${id}/assign-members`, ADMIN.code, { 'emp_codes[]': other.emp_code });
   check('a member with another designation can be assigned', (await roleProfile.effectiveMembers(profile)).length, 2);
 
+  /* ------------------------------------------------- searching by member name */
+  const assignedCell = (html) => {
+    const row = html.split('<tr>').find((r) => r.includes(`/role-profiles/${id}/view`)) || '';
+    return (row.match(/rp-assigned">[\s\S]*?<\/span>/) || [''])[0];
+  };
+  const ejsEscape = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&#34;').replace(/'/g, '&#39;');
+  let listed = await get(port, '/role-profiles', ADMIN.code);
+  check('the list row carries the assigned member\'s name', assignedCell(listed.body).includes(ejsEscape(other.name)), true);
+  check('...and the search box says so', listed.body.includes('Search role profiles or member names...'), true);
+  check('...for its author too', assignedCell((await get(port, '/role-profiles', CREATOR.code)).body).includes(ejsEscape(other.name)), true);
+  check('a profile not yet approved lists nobody',
+    (await roleProfile.assignedNames([{ id, status: roleProfile.STATUS.PENDING_ADMIN, admin_action_at: null }])).size, 0);
+
   /* -------------------------------------------------------------- removing */
   await post(port, `/role-profiles/${id}/unassign-member`, CREATOR.code, { emp_code: other.emp_code });
   check('the author cannot remove', flash(CREATOR.code, 'flashError'),
@@ -109,6 +122,9 @@ const flash = (who, kind) => { const v = SESSIONS[who] && SESSIONS[who][kind]; i
   check('...and it no longer applies to them', (await roleProfile.effectiveMembers(profile)).some((m) => m.emp_code === other.emp_code), false);
   await post(port, `/role-profiles/${id}/unassign-member`, ADMIN.code, { emp_code: other.emp_code });
   check('removing again is refused', flash('MM008', 'flashError'), 'That member is not assigned to this role profile.');
+
+  listed = await get(port, '/role-profiles', ADMIN.code);
+  check('a removed member no longer shows in the list', assignedCell(listed.body).includes(ejsEscape(other.name)), false);
 
   /* ------------------------------------------- the carry-over script, previewed */
   const { execFileSync } = require('child_process');

@@ -49,7 +49,7 @@
                                 <option value="<%= sanghs[0].sangh_code %>" selected><%= sanghs[0].sangh_name %> (<%= sanghs[0].members %> members) — <%= progOf(sanghs[0]) %></option>
                             <% } else { %>
                                 <option value="">— Choose a sangh —</option>
-                                <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak & Seva Sangh']].forEach(([prog, groupLabel]) => {
+                                <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                                      const group = sanghs.filter(s => (s.program === 'ldp' ? 'ldp' : 'psp') === prog);
                                      if (!group.length) return; %>
                                     <optgroup label="<%= groupLabel %>">
@@ -238,7 +238,7 @@
             <i class="mdi mdi-information-outline"></i>
             <div>
                 <% if (!approver.code && (me.isAdmin || me.isLdpAdmin)) { %>
-                    You give final approval yourself — as <%= [me.isAdmin && 'PSP Approver (PSP sanghs)', me.isLdpAdmin && 'LDP Admin (Sanghrakshak / Seva Sangh)'].filter(Boolean).join(' and ') %> —
+                    You give final approval yourself — as <%= [me.isAdmin && 'PSP Approver (PSP sanghs)', me.isLdpAdmin && 'LDP Admin (Sanghrakshak / Seva Sangh / Core Teams)'].filter(Boolean).join(' and ') %> —
                     so a profile you submit comes straight back to you to approve. Once approved, you assign the members it is for.
                 <% } else if (approver.code) { %>
                     <% if (typeof approverLdpOnly !== 'undefined' && approverLdpOnly) { %>
@@ -247,7 +247,7 @@
                     <strong><%= approver.name %></strong> first, then the LDP Admin.
                     <% } else { %>
                     This goes to <strong><%= approver.name %></strong> (your RP Approver) for approval,
-                    then to the PSP Approver — or the LDP Admin, for an LDP profile (Sanghrakshak / Seva Sangh).
+                    then to the PSP Approver — or the LDP Admin, for an LDP profile (Sanghrakshak / Seva Sangh / Core Teams).
                     Once approved, it applies to the members the admin assigns to it.
                     <% } %>
                 <% } else { %>

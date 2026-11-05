@@ -388,6 +388,27 @@ async function effectiveMembers(profile) {
     String(x.name || '').localeCompare(String(y.name || ''), undefined, { sensitivity: 'base' }));
 }
 
+/**
+ * Names of the active members assigned to each of these live profiles, for the list and its
+ * search. Same rule as effectiveMembers(), read in one go: profile id -> sorted names.
+ */
+async function assignedNames(profiles) {
+  const out = new Map();
+  const ids = profiles.filter(isLive).map((p) => p.id);
+  if (!ids.length) return out;
+  for (const r of await db.query(
+    `SELECT m.role_profile_id, COALESCE(NULLIF(TRIM(e.name), ''), m.member_name) AS name
+     FROM rp_role_profile_members m
+     JOIN tbl_employee e ON e.emp_code = m.emp_code AND e.status = ${ACTIVE}
+     WHERE m.role_profile_id IN (?)
+     ORDER BY name ASC`, [ids])) {
+    const key = Number(r.role_profile_id);
+    if (!out.has(key)) out.set(key, []);
+    out.get(key).push(r.name);
+  }
+  return out;
+}
+
 async function assignMembers(profileId, empCodes, actor) {
   const codes = [...new Set(empCodes.map((c) => String(c).trim()).filter(Boolean))];
   if (!codes.length) return [];
@@ -584,7 +605,7 @@ async function designationExists(sanghInput, designationInput) {
 
 const squash = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
 
-/** PSP or LDP, by sangh: SS/SS1 (EXCLUDED_SANGHS) belong to LDP, everything else to PSP. */
+/** PSP or LDP, by sangh: SS/SS1/CT (EXCLUDED_SANGHS) belong to LDP, everything else to PSP. */
 function sanghProgram(sanghCode) {
   return scope.excluded().includes(String(sanghCode)) ? PROGRAM.LDP : PROGRAM.PSP;
 }
@@ -785,7 +806,7 @@ module.exports = {
   STATUS, STATUS_LABELS,
   createProfile, updateProfile, find, fullProfile,
   visibleTo, canView, canEdit, isLive, hasPendingUpdate, skippedRpApprover, finalApprover, isFinalApprover, statusLabel, isPendingEdit, canSubmit, isRevision, awaiting, canActOn,
-  membersWithDesignation, explicitMembers, effectiveMembers,
+  membersWithDesignation, explicitMembers, effectiveMembers, assignedNames,
   assignMembers, assignedMemberName, unassignMember, assignableMembers,
   sanghsForLeader, designationsForLeader, takenDesignations, profileForDesignation,
   lookupByDesignation, designationExists, designationChoices, knownDesignation, createDesignation,

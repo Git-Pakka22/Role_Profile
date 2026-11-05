@@ -324,9 +324,11 @@ router.get('/', async (req, res) => {
   const chosen = asked && years.some((y) => y.year === asked) ? asked : await financialYear.current();
   const state = await version.reviewStateFor(profiles.map((p) => p.id), chosen);
   const fyOpen = await financialYear.isOpen(chosen);
+  const assignedNames = await roleProfile.assignedNames(profiles);
 
   for (const p of profiles) {
     const info = state.get(Number(p.id)) || {};
+    p.assigned_names = assignedNames.get(Number(p.id)) || [];
     p.fy_review = info.review || null;
     p.fy_version = info.version_no || null;
     p.fy_would_use = info.would_use || null;

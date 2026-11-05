@@ -42,7 +42,7 @@
                 <label>Sangh
                     <select name="sangh" class="rp-select">
                         <option value="">All sanghs</option>
-                        <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak & Seva Sangh']].forEach(([prog, groupLabel]) => {
+                        <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                              const group = options.sanghs.filter((s) => (s.program === 'ldp' ? 'ldp' : 'psp') === prog);
                              if (!group.length) return; %>
                             <optgroup label="<%= groupLabel %>">

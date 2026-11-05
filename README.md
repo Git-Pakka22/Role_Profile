@@ -153,8 +153,8 @@ The final approver depends on the programme:
 
 | Programme | Sanghs | Final approver | Codes |
 | --- | --- | --- | --- |
-| PSP | every sangh except SS/SS1 | PSP Approver | `ADMIN_CODES` |
-| LDP | Sanghrakshak Sangh, Seva Sangh (`EXCLUDED_SANGHS`) | LDP Admin | `LDP_ADMIN_CODES` |
+| PSP | every sangh except SS/SS1/CT | PSP Approver | `ADMIN_CODES` |
+| LDP | Sanghrakshak Sangh, Seva Sangh, Core Teams (`EXCLUDED_SANGHS`) | LDP Admin | `LDP_ADMIN_CODES` |
 
 Both stages store `status = pending_admin`; the profile's `program` decides whose desk it is
 on, and screens read "Awaiting PSP Approver" or "Awaiting LDP Admin" accordingly. The PSP
@@ -206,15 +206,15 @@ profile. RP Creators and RP Approvers can add to the sanghs they lead — but an
 not give it, on this page, on the Create form, or on My Members (an SS/SS1 member is
 listed only for their RP Creator). Beyond that, the
 **PSP Approver** can add to any **PSP** sangh and the **LDP Admin** to the **LDP** sanghs —
-Sanghrakshak Sangh and Seva Sangh (`EXCLUDED_SANGHS`, SS/SS1) belong to LDP, never PSP.
+Sanghrakshak Sangh, Seva Sangh and Core Teams (`EXCLUDED_SANGHS`, SS/SS1/CT) belong to LDP, never PSP.
 (`LDP_ADMIN_CODES` defaults to `ADMIN_CODES`, so one person holding both roles sees both.)
 Members with nobody to lead do not see it.
 
-Every sangh dropdown groups sanghs under "PSP sanghs" and "LDP — Sanghrakshak & Seva Sangh",
+Every sangh dropdown groups sanghs under "PSP sanghs" and "LDP — Sanghrakshak, Seva Sangh & Core Teams",
 and role profiles carry a PSP or LDP tag next to their sangh in the list and on their page. Whatever
 is added appears in that sangh's designation dropdown when creating a role profile.
 
-Anything in an LDP sangh (`EXCLUDED_SANGHS`, i.e. SS/SS1) counts as an LDP profile, so a new
+Anything in an LDP sangh (`EXCLUDED_SANGHS`, i.e. SS/SS1/CT) counts as an LDP profile, so a new
 designation created there needs the LDP number of key outcomes.
 
 Run `npm run migrate:designations` (`node scripts/migrate_designations.js`) once to create

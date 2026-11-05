@@ -47,7 +47,7 @@ const card = (body, label) => Number((new RegExp(`class="n">(\\d+)</span>\\s*<sp
   check('Excel / CSV export offered', psp.includes("extend: 'excel'") && psp.includes("extend: 'csv'"), true);
 
   /* ------------------------------------------- every sangh, and designation coverage */
-  const sanghsInDb = Number((await db.first("SELECT COUNT(DISTINCT sangh_code) n FROM tbl_employee WHERE status = 0 AND TRIM(sangh_code) <> '' AND sangh_code NOT IN ('SS','SS1')")).n);
+  const sanghsInDb = Number((await db.first("SELECT COUNT(DISTINCT sangh_code) n FROM tbl_employee WHERE status = 0 AND TRIM(sangh_code) <> '' AND sangh_code NOT IN ('SS','SS1','CT')")).n);
   const sanghOptions = (psp.match(/<optgroup label="PSP sanghs">([\s\S]*?)<\/optgroup>/) || ['', ''])[1].match(/<option /g) || [];
   check('sangh dropdown lists every PSP sangh, with or without role profiles', sanghOptions.length, sanghsInDb);
   check('coverage panel shown', psp.includes('Role profile coverage') && psp.includes('RP not created yet'), true);

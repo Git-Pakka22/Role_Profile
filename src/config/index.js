@@ -31,5 +31,5 @@ module.exports = {
   // LDP Admin — manages sevak/sanghrakshak members (tbl_leaders). Defaults to the same
   // codes as PSP so one person holds both until this is deliberately split apart.
   ldpAdminCodes: list(process.env.LDP_ADMIN_CODES, process.env.ADMIN_CODES || ''),
-  excludedSanghs: list(process.env.EXCLUDED_SANGHS, 'SS,SS1'),
+  excludedSanghs: list(process.env.EXCLUDED_SANGHS, 'SS,SS1,CT'),
 };

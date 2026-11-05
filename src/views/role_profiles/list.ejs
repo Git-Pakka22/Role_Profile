@@ -84,6 +84,7 @@
                                 <span class="rp-desig-cell">
                                     <span class="emp-name"><%= p.designation_name %></span>
                                     <% if (String(p.mission || '').trim()) { %><span class="sub"><%= short(p.mission, 70) %></span><% } %>
+                                    <% if (p.assigned_names.length) { %><span class="sub rp-assigned"><i class="mdi mdi-account-multiple-outline"></i> <%= p.assigned_names.join(', ') %></span><% } %>
                                 </span>
                             </td>
                             <td><span class="emp-sangh"><%= p.sangh_name || '—' %></span><span class="rp-prog rp-prog-<%= p.program === 'ldp' ? 'ldp' : 'psp' %>"><%= p.program === 'ldp' ? 'LDP' : 'PSP' %></span></td>
@@ -159,17 +160,19 @@
 <% if (profiles.length) { %>
 <script>
 $(function () {
-    new DataTable('#profileTable', {
+    var table = new DataTable('#profileTable', {
         pageLength: 25, order: [[5, 'desc']],
         columnDefs: [{ targets: [6], orderable: false, searchable: false }],
         language: {
-            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search role profiles...',
+            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search role profiles or member names...',
             lengthMenu: 'Show _MENU_ entries', info: 'Showing _START_ to _END_ of _TOTAL_ role profiles',
             zeroRecords: 'No role profiles match your search',
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }
     });
+    // The member list is one line until someone searches, so a name that matched is on show.
+    table.on('search.dt', function () { $('#profileTable').toggleClass('rp-searching', !!table.search()); });
 });
 </script>
 <% } %>

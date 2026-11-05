@@ -4,7 +4,7 @@ const config = require('../config');
 /**
  * Which members this portal is about.
  *
- * SS (Sanghrakshak Sangh) and SS1 (Seva Sangh) belong to the LDP programme, not PSP.
+ * SS (Sanghrakshak Sangh), SS1 (Seva Sangh) and CT (Core Teams) belong to the LDP programme, not PSP.
  * Their members are excluded as SUBJECTS — absent from member lists, assignment, role
  * profiles and assessments — but people in those sanghs can still sign in and act as
  * an RP Creator or RP Approver for members elsewhere.
@@ -16,7 +16,7 @@ function sqlCondition(alias = 'e') {
   return `${alias}.sangh_code NOT IN (${quoted})`;
 }
 
-/** The inverse of sqlCondition() — matches only members of the LDP sanghs (SS/SS1). */
+/** The inverse of sqlCondition() — matches only members of the LDP sanghs (SS/SS1/CT). */
 function excludedSanghCondition(alias = 'e') {
   const codes = config.excludedSanghs;
   if (!codes.length) return '1=0';

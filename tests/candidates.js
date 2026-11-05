@@ -36,7 +36,7 @@ function post(port, path, who, form) {
   signIn({ code: 'MM008', name: 'LMS', isAdmin: true });
 
   const activeMembers = (await db.first(
-    "SELECT COUNT(*) n FROM tbl_employee WHERE status=0 AND TRIM(name)<>'' AND TRIM(emp_code)<>'' AND sangh_code NOT IN ('SS','SS1')")).n;
+    "SELECT COUNT(*) n FROM tbl_employee WHERE status=0 AND TRIM(name)<>'' AND TRIM(emp_code)<>'' AND sangh_code NOT IN ('SS','SS1','CT')")).n;
 
   /* ------------------------------------------------- the pool is the members */
   const pool = await leader.memberCandidates();
@@ -76,7 +76,7 @@ function post(port, path, who, form) {
 
   /* ------------------------------------------------------- what the server takes */
   const outsider = await db.first(
-    "SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code<>'MSS' AND sangh_code NOT IN ('SS','SS1') LIMIT 1");
+    "SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code<>'MSS' AND sangh_code NOT IN ('SS','SS1','CT') LIMIT 1");
   const insider = await db.first(
     "SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code='MSS' AND TRIM(name)<>'' LIMIT 1");
 
