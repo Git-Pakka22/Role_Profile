@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get('/login', async (req, res) => {
   if (req.session.logged_in) return res.redirect(await mw.landingUrl(req));
-  await res.page('login', { title: 'Sign In — Pakka Role Profile', pageTitle: 'Sign In', activeNav: 'login', bare: true });
+  await res.page('login', { title: req.t('Sign In — Pakka Role Profile'), pageTitle: req.t('Sign In'), activeNav: 'login', bare: true });
 });
 
 router.post('/login', async (req, res) => {
@@ -16,13 +16,13 @@ router.post('/login', async (req, res) => {
   const password = String(req.body.password || '');
 
   if (!empCode || !password) {
-    req.session.flashError = 'Enter both your member code and password.';
+    req.session.flashError = req.t('Enter both your member code and password.');
     return res.redirect('/login');
   }
 
   const member = await employee.authenticate(empCode, password);
   if (!member) {
-    req.session.flashError = 'Those credentials were not recognised.';
+    req.session.flashError = req.t('Those credentials were not recognised.');
     return res.redirect('/login');
   }
 

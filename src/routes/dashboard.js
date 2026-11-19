@@ -36,9 +36,8 @@ router.get('/', async (req, res) => {
     greeting: hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening',
     scopeNote: actor.isAdmin && actor.isLdpAdmin ? 'All PSP and LDP role profiles'
       : actor.isAdmin ? 'All PSP role profiles' : actor.isLdpAdmin ? 'All LDP role profiles' : 'Role profiles you work with',
-    statusText: (p) => roleProfile.statusLabel(p),
-    title: 'Dashboard — Pakka Role Profile',
-    pageTitle: 'Dashboard',
+    title: req.t('Dashboard — Pakka Role Profile'),
+    pageTitle: req.t('Dashboard'),
     activeNav: 'dashboard',
   });
 });

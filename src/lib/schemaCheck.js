@@ -11,7 +11,7 @@ const TABLES = [
   'rp_role_profile_members', 'rp_role_profile_history', 'rp_notifications',
   'rp_assessments', 'rp_assessment_ratings',
   'rp_profile_versions', 'rp_version_outcomes', 'rp_version_details', 'rp_profile_reviews',
-  'rp_designations',
+  'rp_designations', 'rp_translations', 'rp_assessment_outcome_ratings',
 ];
 
 const COLUMNS = [
@@ -30,6 +30,9 @@ const COLUMNS = [
   ['rp_profile_versions', 'rp_approver_name'],
   ['rp_profile_versions', 'rp_approver_action_by'],
   ['rp_profile_versions', 'rp_approver_action_at'],
+  ['rp_role_profile_details', 'outcome_links'],
+  ['rp_version_details', 'outcome_links'],
+  ['rp_assessments', 'method'],
 ];
 
 // Columns that must accept NULL, because a versioned row leaves them empty.
@@ -76,7 +79,7 @@ async function report() {
     if (!problems.length) return true;
     console.error('\n  DATABASE IS BEHIND THE CODE:');
     problems.forEach((p) => console.error('   - ' + p));
-    console.error('  Run:  node scripts/migrate_versions.js  (and migrate_ldp.js, migrate_rp_approver_columns.js, migrate_designations.js)\n');
+    console.error('  Run:  node scripts/migrate_versions.js  (and migrate_ldp.js, migrate_rp_approver_columns.js, migrate_designations.js, migrate_translations.js)\n');
     return false;
   } catch (err) {
     console.error('  Could not check the database schema:', err.message);

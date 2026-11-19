@@ -85,8 +85,8 @@ router.get('/', async (req, res) => {
     current: await financialYear.current(),
     previous: await financialYear.previous(),
     yearOpen: await financialYear.isOpen(chosen),
-    title: `Assessments ${chosen} — Pakka Role Profile`,
-    pageTitle: `Assessments · ${chosen}`,
+    title: req.t('Assessments {fy} — Pakka Role Profile', { fy: chosen }),
+    pageTitle: req.t('Assessments · {fy}', { fy: chosen }),
     activeNav: 'assessments',
   });
 });

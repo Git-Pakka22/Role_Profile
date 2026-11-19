@@ -1,0 +1,69 @@
+<%
+  const counts = { ai: rows.filter((r) => r.hindi && r.hindi.origin === 'ai').length,
+                   edited: rows.filter((r) => r.hindi && r.hindi.origin === 'edited').length,
+                   missing: rows.filter((r) => !r.hindi).length };
+%>
+<a class="rp-back-link" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-arrow-left"></i> <%= t("Back to role profile") %></a>
+
+<div class="rp-card">
+    <div class="rp-card-header">
+        <div class="rp-card-header-left">
+            <div class="rp-card-header-icon"><i class="mdi mdi-translate"></i></div>
+            <div>
+                <div class="rp-card-title"><%= t("Hindi translation") %></div>
+                <div class="rp-card-subtitle"><%= profile.designation_name %> · <%= profile.sangh_name %></div>
+            </div>
+        </div>
+    </div>
+    <div class="rp-card-body">
+        <div class="rp-version-banner">
+            <i class="mdi mdi-information-outline"></i>
+            <div>
+                <%= t("This is what members see when they read the portal in Hindi. The English stays the role profile of record — correcting the Hindi does not create a new version or need approval.") %>
+                <%= autoOn ? t("New or changed lines are drafted automatically by AI after each save; check them here and correct anything that reads wrong.") : t("Automatic drafting is switched off on this server, so type the Hindi in yourself.") %>
+            </div>
+        </div>
+
+        <div class="rp-summary">
+            <div class="rp-summary-item"><div class="n"><%= counts.edited %></div><div class="l"><%= t("Checked") %></div></div>
+            <div class="rp-summary-item"><div class="n"><%= counts.ai %></div><div class="l"><%= t("AI draft, not checked") %></div></div>
+            <div class="rp-summary-item"><div class="n"><%= counts.missing %></div><div class="l"><%= t("No Hindi yet") %></div></div>
+        </div>
+
+        <% if (autoOn && counts.missing) { %>
+            <form method="post" action="/role-profiles/<%= profile.id %>/hindi/translate" class="rp-hi-draft">
+                <input type="hidden" name="csrf_test_name" value="<%= csrfToken %>">
+                <button type="submit" class="rp-btn-clone"><i class="mdi mdi-auto-fix"></i> <%= t('Draft the {n} missing lines with AI', { n: counts.missing }) %></button>
+            </form>
+        <% } %>
+
+        <% if (!rows.length) { %>
+            <div class="rp-empty-inline"><%= t("This role profile has no content to translate yet.") %></div>
+        <% } else { %>
+        <form method="post" action="/role-profiles/<%= profile.id %>/hindi">
+            <input type="hidden" name="csrf_test_name" value="<%= csrfToken %>">
+            <div class="rp-hi-list">
+                <% rows.forEach((r) => { const state = !r.hindi ? 'missing' : r.hindi.origin; %>
+                    <div class="rp-hi-row rp-hi-<%= state %>">
+                        <div class="rp-hi-head">
+                            <span class="rp-hi-kind"><%= t(r.label) %><%= r.no ? ' ' + r.no : '' %></span>
+                            <span class="rp-hi-state">
+                                <% if (state === 'edited') { %><i class="mdi mdi-check-circle-outline"></i> <%= t('Checked by {name}', { name: personName(r.hindi.updated_by, r.hindi.updated_by_name) }) %>
+                                <% } else if (state === 'ai') { %><i class="mdi mdi-robot-outline"></i> <%= t("AI draft — please check") %>
+                                <% } else { %><i class="mdi mdi-alert-outline"></i> <%= t("No Hindi yet") %><% } %>
+                            </span>
+                        </div>
+                        <div class="rp-hi-en" lang="en"><%= r.text %></div>
+                        <textarea class="rp-textarea rp-hi-text" lang="hi" name="hindi[<%= r.key %>]" rows="<%= r.text.length > 140 ? 3 : 2 %>" placeholder="<%= t("Hindi for the line above") %>"><%= r.hindi ? r.hindi.text : '' %></textarea>
+                    </div>
+                <% }) %>
+            </div>
+            <div class="rp-form-foot">
+                <span class="rp-sub"><%= t("Saving marks every line on this page as checked.") %></span>
+                <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>"><%= t("Cancel") %></a>
+                <button type="submit" class="rp-btn-submit"><i class="mdi mdi-content-save-outline"></i> <%= t("Save Hindi") %></button>
+            </div>
+        </form>
+        <% } %>
+    </div>
+</div>

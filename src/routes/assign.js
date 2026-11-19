@@ -51,8 +51,8 @@ router.get('/', async (req, res) => {
     members, counts, roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
-    title: 'Assign by Member — Pakka Role Profile',
-    pageTitle: 'Assign Roles by Member',
+    title: req.t('Assign by Member — Pakka Role Profile'),
+    pageTitle: req.t('Assign Roles by Member'),
     activeNav: 'assign-member',
   });
 });
@@ -62,11 +62,11 @@ router.post('/save', async (req, res) => {
   const role = String(req.body.role || '').trim();
   const personCode = String(req.body.person_code || '').trim();
 
-  if (!empCode || !employee.ROLES[role]) return fail(res, 'Unknown member or role.');
-  if (!(await employee.findActiveByCode(empCode))) return fail(res, 'That member is not an active member.');
+  if (!empCode || !employee.ROLES[role]) return fail(res, req.t('Unknown member or role.'));
+  if (!(await employee.findActiveByCode(empCode))) return fail(res, req.t('That member is not an active member.'));
 
   const person = await resolvePerson(role, personCode);
-  if (person.error) return fail(res, person.error);
+  if (person.error) return fail(res, req.t(person.error));
 
   await employee.setAssignment(empCode, role, person.code, person.name);
 
@@ -74,8 +74,8 @@ router.post('/save', async (req, res) => {
     ok: true, role, emp_code: empCode,
     person_code: person.code, person_name: person.name,
     message: person.name === ''
-      ? `${label(role)} unassigned.`
-      : `${label(role)} set to ${person.name}.`,
+      ? req.t('{role} unassigned.', { role: req.t(label(role)) })
+      : req.t('{role} set to {name}.', { role: req.t(label(role)), name: person.name }),
   });
 });
 
@@ -87,8 +87,8 @@ router.get('/sangh', async (req, res) => {
     roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
-    title: 'Assign by Sangh — Pakka Role Profile',
-    pageTitle: 'Assign Roles by Sangh',
+    title: req.t('Assign by Sangh — Pakka Role Profile'),
+    pageTitle: req.t('Assign Roles by Sangh'),
     activeNav: 'assign-sangh',
   });
 });
@@ -98,21 +98,21 @@ router.post('/save-sangh', async (req, res) => {
   const role = String(req.body.role || '').trim();
   const personCode = String(req.body.person_code || '').trim();
 
-  if (!sanghCode || !employee.ROLES[role]) return fail(res, 'Unknown sangh or role.');
-  if ((await sangh.memberCount(sanghCode)) === 0) return fail(res, 'That sangh has no active members.');
+  if (!sanghCode || !employee.ROLES[role]) return fail(res, req.t('Unknown sangh or role.'));
+  if ((await sangh.memberCount(sanghCode)) === 0) return fail(res, req.t('That sangh has no active members.'));
 
   const person = await resolvePerson(role, personCode, sanghCode);
-  if (person.error) return fail(res, person.error);
+  if (person.error) return fail(res, req.t(person.error));
 
   const affected = await sangh.assignToSangh(sanghCode, role, person.code, person.name);
-  const what = person.name === ''
-    ? `${label(role)} cleared`
-    : `${label(role)} set to ${person.name}`;
+  const what = { role: req.t(label(role)), name: person.name };
 
   res.json({
     ok: true, role, sangh_code: sanghCode,
     person_code: person.code, person_name: person.name, affected,
-    message: `${what} for ${affected} member${affected === 1 ? '' : 's'}.`,
+    message: person.name === ''
+      ? req.t.n('{role} cleared for {n} member.', '{role} cleared for {n} members.', affected, what)
+      : req.t.n('{role} set to {name} for {n} member.', '{role} set to {name} for {n} members.', affected, what),
   });
 });
 
@@ -121,7 +121,7 @@ router.get('/sangh/:code', async (req, res) => {
   const sanghCode = req.params.code;
   const members = await employee.membersOfSangh(sanghCode);
   if (!members.length) {
-    req.session.flashError = 'That sangh has no active members.';
+    req.session.flashError = req.t('That sangh has no active members.');
     return res.redirect('/assign/sangh');
   }
 
@@ -132,8 +132,8 @@ router.get('/sangh/:code', async (req, res) => {
     roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
-    title: `${sanghCode} — Assign Roles`,
-    pageTitle: `Assign Roles · ${named ? named.sangh_name : sanghCode}`,
+    title: req.t('{sangh} — Assign Roles', { sangh: sanghCode }),
+    pageTitle: req.t('Assign Roles · {sangh}', { sangh: named ? named.sangh_name : sanghCode }),
     activeNav: 'assign-sangh',
   });
 });
@@ -144,20 +144,20 @@ router.post('/save-bulk', async (req, res) => {
   const role = String(req.body.role || '').trim();
   const personCode = String(req.body.person_code || '').trim();
 
-  if (!empCodes.length || !employee.ROLES[role]) return fail(res, 'Select at least one member and a role.');
+  if (!empCodes.length || !employee.ROLES[role]) return fail(res, req.t('Select at least one member and a role.'));
 
   const person = await resolvePerson(role, personCode);
-  if (person.error) return fail(res, person.error);
+  if (person.error) return fail(res, req.t(person.error));
 
   const affected = await employee.assignMany(empCodes, role, person.code, person.name);
-  const what = person.name === ''
-    ? `${label(role)} cleared`
-    : `${label(role)} set to ${person.name}`;
+  const what = { role: req.t(label(role)), name: person.name };
 
   res.json({
     ok: true, role, emp_codes: empCodes,
     person_code: person.code, person_name: person.name, affected,
-    message: `${what} for ${affected} member${affected === 1 ? '' : 's'}.`,
+    message: person.name === ''
+      ? req.t.n('{role} cleared for {n} member.', '{role} cleared for {n} members.', affected, what)
+      : req.t.n('{role} set to {name} for {n} member.', '{role} set to {name} for {n} members.', affected, what),
   });
 });
 

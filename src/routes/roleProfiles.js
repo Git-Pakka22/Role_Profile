@@ -13,7 +13,10 @@ const notification = require('../models/notification');
 const mw = require('../middleware');
 const pdf = require('../lib/pdf');
 const version = require('../models/version');
+const translation = require('../models/translation');
+const translate = require('../lib/translate');
 const importer = require('../lib/importer');
+const sampleSheet = require('../lib/sampleSheet');
 const multer = require('multer');
 
 const router = express.Router();
@@ -73,9 +76,12 @@ const routeNote = (a, profile) => (a.code !== ''
   ? `Sent to ${a.name} for approval`
   : `Sent straight to the ${roleProfile.finalApprover(profile).label}`);
 
-const submittedMessage = (a, profile) => (a.code !== ''
-  ? `Submitted to ${a.name} for approval.`
-  : `Submitted for ${roleProfile.finalApprover(profile).label} approval (you have no separate RP Approver on record).`);
+const submittedMessage = (a, profile, t) => (a.code !== ''
+  ? t('Submitted to {name} for approval.', { name: a.name })
+  : t('Submitted for {approver} approval (you have no separate RP Approver on record).', { approver: t(roleProfile.finalApprover(profile).label) }));
+
+/** A model's result message, in the reader's language when the model says how to word it. */
+const said = (req, result) => (result.i18n ? req.t(result.i18n[0], result.i18n[1]) : req.t(result.message));
 
 /* --------------------------------------------------------- notifications */
 
@@ -160,6 +166,8 @@ function collectAttributes(body) {
   const weights = body.attribute_weight || {};
   const skills = body.tech_skill || {};
   const skillWeights = body.tech_weight || {};
+  // The key outcomes each attribute links to, as their positions on the form ("1,3").
+  const skillOutcomes = body.tech_outcomes || {};
 
   const out = [];
   for (const key of Object.keys(names)) {
@@ -169,9 +177,14 @@ function collectAttributes(body) {
     const rowSkills = [];
     const list = skills[key] || [];
     const wlist = skillWeights[key] || [];
+    const olist = skillOutcomes[key] || [];
     (Array.isArray(list) ? list : [list]).forEach((skill, j) => {
       if (String(skill ?? '').trim() === '') return;
-      rowSkills.push({ skill, weight: (Array.isArray(wlist) ? wlist : [wlist])[j] ?? '' });
+      rowSkills.push({
+        skill,
+        weight: (Array.isArray(wlist) ? wlist : [wlist])[j] ?? '',
+        outcomes: String((Array.isArray(olist) ? olist : [olist])[j] ?? ''),
+      });
     });
 
     out.push({
@@ -189,7 +202,7 @@ function collectAttributes(body) {
  * Attribute weights must add up to their skill's weight, and skill weights must
  * total 100 — both hold for every profile in the PSP portal.
  */
-function checkSkillWeights(attributes) {
+function checkSkillWeights(attributes, t) {
   for (let i = 0; i < attributes.length; i++) {
     const attr = attributes[i];
     const skills = attr.skills || [];
@@ -197,20 +210,20 @@ function checkSkillWeights(attributes) {
 
     const attrWeight = attr.attribute_weight === '' ? null : Number(attr.attribute_weight);
     const skillTotal = skills.reduce((sum, s) => sum + (s.weight === '' ? 0 : Number(s.weight)), 0);
-    const label = `Skill ${i + 1} (${String(attr.attribute).trim()})`;
+    const label = t('Skill {n} ({name})', { n: i + 1, name: String(attr.attribute).trim() });
 
     if (attrWeight === null) {
-      return `Please check total — ${label} has attribute weights but no skill weight. Give it a weight of ${num(skillTotal)}.`;
+      return t('Please check total — {label} has attribute weights but no skill weight. Give it a weight of {n}.', { label, n: num(skillTotal) });
     }
     if (Math.abs(attrWeight - skillTotal) > 0.001) {
-      return `Please check total — ${label}: its attribute weights total ${num(skillTotal)}, which must equal the skill weight of ${num(attrWeight)}.`;
+      return t('Please check total — {label}: its attribute weights total {total}, which must equal the skill weight of {weight}.', { label, total: num(skillTotal), weight: num(attrWeight) });
     }
   }
 
   const attributeTotal = attributes.reduce(
     (sum, a) => sum + (a.attribute_weight === '' ? 0 : Number(a.attribute_weight)), 0);
   if (Math.abs(attributeTotal - roleProfile.TOTAL_WEIGHT) > 0.001) {
-    return `Please check total — the skill weights add up to ${num(attributeTotal)}, but they must total ${roleProfile.TOTAL_WEIGHT}.`;
+    return t('Please check total — the skill weights add up to {total}, but they must total {max}.', { total: num(attributeTotal), max: roleProfile.TOTAL_WEIGHT });
   }
   return null;
 }
@@ -227,7 +240,7 @@ async function designationId(name) {
  * the sangh and designation stay as the author chose them — an approver does not lead those
  * members, so the author's picker rules cannot apply to them.
  */
-async function validateSubmission(body, actor, exceptId = null, locked = null) {
+async function validateSubmission(body, actor, exceptId = null, locked = null, t = require('../lib/i18n').translator('en')) {
   let designation;
   let sanghCode;
   let sanghName;
@@ -240,23 +253,21 @@ async function validateSubmission(body, actor, exceptId = null, locked = null) {
     designation = String(body.designation_name || '').trim();
     sanghCode = String(body.sangh_code || '').trim();
 
-    if (!sanghCode) return 'Choose a sangh.';
-    if (!designation) return 'Choose a designation.';
+    if (!sanghCode) return t('Choose a sangh.');
+    if (!designation) return t('Choose a designation.');
 
     // Any designation the sangh has, held now, held before, or created in the portal.
     const known = await roleProfile.knownDesignation(actor.code, actor.name, sanghCode, designation, reachOf(actor));
     if (known === null) {
-      return 'That designation does not exist in that sangh. Create it with "+ New designation" first.';
+      return t('That designation does not exist in that sangh. Create it with "+ New designation" first.');
     }
     designation = known.trim();
 
     // Enforced here as well as in the dropdown, so a stale page cannot create a second one.
     const clash = await roleProfile.profileForDesignation(sanghCode, designation, exceptId);
     if (clash) {
-      const label = (roleProfile.STATUS_LABELS[clash.status] || clash.status).toLowerCase();
-      return `"${designation}" already has a role profile in that sangh — ${label}, `
-        + `written by ${clash.created_by_name || clash.created_by}. A designation can only have one. `
-        + 'Open that profile to revise it, or clone it onto a different designation.';
+      return t('"{designation}" already has a role profile in that sangh — {status}, written by {name}. A designation can only have one. Open that profile to revise it, or clone it onto a different designation.',
+        { designation, status: t(roleProfile.STATUS_LABELS[clash.status] || clash.status), name: clash.created_by_name || clash.created_by });
     }
 
     sanghName = sanghCode;
@@ -266,9 +277,9 @@ async function validateSubmission(body, actor, exceptId = null, locked = null) {
   }
 
   const attributes = collectAttributes(body);
-  if (!attributes.length) return 'Add at least one skill.';
+  if (!attributes.length) return t('Add at least one skill.');
 
-  const weightError = checkSkillWeights(attributes);
+  const weightError = checkSkillWeights(attributes, t);
   if (weightError) return weightError;
 
   const outcomes = body.outcomes ? (Array.isArray(body.outcomes) ? body.outcomes : [body.outcomes]) : [];
@@ -277,8 +288,8 @@ async function validateSubmission(body, actor, exceptId = null, locked = null) {
   if (program === roleProfile.PROGRAM.LDP) {
     const named = outcomes.map((o) => String(o ?? '').trim()).filter(Boolean);
     if (named.length < roleProfile.MIN_OUTCOMES_LDP) {
-      return `LDP role profiles need at least ${roleProfile.MIN_OUTCOMES_LDP} key outcomes `
-        + `(up to ${roleProfile.MAX_OUTCOMES_LDP}) — only ${named.length} given.`;
+      return t('LDP role profiles need at least {min} key outcomes (up to {max}) — only {n} given.',
+        { min: roleProfile.MIN_OUTCOMES_LDP, max: roleProfile.MAX_OUTCOMES_LDP, n: named.length });
     }
   }
 
@@ -307,7 +318,7 @@ const canAssign = (profile, actor) =>
   roleProfile.isLive(profile) && roleProfile.isFinalApprover(profile, actor.isAdmin, actor.isLdpAdmin);
 
 const gone = (req, res) => {
-  req.session.flashError = 'That role profile no longer exists.';
+  req.session.flashError = req.t('That role profile no longer exists.');
   return res.redirect('/role-profiles');
 };
 
@@ -356,8 +367,8 @@ router.get('/', async (req, res) => {
     outcomeLabels: version.OUTCOME_LABELS,
     statusLabels: roleProfile.STATUS_LABELS,
     S,
-    title: 'Role Profiles — Pakka Role Profile',
-    pageTitle: 'Role Profiles',
+    title: req.t('Role Profiles — Pakka Role Profile'),
+    pageTitle: req.t('Role Profiles'),
     activeNav: 'role-profiles',
   });
 });
@@ -379,7 +390,7 @@ async function formData(req, profile = null) {
       designation: row.designation,
       program: await programFor(row.sangh_code, row.designation, ldpDesignations),
       taken: has ? { id: has.id, status: has.status, by: has.created_by_name || has.created_by,
-        label: roleProfile.statusLabel({ ...has, sangh_code: row.sangh_code }) } : null,
+        label: req.t(roleProfile.statusLabel({ ...has, sangh_code: row.sangh_code })) } : null,
     });
   }
   const freeCount = designations.length - takenCount;
@@ -445,14 +456,14 @@ async function prefillFrom(req) {
 router.get('/create', async (req, res) => {
   const data = await formData(req);
   if (data.designationsEmpty) {
-    req.session.flashError = 'No members are assigned to you yet, so there are no designations to write a profile for.';
+    req.session.flashError = req.t('No members are assigned to you yet, so there are no designations to write a profile for.');
     return res.redirect('/role-profiles');
   }
   await res.page('role_profiles/form', {
     ...data,
     prefill: await prefillFrom(req),
-    title: 'Create Role Profile — Pakka Role Profile',
-    pageTitle: 'Create Role Profile',
+    title: req.t('Create Role Profile — Pakka Role Profile'),
+    pageTitle: req.t('Create Role Profile'),
     activeNav: 'role-profiles',
   });
 });
@@ -461,7 +472,7 @@ router.post('/store', async (req, res) => {
   const actor = me(req);
   const isDraft = req.body.action === 'draft';
 
-  const parsed = await validateSubmission(req.body, actor);
+  const parsed = await validateSubmission(req.body, actor, null, null, req.t);
   if (typeof parsed === 'string') {
     req.session.flashError = parsed;
     return res.redirect('/role-profiles/create');
@@ -493,23 +504,23 @@ router.post('/store', async (req, res) => {
   }
 
   req.session.flashSuccess = isDraft
-    ? 'Saved as a draft. Submit it for approval when you are ready.'
-    : submittedMessage(approver, header);
+    ? req.t('Saved as a draft. Submit it for approval when you are ready.')
+    : submittedMessage(approver, header, req.t);
   res.redirect(`/role-profiles/${id}`);
 });
 
 /** Why someone may not edit, worded for where the profile stands. */
-function cannotEditMessage(profile) {
+function cannotEditMessage(profile, t) {
   if (profile.status === S.PENDING_SEVAK) {
-    return 'Only the author or the RP Approver can edit this role profile while it awaits the RP Approver.';
+    return t('Only the author or the RP Approver can edit this role profile while it awaits the RP Approver.');
   }
   if (profile.status === S.PENDING_ADMIN) {
-    const final = roleProfile.finalApprover(profile).label;
+    const final = t(roleProfile.finalApprover(profile).label);
     return roleProfile.skippedRpApprover(profile)
-      ? `Only the author or the ${final} can edit this role profile while it awaits the ${final}.`
-      : `The RP Approver has approved this role profile, so only the ${final} can edit it now.`;
+      ? t('Only the author or the {approver} can edit this role profile while it awaits the {approver}.', { approver: final })
+      : t('The RP Approver has approved this role profile, so only the {approver} can edit it now.', { approver: final });
   }
-  return 'Only the author can edit this role profile.';
+  return t('Only the author can edit this role profile.');
 }
 
 /** The approval stage a pending edit belongs to, for the form and the messages. */
@@ -525,7 +536,7 @@ router.get('/:id(\\d+)/edit', async (req, res) => {
   const profile = await roleProfile.fullProfile(id);
   if (!profile) return gone(req, res);
   if (!roleProfile.canEdit(profile, actor.code, actor.isAdmin, actor.isLdpAdmin)) {
-    req.session.flashError = cannotEditMessage(profile);
+    req.session.flashError = cannotEditMessage(profile, req.t);
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -535,7 +546,10 @@ router.get('/:id(\\d+)/edit', async (req, res) => {
 
   // Waiting for approval, only the content may change — mission, outcomes, skills,
   // attributes and their weights. The sangh and designation are fixed for everyone.
-  const lockedFields = pending;
+  // So are they when the final approver updates someone else's approved profile: the
+  // designation and sangh belong to the author.
+  const onBehalf = revision && !pending && profile.created_by !== actor.code;
+  const lockedFields = pending || onBehalf;
   if (lockedFields) {
     const designation = String(profile.designation_name || '').trim();
     data.sanghs = [{
@@ -556,9 +570,10 @@ router.get('/:id(\\d+)/edit', async (req, res) => {
     inForce: revision ? await version.latestFor(id) : null,
     fyNow: await financialYear.current(),
     pendingEdit: pending ? { ...pendingStage(profile), lockedFields } : null,
-    title: pending ? 'Edit Role Profile — Pakka Role Profile'
-      : (revision ? 'Update Role Profile — Pakka Role Profile' : 'Edit Draft — Pakka Role Profile'),
-    pageTitle: pending ? 'Edit Role Profile' : (revision ? 'Update Role Profile' : 'Edit Draft'),
+    onBehalfOf: onBehalf ? (profile.created_by_name || profile.created_by) : null,
+    title: req.t(pending ? 'Edit Role Profile — Pakka Role Profile'
+      : (revision ? 'Update Role Profile — Pakka Role Profile' : 'Edit Draft — Pakka Role Profile')),
+    pageTitle: req.t(pending ? 'Edit Role Profile' : (revision ? 'Update Role Profile' : 'Edit Draft')),
     activeNav: 'role-profiles',
   });
 });
@@ -571,7 +586,7 @@ router.get('/:id(\\d+)/edit', async (req, res) => {
 async function updatePending(req, res, profile, actor) {
   const id = Number(profile.id);
   const isAuthor = profile.created_by === actor.code;
-  const parsed = await validateSubmission(req.body, actor, id, profile);
+  const parsed = await validateSubmission(req.body, actor, id, profile, req.t);
   if (typeof parsed === 'string') {
     req.session.flashError = parsed;
     return res.redirect(`/role-profiles/${id}/edit`);
@@ -605,7 +620,7 @@ async function updatePending(req, res, profile, actor) {
     `${actor.name} edited "${what}". It is still awaiting ${stage.label}.`,
     `role-profiles/${id}`, id, actor.code);
 
-  req.session.flashSuccess = `Changes saved. It is still awaiting ${stage.label}.`;
+  req.session.flashSuccess = req.t('Changes saved. It is still awaiting {who}.', { who: req.t(stage.label) });
   return res.redirect(`/role-profiles/${id}`);
 }
 
@@ -615,7 +630,7 @@ router.post('/:id(\\d+)/update', async (req, res) => {
   const profile = await roleProfile.find(id);
   if (!profile) return gone(req, res);
   if (!roleProfile.canEdit(profile, actor.code, actor.isAdmin, actor.isLdpAdmin)) {
-    req.session.flashError = cannotEditMessage(profile);
+    req.session.flashError = cannotEditMessage(profile, req.t);
     return res.redirect(`/role-profiles/${id}`);
   }
   if (roleProfile.isPendingEdit(profile)) return updatePending(req, res, profile, actor);
@@ -624,13 +639,16 @@ router.post('/:id(\\d+)/update', async (req, res) => {
   // that point at it, and a new one is only cut when this revision is approved.
   const revision = roleProfile.isRevision(profile);
   const isDraft = req.body.action === 'draft' && !revision;
-  const parsed = await validateSubmission(req.body, actor, id);
+  // The final approver updating someone else's approved profile: the sangh and designation
+  // stay the author's, and the update goes through the author's own approval chain.
+  const onBehalf = revision && profile.created_by !== actor.code;
+  const parsed = await validateSubmission(req.body, actor, id, onBehalf ? profile : null, req.t);
   if (typeof parsed === 'string') {
     req.session.flashError = parsed;
     return res.redirect(`/role-profiles/${id}/edit`);
   }
 
-  const approver = await approverFor(actor.code, parsed.program);
+  const approver = await approverFor(onBehalf ? profile.created_by : actor.code, parsed.program);
   const wasRejected = profile.status === S.REJECTED;
 
   const header = {
@@ -656,18 +674,29 @@ router.post('/:id(\\d+)/update', async (req, res) => {
   await roleProfile.updateProfile(id, header, parsed.outcomes, parsed.attributes);
   const inForce = revision ? await version.latestFor(id) : null;
   await history.log(id, history.ACTION.EDITED, actor,
-    revision && inForce ? `Revised — version ${inForce.version_no} stays in force until this is approved` : '');
+    (onBehalf ? `Updated by the ${roleProfile.finalApprover(profile).label} for ${profile.created_by_name || profile.created_by}. ` : '')
+    + (revision && inForce ? `Revised — version ${inForce.version_no} stays in force until this is approved` : ''));
 
   if (isDraft) {
     await history.log(id, history.ACTION.DRAFT_SAVED, actor);
-    req.session.flashSuccess = 'Draft saved.';
+    req.session.flashSuccess = req.t('Draft saved.');
   } else {
     await history.log(id, wasRejected ? history.ACTION.RESUBMITTED : history.ACTION.SUBMITTED, actor, routeNote(approver, header));
     await notifyPending(header, id, approver, actor);
+    if (onBehalf) {
+      await notification.notify([profile.created_by], notification.TYPE.INFO,
+        'Your role profile was updated',
+        `${actor.name} updated "${parsed.designation} (${parsed.sangh_name})". The update goes for approval as the next version.`,
+        `role-profiles/${id}`, id, actor.code);
+    }
+    const sent = onBehalf
+      ? (approver.code !== ''
+        ? req.t('Update submitted for {author}. It goes to {name} for approval.', { author: profile.created_by_name || profile.created_by, name: approver.name })
+        : req.t('Update submitted for {author}. It goes straight to {approver} approval.', { author: profile.created_by_name || profile.created_by, approver: req.t(roleProfile.finalApprover(header).label) }))
+      : submittedMessage(approver, header, req.t);
     req.session.flashSuccess = revision && inForce
-      ? `${submittedMessage(approver, header)} Version ${inForce.version_no} stays in force meanwhile, `
-        + 'so assessments already written are untouched.'
-      : submittedMessage(approver, header);
+      ? `${sent} ${req.t('Version {v} stays in force meanwhile, so assessments already written are untouched.', { v: inForce.version_no })}`
+      : sent;
   }
   res.redirect(`/role-profiles/${id}`);
 });
@@ -676,9 +705,9 @@ router.post('/:id(\\d+)/submit', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
   if (!roleProfile.canSubmit(profile, actor.code)) {
-    req.session.flashError = 'Only your own drafts can be submitted.';
+    req.session.flashError = req.t('Only your own drafts can be submitted.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -696,7 +725,7 @@ router.post('/:id(\\d+)/submit', async (req, res) => {
     actor, routeNote(approver, profile));
   await notifyPending(profile, id, approver, actor);
 
-  req.session.flashSuccess = submittedMessage(approver, profile);
+  req.session.flashSuccess = submittedMessage(approver, profile, req.t);
   res.redirect(`/role-profiles/${id}`);
 });
 
@@ -704,10 +733,10 @@ router.post('/:id(\\d+)/decide', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
 
   if (!roleProfile.canActOn(profile, actor.code, actor.isAdmin, actor.isLdpAdmin)) {
-    req.session.flashError = 'This profile is not waiting on you.';
+    req.session.flashError = req.t('This profile is not waiting on you.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -727,12 +756,12 @@ router.post('/:id(\\d+)/decide', async (req, res) => {
       `"${what}" was rejected by ${actor.name}.${reason ? ' Reason: ' + reason : ''}`,
       `role-profiles/${id}`, id, actor.code);
 
-    req.session.flashSuccess = 'Role profile rejected.';
+    req.session.flashSuccess = req.t('Role profile rejected.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
   if (action !== 'approve') {
-    req.session.flashError = 'Unknown action.';
+    req.session.flashError = req.t('Unknown action.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -752,7 +781,7 @@ router.post('/:id(\\d+)/decide', async (req, res) => {
       `"${what}" was approved by ${actor.name} and is now with the ${final.label}.`,
       `role-profiles/${id}`, id, actor.code);
 
-    req.session.flashSuccess = `Approved and passed to the ${final.label}.`;
+    req.session.flashSuccess = req.t('Approved and passed to the {approver}.', { approver: req.t(final.label) });
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -781,10 +810,10 @@ router.post('/:id(\\d+)/decide', async (req, res) => {
     : `Version ${frozen.version_no} in force for ${fy} — no members assigned yet`);
 
   req.session.flashSuccess = count
-    ? `Approved as version ${frozen.version_no}, in force for ${fy}. It applies to the `
-      + `${count} member${count === 1 ? '' : 's'} already assigned to it.`
-    : `Approved as version ${frozen.version_no}, in force for ${fy}. It applies to nobody yet — `
-      + `the ${final} assigns members from the Members tab.`;
+    ? req.t.n('Approved as version {v}, in force for {fy}. It applies to the {n} member already assigned to it.',
+      'Approved as version {v}, in force for {fy}. It applies to the {n} members already assigned to it.', count, { v: frozen.version_no, fy })
+    : req.t('Approved as version {v}, in force for {fy}. It applies to nobody yet — the {approver} assigns members from the Members tab.',
+      { v: frozen.version_no, fy, approver: req.t(final) });
   res.redirect(`/role-profiles/${id}`);
 });
 
@@ -795,7 +824,7 @@ router.post('/:id(\\d+)/assign-members', async (req, res) => {
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
   if (!profile || !canAssign(profile, actor)) {
-    req.session.flashError = 'Only an approved profile can be assigned, and only by the PSP Approver (the LDP Admin for an LDP profile).';
+    req.session.flashError = req.t('Only an approved profile can be assigned, and only by the PSP Approver (the LDP Admin for an LDP profile).');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -804,7 +833,7 @@ router.post('/:id(\\d+)/assign-members', async (req, res) => {
   const added = await roleProfile.assignMembers(id, codes, actor);
 
   if (!added.length) {
-    req.session.flashError = 'Select at least one member to assign.';
+    req.session.flashError = req.t('Select at least one member to assign.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -822,7 +851,7 @@ router.post('/:id(\\d+)/assign-members', async (req, res) => {
     `${actor.name} assigned "${what}" to ${nameList(added)}.`,
     `role-profiles/${id}`, id, actor.code);
 
-  req.session.flashSuccess = `${added.length} member${added.length === 1 ? '' : 's'} assigned to this role profile.`;
+  req.session.flashSuccess = req.t.n('{n} member assigned to this role profile.', '{n} members assigned to this role profile.', added.length);
   res.redirect(`/role-profiles/${id}`);
 });
 
@@ -831,7 +860,7 @@ router.post('/:id(\\d+)/unassign-member', async (req, res) => {
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
   if (!profile || !canAssign(profile, actor)) {
-    req.session.flashError = 'Only the PSP Approver (the LDP Admin for an LDP profile) assigns and removes members.';
+    req.session.flashError = req.t('Only the PSP Approver (the LDP Admin for an LDP profile) assigns and removes members.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -840,12 +869,12 @@ router.post('/:id(\\d+)/unassign-member', async (req, res) => {
   const name = code ? await roleProfile.assignedMemberName(id, code) : '';
 
   if (!code || !(await roleProfile.unassignMember(id, code))) {
-    req.session.flashError = 'That member is not assigned to this role profile.';
+    req.session.flashError = req.t('That member is not assigned to this role profile.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
   await history.log(id, history.ACTION.UNASSIGNED, actor, `Removed ${name ? `${name} (${code})` : code}`);
-  req.session.flashSuccess = 'Member removed from this role profile.';
+  req.session.flashSuccess = req.t('Member removed from this role profile.');
   res.redirect(`/role-profiles/${id}`);
 });
 
@@ -859,12 +888,12 @@ router.post('/:id(\\d+)/unassign-member', async (req, res) => {
 router.post('/designations', async (req, res) => {
   const result = await roleProfile.addDesignation(me(req),
     String(req.body.sangh_code || '').trim(), req.body.designation_name);
-  if (!result.ok) return res.status(422).json({ ok: false, message: result.message });
+  if (!result.ok) return res.status(422).json({ ok: false, message: said(req, result) });
 
   return res.json({
     ok: true, created: result.created, sangh_code: result.sangh.sangh_code,
     designation: result.designation, program: await programFor(result.sangh.sangh_code, result.designation),
-    message: result.message,
+    message: said(req, result),
   });
 });
 
@@ -890,25 +919,25 @@ router.post('/import', (req, res) => {
     const back = '/role-profiles/create';
     if (uploadError) {
       req.session.flashError = uploadError.code === 'LIMIT_FILE_SIZE'
-        ? 'That file is larger than 3 MB.'
-        : uploadError.message;
+        ? req.t('That file is larger than 3 MB.')
+        : req.t(uploadError.message);
       return res.redirect(back);
     }
     // The token travelled inside the multipart body, so it can only be checked now.
     if (!mw.verifyToken(req)) {
       res.status(403);
-      return res.send('The action you requested is not allowed. (CSRF)');
+      return res.send(req.t('The action you requested is not allowed. (CSRF)'));
     }
     if (!req.file) {
-      req.session.flashError = 'Choose an .xlsx file to read.';
+      req.session.flashError = req.t('Choose an .xlsx file to read.');
       return res.redirect(back);
     }
     if (!(await canCreate(req))) {
-      req.session.flashError = 'Only someone with members can write a role profile.';
+      req.session.flashError = req.t('Only someone with members can write a role profile.');
       return res.redirect('/role-profiles');
     }
 
-    const parsed = await importer.parse(req.file.buffer, { sheet: String(req.body.sheet || '').trim() });
+    const parsed = await importer.parse(req.file.buffer, { sheet: String(req.body.sheet || '').trim(), t: req.t });
     if (parsed.error) {
       req.session.flashError = parsed.error;
       return res.redirect(back);
@@ -930,6 +959,7 @@ router.post('/import', (req, res) => {
         skills: a.skills.map((sk) => ({
           tech_skill: sk.skill,
           tech_weight: sk.weight === null ? '' : sk.weight,
+          outcome_links: sk.outcomes || '',
         })),
       })),
     };
@@ -948,11 +978,19 @@ router.post('/import', (req, res) => {
         outcomes: parsed.outcomes.length,
         warnings: parsed.warnings,
       },
-      title: 'Import Role Profile — Pakka Role Profile',
-      pageTitle: 'Import from Excel',
+      title: req.t('Import Role Profile — Pakka Role Profile'),
+      pageTitle: req.t('Import from Excel'),
       activeNav: 'role-profiles',
     });
   });
+});
+
+/** A filled-in example of the Excel format, to start a sheet from. */
+router.get('/import/sample', async (req, res) => {
+  const buffer = await sampleSheet.build();
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="Role profile - sample.xlsx"');
+  res.send(Buffer.from(buffer));
 });
 
 /* ------------------------------------------------------------------ clone */
@@ -966,14 +1004,14 @@ router.get('/:id(\\d+)/clone', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const source = await roleProfile.fullProfile(id);
-  if (!source) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!source) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
 
   if (!(await roleProfile.canView(source, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to copy.';
+    req.session.flashError = req.t('That role profile is not yours to copy.');
     return res.redirect('/role-profiles');
   }
   if (!(await canCreate(req))) {
-    req.session.flashError = 'Only someone with members can write a role profile.';
+    req.session.flashError = req.t('Only someone with members can write a role profile.');
     return res.redirect('/role-profiles');
   }
 
@@ -991,8 +1029,8 @@ router.get('/:id(\\d+)/clone', async (req, res) => {
     ...data,
     profile: draft,
     cloneFrom: { id: source.id, designation: source.designation_name, sangh: source.sangh_name },
-    title: 'Clone Role Profile — Pakka Role Profile',
-    pageTitle: 'Clone Role Profile',
+    title: req.t('Clone Role Profile — Pakka Role Profile'),
+    pageTitle: req.t('Clone Role Profile'),
     activeNav: 'role-profiles',
   });
 });
@@ -1008,15 +1046,15 @@ router.post('/:id(\\d+)/review', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
 
   const mayReview = profile.created_by === actor.code || actor.isAdmin;
   if (!mayReview) {
-    req.session.flashError = 'Only the RP Creator or the PSP Approver can record a review.';
+    req.session.flashError = req.t('Only the RP Creator or the PSP Approver can record a review.');
     return res.redirect(`/role-profiles/${id}`);
   }
   if (profile.status !== S.APPROVED) {
-    req.session.flashError = 'Only an approved role profile can be reviewed.';
+    req.session.flashError = req.t('Only an approved role profile can be reviewed.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -1024,23 +1062,22 @@ router.post('/:id(\\d+)/review', async (req, res) => {
   const asked = String(req.body.financial_year || '').trim();
   const fy = asked && (await financialYear.isValid(asked)) ? asked : await financialYear.current();
   if (!(await financialYear.isOpen(fy))) {
-    req.session.flashError = `${fy} is closed — only ${await financialYear.current()} and `
-      + `${await financialYear.previous()} can be reviewed.`;
+    req.session.flashError = req.t('{fy} is closed — only {current} and {previous} can be reviewed.',
+      { fy, current: await financialYear.current(), previous: await financialYear.previous() });
     return res.redirect(`/role-profiles/${id}?tab=versions`);
   }
 
   const note = String(req.body.note || '').trim();
   const result = await version.carryForward(id, fy, actor, note);
   if (!result.ok) {
-    req.session.flashError = result.message;
+    req.session.flashError = said(req, result);
     return res.redirect(`/role-profiles/${id}?tab=versions`);
   }
 
   await history.log(id, history.ACTION.REVIEWED, actor,
     `${fy} reviewed — no change; version ${result.version.version_no} carries forward${note ? `. ${note}` : ''}`);
 
-  req.session.flashSuccess = `${fy} reviewed. Version ${result.version.version_no} stands for this year, `
-    + 'so assessments run against it.';
+  req.session.flashSuccess = req.t('{fy} reviewed. Version {v} stands for this year, so assessments run against it.', { fy, v: result.version.version_no });
   res.redirect(`/role-profiles/${id}?tab=versions`);
 });
 
@@ -1051,15 +1088,15 @@ router.get('/:id(\\d+)/versions/:versionId(\\d+)', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
   if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to view.';
+    req.session.flashError = req.t('That role profile is not yours to view.');
     return res.redirect('/role-profiles');
   }
 
   const v = await version.find(Number(req.params.versionId));
   if (!v || Number(v.role_profile_id) !== id) {
-    req.session.flashError = 'That version does not belong to this role profile.';
+    req.session.flashError = req.t('That version does not belong to this role profile.');
     return res.redirect(`/role-profiles/${id}?tab=versions`);
   }
 
@@ -1071,7 +1108,7 @@ router.get('/:id(\\d+)/versions/:versionId(\\d+)', async (req, res) => {
   if (older) {
     changes = version.diff(older, v,
       await version.detailsFor(older.id), await version.detailsFor(v.id),
-      await version.outcomesFor(older.id), await version.outcomesFor(v.id));
+      await version.outcomesFor(older.id), await version.outcomesFor(v.id), req.t);
   }
 
   await res.page('role_profiles/version', {
@@ -1083,8 +1120,8 @@ router.get('/:id(\\d+)/versions/:versionId(\\d+)', async (req, res) => {
     outcomeLabels: version.OUTCOME_LABELS,
     changes,
     isLatest: all.length > 0 && Number(all[0].id) === Number(v.id),
-    title: `Version ${v.version_no} — ${v.designation_name}`,
-    pageTitle: `${v.designation_name} · Version ${v.version_no}`,
+    title: req.t('Version {v} — {designation}', { v: v.version_no, designation: v.designation_name }),
+    pageTitle: req.t('{designation} · Version {v}', { v: v.version_no, designation: v.designation_name }),
     activeNav: 'role-profiles',
   });
 });
@@ -1094,15 +1131,15 @@ router.get('/:id(\\d+)/versions/:versionId(\\d+)/pdf', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
   if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to view.';
+    req.session.flashError = req.t('That role profile is not yours to view.');
     return res.redirect('/role-profiles');
   }
 
   const v = await version.find(Number(req.params.versionId));
   if (!v || Number(v.role_profile_id) !== id) {
-    req.session.flashError = 'That version does not belong to this role profile.';
+    req.session.flashError = req.t('That version does not belong to this role profile.');
     return res.redirect(`/role-profiles/${id}?tab=versions`);
   }
 
@@ -1130,7 +1167,7 @@ router.get('/:id(\\d+)/view', async (req, res) => {
   const profile = await roleProfile.fullProfile(id);
   if (!profile) return gone(req, res);
   if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to view.';
+    req.session.flashError = req.t('That role profile is not yours to view.');
     return res.redirect('/role-profiles');
   }
   const versions = await version.listFor(id);
@@ -1143,11 +1180,11 @@ router.get('/:id(\\d+)/view', async (req, res) => {
     hasMechanism: attributes.some((a) => String(a.assessment || '').trim() !== ''),
     inForce: versions.length ? versions[0] : null,
     pendingUpdate: roleProfile.hasPendingUpdate(profile),
-    statusText: roleProfile.statusLabel(profile),
-    finalBy: roleProfile.finalApprover(profile).label,
+    statusText: req.t(roleProfile.statusLabel(profile)),
+    finalBy: req.t(roleProfile.finalApprover(profile).label),
     S,
-    title: `${profile.designation_name} — Role Profile`,
-    pageTitle: `Role Profile · ${profile.designation_name}`,
+    title: req.t('{designation} — Role Profile', { designation: profile.designation_name }),
+    pageTitle: req.t('Role Profile · {designation}', { designation: profile.designation_name }),
     activeNav: 'role-profiles',
   });
 });
@@ -1159,14 +1196,14 @@ router.get('/:id(\\d+)/pdf', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.find(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
 
   if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to view.';
+    req.session.flashError = req.t('That role profile is not yours to view.');
     return res.redirect('/role-profiles');
   }
   if (profile.status !== S.APPROVED) {
-    req.session.flashError = 'Only an approved role profile can be downloaded.';
+    req.session.flashError = req.t('Only an approved role profile can be downloaded.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -1187,10 +1224,10 @@ router.get('/:id(\\d+)', async (req, res) => {
   const actor = me(req);
   const id = Number(req.params.id);
   const profile = await roleProfile.fullProfile(id);
-  if (!profile) { req.session.flashError = 'That role profile no longer exists.'; return res.redirect('/role-profiles'); }
+  if (!profile) { req.session.flashError = req.t('That role profile no longer exists.'); return res.redirect('/role-profiles'); }
 
   if (!(await roleProfile.canView(profile, actor.code, actor.isAdmin, actor.isLdpAdmin))) {
-    req.session.flashError = 'That role profile is not yours to view.';
+    req.session.flashError = req.t('That role profile is not yours to view.');
     return res.redirect('/role-profiles');
   }
 
@@ -1247,15 +1284,89 @@ router.get('/:id(\\d+)', async (req, res) => {
     assessments,
     canAct: roleProfile.canActOn(profile, actor.code, actor.isAdmin, actor.isLdpAdmin),
     canEdit: roleProfile.canEdit(profile, actor.code, actor.isAdmin, actor.isLdpAdmin),
+    canEditHindi: canEditHindi(profile, actor),
+    hindiStatus: canEditHindi(profile, actor) ? await translation.status(id) : null,
     history: await history.forProfile(id),
     historyMeta: history.META,
     statusLabels: roleProfile.STATUS_LABELS,
     S,
     tab: String(req.query.tab || ''),
-    title: `${profile.designation_name} — Role Profile`,
-    pageTitle: `Role Profile · ${profile.designation_name}`,
+    title: req.t('{designation} — Role Profile', { designation: profile.designation_name }),
+    pageTitle: req.t('Role Profile · {designation}', { designation: profile.designation_name }),
     activeNav: 'role-profiles',
   });
+});
+
+/* ----------------------------------------------------------------- hindi */
+
+/**
+ * Who may correct the Hindi of a profile's content: its author, its RP Approver and its final
+ * approver. The Hindi is a translation, not new content, so correcting it does not make a new
+ * version or send anything for approval — at any stage.
+ */
+function canEditHindi(profile, actor) {
+  return profile.created_by === actor.code
+    || (!!profile.rp_approver_code && profile.rp_approver_code === actor.code)
+    || roleProfile.isFinalApprover(profile, actor.isAdmin, actor.isLdpAdmin);
+}
+
+const KIND_LABELS = { mission: 'Mission', outcome: 'Key outcome', skill: 'Technical Skill', attribute: 'Attribute', mechanism: 'Assessment Mechanism' };
+
+router.get('/:id(\\d+)/hindi', async (req, res) => {
+  const actor = me(req);
+  const profile = await roleProfile.find(Number(req.params.id));
+  if (!profile) return gone(req, res);
+  if (!canEditHindi(profile, actor)) {
+    req.session.flashError = req.t('Only the author, the RP Approver or the final approver can edit the Hindi of this role profile.');
+    return res.redirect(`/role-profiles/${profile.id}`);
+  }
+  const items = await translation.profileTexts(profile.id);
+  const have = await translation.lookup(items.map((i) => i.text));
+  await res.page('role_profiles/hindi', {
+    profile,
+    rows: items.map((i) => ({ ...i, key: translation.hashOf(i.text), label: KIND_LABELS[i.kind], hindi: have.get(i.text) || null })),
+    autoOn: translate.enabled(),
+    title: req.t('Hindi — {designation}', { designation: profile.designation_name }),
+    pageTitle: req.t('Hindi · {designation}', { designation: profile.designation_name }),
+    activeNav: 'role-profiles',
+  });
+});
+
+router.post('/:id(\\d+)/hindi', async (req, res) => {
+  const actor = me(req);
+  const profile = await roleProfile.find(Number(req.params.id));
+  if (!profile) return gone(req, res);
+  if (!canEditHindi(profile, actor)) {
+    req.session.flashError = req.t('Only the author, the RP Approver or the final approver can edit the Hindi of this role profile.');
+    return res.redirect(`/role-profiles/${profile.id}`);
+  }
+  // Only the profile's own lines can be written here, whatever the form sends. Each field is
+  // keyed by its English text, so a profile edited in the meantime cannot shift the Hindi.
+  const items = await translation.profileTexts(profile.id);
+  const have = await translation.lookup(items.map((i) => i.text));
+  const sent = req.body.hindi || {};
+  let saved = 0;
+  for (const item of items) {
+    const value = String(sent[translation.hashOf(item.text)] ?? '').trim();
+    if (!value) continue;
+    const current = have.get(item.text);
+    // Saving the page confirms the Hindi as it stands, so an unchanged AI draft counts as checked.
+    if (current && current.text === value && current.origin === 'edited') continue;
+    if (await translation.save(item.text, value, 'edited', actor)) saved++;
+  }
+  req.session.flashSuccess = req.t.n('Hindi saved — {n} line updated.', 'Hindi saved — {n} lines updated.', saved);
+  res.redirect(`/role-profiles/${profile.id}/hindi`);
+});
+
+router.post('/:id(\\d+)/hindi/translate', async (req, res) => {
+  const actor = me(req);
+  const profile = await roleProfile.find(Number(req.params.id));
+  if (!profile) return gone(req, res);
+  if (!canEditHindi(profile, actor) || !translate.enabled()) return res.redirect(`/role-profiles/${profile.id}/hindi`);
+  const texts = (await translation.profileTexts(profile.id)).map((i) => i.text);
+  const n = await translate.translateMissing(texts);
+  req.session.flashSuccess = req.t.n('{n} line drafted in Hindi. Check it below and save.', '{n} lines drafted in Hindi. Check them below and save.', n);
+  res.redirect(`/role-profiles/${profile.id}/hindi`);
 });
 
 module.exports = router;

@@ -4,7 +4,7 @@
     ? '<span class="rp-none">—</span>'
     : '<span class="rp-person rp-person-' + variant + '"><i class="mdi ' + icons[variant] + '"></i>' + h(name) + '</span>';
 %>
-<a class="rp-back-link" href="/assign/sangh"><i class="mdi mdi-arrow-left"></i> All sanghs</a>
+<a class="rp-back-link" href="/assign/sangh"><i class="mdi mdi-arrow-left"></i> <%= t("All sanghs") %></a>
 
 <div class="rp-card">
     <div class="rp-card-header">
@@ -12,7 +12,7 @@
             <div class="rp-card-header-icon"><i class="mdi mdi-account-multiple-check-outline"></i></div>
             <div>
                 <div class="rp-card-title"><%= sanghName %></div>
-                <div class="rp-card-subtitle"><%= sanghCode %> · <%= members.length %> active members — tick members, then apply a role to just those</div>
+                <div class="rp-card-subtitle"><%= sanghCode %> · <%= t('{n} active members — tick members, then apply a role to just those', { n: members.length }) %></div>
             </div>
         </div>
     </div>
@@ -20,29 +20,29 @@
 
         <div class="rp-bulk">
             <div class="rp-bulk-field">
-                <label for="bulkRole">Role</label>
+                <label for="bulkRole"><%= t("Role") %></label>
                 <select id="bulkRole">
                     <% Object.entries(roles).forEach(([role, cols]) => { %>
-                        <option value="<%= role %>"><%= cols.label %></option>
+                        <option value="<%= role %>"><%= t(cols.label) %></option>
                     <% }) %>
                 </select>
             </div>
             <div class="rp-bulk-field">
-                <label for="bulkPerson">Assign</label>
+                <label for="bulkPerson"><%= t("Assign") %></label>
                 <select id="bulkPerson"></select>
             </div>
             <button type="button" class="rp-bulk-apply" id="bulkApply" disabled>
-                <i class="mdi mdi-check-all"></i> Apply to selected
+                <i class="mdi mdi-check-all"></i> <%= t("Apply to selected") %>
             </button>
-            <span class="rp-bulk-count" id="bulkCount">0 selected</span>
+            <span class="rp-bulk-count" id="bulkCount"><%= t("0 selected") %></span>
         </div>
 
         <div class="table-responsive">
             <table class="display" id="sanghMemberTable" style="width:100%">
                 <thead>
                     <tr>
-                        <th><input type="checkbox" class="rp-check" id="checkAll" title="Select all"></th>
-                        <th>Member Code</th><th>Name</th><th>Grade</th><th>RP Approver</th><th>RP Creator</th><th>Pracharak</th><th>Action</th>
+                        <th><input type="checkbox" class="rp-check" id="checkAll" title="<%= t("Select all") %>"></th>
+                        <th><%= t("Member Code") %></th><th><%= t("Name") %></th><th><%= t("Grade") %></th><th><%= t("RP Approver") %></th><th><%= t("RP Creator") %></th><th><%= t("Pracharak") %></th><th><%= t("Action") %></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -68,7 +68,7 @@
                                 <% if (m.email_id) { %>
                                     <a href="mailto:<%= m.email_id %>" class="emp-email"><%= m.email_id %></a>
                                 <% } else { %>
-                                    <span class="rp-no-email">no email on record</span>
+                                    <span class="rp-no-email"><%= t("no email on record") %></span>
                                 <% } %>
                             </span>
                         </td>
@@ -76,7 +76,7 @@
                         <% Object.entries(roles).forEach(([role, cols]) => { %>
                             <td class="rp-cell-<%= role %>"><%- person(m[cols.name], role) %></td>
                         <% }) %>
-                        <td><button type="button" class="rp-edit-btn js-assign-edit"><i class="mdi mdi-pencil-outline"></i> Edit</button></td>
+                        <td><button type="button" class="rp-edit-btn js-assign-edit"><i class="mdi mdi-pencil-outline"></i> <%= t("Edit") %></button></td>
                     </tr>
                 <% }) %>
                 </tbody>
@@ -100,10 +100,10 @@ $(document).ready(function () {
         columnDefs: [{ targets: [0, 7], orderable: false, searchable: false }],
         language: {
             search: '<i class="mdi mdi-magnify"></i>',
-            searchPlaceholder: 'Search members...',
-            lengthMenu: 'Show _MENU_ entries',
-            info: 'Showing _START_ to _END_ of _TOTAL_ members',
-            zeroRecords: 'No members match your search',
+            searchPlaceholder: <%- JSON.stringify(t('Search members...')) %>,
+            lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>,
+            info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ members')) %>,
+            zeroRecords: <%- JSON.stringify(t('No members match your search')) %>,
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }
@@ -113,7 +113,7 @@ $(document).ready(function () {
     function fillBulkPeople() {
         var role = $('#bulkRole').val();
         var $sel = $('#bulkPerson').empty();
-        $sel.append($('<option>', { value: '', text: '— Not assigned (clear) —' }));
+        $sel.append($('<option>', { value: '', text: tr('— Not assigned (clear) —') }));
 
         var all  = RP_ASSIGN.candidates[role] || [];
         var mine = ((RP_ASSIGN.sanghLeaders[SANGH_CODE] || {})[role]) || [];
@@ -127,12 +127,12 @@ $(document).ready(function () {
         }
 
         if (inSangh.length) {
-            var $g1 = $('<optgroup>', { label: 'Members of this sangh' });
+            var $g1 = $('<optgroup>', { label: tr('Members of this sangh') });
             add($g1, inSangh);
             $sel.append($g1);
         }
         if (others.length) {
-            var $g2 = $('<optgroup>', { label: inSangh.length ? 'All other members' : 'All members' });
+            var $g2 = $('<optgroup>', { label: tr(inSangh.length ? 'All other members' : 'All members') });
             add($g2, others);
             $sel.append($g2);
         }
@@ -179,16 +179,16 @@ $(document).ready(function () {
         var codes  = $rows.map(function () { return $(this).data('emp-code'); }).get();
 
         var what = person === ''
-            ? 'Clear ' + RP_ASSIGN.labels[role] + ' for ' + codes.length + ' member(s)?'
-            : 'Set ' + RP_ASSIGN.labels[role] + ' to ' + label + ' for ' + codes.length + ' member(s)?';
+            ? tr('Clear {role} for {n} member(s)?', { role: RP_ASSIGN.labels[role], n: codes.length })
+            : tr('Set {role} to {person} for {n} member(s)?', { role: RP_ASSIGN.labels[role], person: label, n: codes.length });
         if (!window.confirm(what)) { return; }
 
-        var $btn = $(this).prop('disabled', true).text('Applying…');
+        var $btn = $(this).prop('disabled', true).text(tr('Applying…'));
         var payload = $.extend({ role: role, person_code: person, 'emp_codes[]': codes }, RP_ASSIGN.csrf());
 
         $.post(BULK_URL, payload).done(function (res) {
             if (!res || !res.ok) {
-                RP_ASSIGN.toast((res && res.message) || 'Could not apply.', true);
+                RP_ASSIGN.toast((res && res.message) || tr('Could not apply.'), true);
                 return;
             }
             var html = res.person_name
@@ -208,9 +208,9 @@ $(document).ready(function () {
             refreshSelection();
             RP_ASSIGN.toast(res.message);
         }).fail(function (xhr) {
-            RP_ASSIGN.toast((xhr.responseJSON && xhr.responseJSON.message) || 'Could not apply.', true);
+            RP_ASSIGN.toast((xhr.responseJSON && xhr.responseJSON.message) || tr('Could not apply.'), true);
         }).always(function () {
-            $btn.prop('disabled', false).html('<i class="mdi mdi-check-all"></i> Apply to selected');
+            $btn.prop('disabled', false).html('<i class="mdi mdi-check-all"></i> ').append(document.createTextNode(tr('Apply to selected')));
         });
     });
 

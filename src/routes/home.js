@@ -15,8 +15,8 @@ router.get('/', mw.adminAuth, async (req, res) => {
     roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
-    title: 'Member List — Pakka Role Profile',
-    pageTitle: 'Member List',
+    title: req.t('Member List — Pakka Role Profile'),
+    pageTitle: req.t('Member List'),
     activeNav: 'members',
   });
 });

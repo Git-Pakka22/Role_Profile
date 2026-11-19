@@ -23,7 +23,7 @@ async function allowedSanghs(req, res) {
   const actor = me(req);
   const sanghs = await roleProfile.sanghsFor(actor.code, actor.name, { psp: actor.isAdmin, ldp: actor.isLdpAdmin });
   if (!sanghs.length) {
-    req.session.flashError = 'Designations are managed by RP Creators, RP Approvers, the PSP Approver and the LDP Admin.';
+    req.session.flashError = req.t('Designations are managed by RP Creators, RP Approvers, the PSP Approver and the LDP Admin.');
     res.redirect('/role-profiles');
     return null;
   }
@@ -47,8 +47,8 @@ router.get('/', async (req, res) => {
     sanghNames: Object.fromEntries(sanghs.map((s) => [s.sangh_code, s.sangh_name])),
     programLabels: { psp: 'PSP', ldp: 'LDP' },
     statusLabels: roleProfile.STATUS_LABELS,
-    title: 'Designations — Pakka Role Profile',
-    pageTitle: 'Designations',
+    title: req.t('Designations — Pakka Role Profile'),
+    pageTitle: req.t('Designations'),
     activeNav: 'designations',
   });
 });
@@ -58,10 +58,10 @@ router.post('/', async (req, res) => {
   const back = `/designations${sanghCode ? `?sangh=${encodeURIComponent(sanghCode)}` : ''}`;
   const result = await roleProfile.addDesignation(me(req), sanghCode, req.body.designation_name);
 
-  if (!result.ok) req.session.flashError = result.message;
+  if (!result.ok) req.session.flashError = req.t(result.message);
   else req.session.flashSuccess = result.created
-    ? `${result.message} It is now in the designation list when creating a role profile for ${result.sangh.sangh_name}.`
-    : `"${result.designation}" already exists in ${result.sangh.sangh_name}, so nothing was added.`;
+    ? req.t('"{name}" added to {sangh}. It is now in the designation list when creating a role profile for {sangh}.', { name: result.designation, sangh: result.sangh.sangh_name })
+    : req.t('"{name}" already exists in {sangh}, so nothing was added.', { name: result.designation, sangh: result.sangh.sangh_name });
   res.redirect(back);
 });
 

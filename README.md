@@ -374,3 +374,26 @@ Technical Skills / Weightage / Sub-Weightage with the attribute cells spanning t
 skills and a total row. An assessment PDF adds Rating, Score and Training Gap columns and
 names the version it was scored against. Built with PDFKit in `src/lib/pdf.js`; the Pakka
 logo is `public/img/pakka-logo.png`.
+
+## Languages (English / हिंदी)
+
+The **EN | हिंदी** switch in the top bar (and on the sign-in page) sets the `rp_lang` cookie for
+a year; the user manual reads and writes the same cookie, so both stay in the same language.
+
+- Interface text is written in English in the code and passed through `t()` in views, `req.t()`
+  in routes and `tr()` in page scripts. `src/locales/hi.js` holds the Hindi, keyed by that English.
+  `{name}`-style placeholders let the Hindi put values where Hindi word order wants them.
+- After adding or changing text, run `node scripts/i18n_check.js` — it lists anything without
+  Hindi. Text built at run time is reported while browsing in Hindi with `I18N_REPORT=1`.
+- Role profile content (mission, key outcomes, technical skills, attributes, assessment
+  mechanism) has its own Hindi in `rp_translations`, one row per distinct English text, so
+  every version and assessment with the same wording shares it. With `ANTHROPIC_API_KEY` set,
+  `src/lib/translate.js` drafts Hindi for new or changed lines after each save (Claude,
+  `claude-opus-5-5`, in the background). The author, RP Approver and final approver check and
+  correct it on the profile's **Hindi** page; a correction is never overwritten by a new draft.
+  Correcting Hindi needs no approval and makes no new version — the English is the record.
+  Setup: `node scripts/migrate_translations.js`, then `node scripts/translate_profiles.js`
+  (counts only) and `node scripts/translate_profiles.js --apply` for existing profiles.
+- Stays as entered, in either language: designation and sangh names, notes, stored history
+  notes and notifications, the PDFs (the PDF library cannot join Devanagari correctly), and
+  the Recruit API.

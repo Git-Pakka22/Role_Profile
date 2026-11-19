@@ -10,8 +10,8 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-account-switch-outline"></i></div>
             <div>
-                <div class="rp-card-title">Assign Roles</div>
-                <div class="rp-card-subtitle">Set or clear the RP Approver, RP Creator and Pracharak for each member</div>
+                <div class="rp-card-title"><%= t("Assign Roles") %></div>
+                <div class="rp-card-subtitle"><%= t("Set or clear the RP Approver, RP Creator and Pracharak for each member") %></div>
             </div>
         </div>
     </div>
@@ -21,24 +21,24 @@
             <% Object.entries(roles).forEach(([role, cols]) => { %>
                 <div class="rp-coverage-item">
                     <div class="n"><%= counts[role].toLocaleString('en-IN') %> <span style="font-size:0.8rem;font-weight:600;color:var(--text-muted)">/ <%= total.toLocaleString('en-IN') %></span></div>
-                    <div class="l"><%= cols.label %> assigned</div>
+                    <div class="l"><%= t('{role} assigned', { role: t(cols.label) }) %></div>
                 </div>
             <% }) %>
         </div>
 
         <div class="rp-filter-bar">
-            <span class="rp-filter-label">Show:</span>
-            <button type="button" class="rp-chip active" data-filter="all">All members</button>
-            <button type="button" class="rp-chip" data-filter="rp_approver">Missing RP Approver</button>
-            <button type="button" class="rp-chip" data-filter="rp_creator">Missing RP Creator</button>
-            <button type="button" class="rp-chip" data-filter="pracharak">Missing Pracharak</button>
-            <button type="button" class="rp-chip" data-filter="any">Missing anything</button>
+            <span class="rp-filter-label"><%= t("Show:") %></span>
+            <button type="button" class="rp-chip active" data-filter="all"><%= t("All members") %></button>
+            <button type="button" class="rp-chip" data-filter="rp_approver"><%= t("Missing RP Approver") %></button>
+            <button type="button" class="rp-chip" data-filter="rp_creator"><%= t("Missing RP Creator") %></button>
+            <button type="button" class="rp-chip" data-filter="pracharak"><%= t("Missing Pracharak") %></button>
+            <button type="button" class="rp-chip" data-filter="any"><%= t("Missing anything") %></button>
         </div>
 
         <div class="table-responsive">
             <table class="display" id="assignTable" style="width:100%">
                 <thead>
-                    <tr><th>Member Code</th><th>Name</th><th>Sangh</th><th>Grade</th><th>RP Approver</th><th>RP Creator</th><th>Pracharak</th><th>Action</th></tr>
+                    <tr><th><%= t("Member Code") %></th><th><%= t("Name") %></th><th><%= t("Sangh") %></th><th><%= t("Grade") %></th><th><%= t("RP Approver") %></th><th><%= t("RP Creator") %></th><th><%= t("Pracharak") %></th><th><%= t("Action") %></th></tr>
                 </thead>
                 <tbody>
                 <% members.forEach(m => { %>
@@ -64,7 +64,7 @@
                                 <% if (m.email_id) { %>
                                     <a href="mailto:<%= m.email_id %>" class="emp-email"><%= m.email_id %></a>
                                 <% } else { %>
-                                    <span class="rp-no-email">no email on record</span>
+                                    <span class="rp-no-email"><%= t("no email on record") %></span>
                                 <% } %>
                             </span>
                         </td>
@@ -73,7 +73,7 @@
                         <% Object.entries(roles).forEach(([role, cols]) => { %>
                             <td class="rp-cell-<%= role %>"><%- person(m[cols.name], role) %></td>
                         <% }) %>
-                        <td><button type="button" class="rp-edit-btn js-assign-edit"><i class="mdi mdi-pencil-outline"></i> Edit</button></td>
+                        <td><button type="button" class="rp-edit-btn js-assign-edit"><i class="mdi mdi-pencil-outline"></i> <%= t("Edit") %></button></td>
                     </tr>
                 <% }) %>
                 </tbody>
@@ -111,11 +111,11 @@ $(document).ready(function () {
         columnDefs: [{ targets: [7], orderable: false, searchable: false }],
         language: {
             search: '<i class="mdi mdi-magnify"></i>',
-            searchPlaceholder: 'Search members...',
-            lengthMenu: 'Show _MENU_ entries',
-            info: 'Showing _START_ to _END_ of _TOTAL_ members',
-            infoEmpty: 'No members to show',
-            zeroRecords: 'No members match your search',
+            searchPlaceholder: <%- JSON.stringify(t('Search members...')) %>,
+            lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>,
+            info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ members')) %>,
+            infoEmpty: <%- JSON.stringify(t('No members to show')) %>,
+            zeroRecords: <%- JSON.stringify(t('No members match your search')) %>,
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }

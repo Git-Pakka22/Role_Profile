@@ -23,8 +23,8 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-account-group-outline"></i></div>
             <div>
-                <div class="rp-card-title">Assign by Sangh</div>
-                <div class="rp-card-subtitle"><%= sanghs.length %> sanghs covering <%= totalMembers.toLocaleString('en-IN') %> active members</div>
+                <div class="rp-card-title"><%= t("Assign by Sangh") %></div>
+                <div class="rp-card-subtitle"><%= t('{n} sanghs covering {members} active members', { n: sanghs.length, members: totalMembers.toLocaleString('en-IN') }) %></div>
             </div>
         </div>
     </div>
@@ -33,28 +33,24 @@
         <div class="rp-scope-note">
             <i class="mdi mdi-information-outline"></i>
             <div>
-                <strong>Whole sangh</strong> applies a role to every active member at once.
-                <strong>Pick members</strong> opens the sangh so you can tick a few and give
-                them one person, then tick the rest and give them another. A sangh shows
-                <span class="rp-mixed" style="padding:1px 8px"><i class="mdi mdi-call-split"></i>Mixed</span>
-                when its members currently hold different people — which is expected once you
-                split a sangh deliberately.
+                <%- t.html('<strong>Whole sangh</strong> applies a role to every active member at once. <strong>Pick members</strong> opens the sangh so you can tick a few and give them one person, then tick the rest and give them another. A sangh shows {mixed} when its members currently hold different people — which is expected once you split a sangh deliberately.',
+                    { mixed: raw('<span class="rp-mixed" style="padding:1px 8px"><i class="mdi mdi-call-split"></i>' + h(t('Mixed')) + '</span>') }) %>
             </div>
         </div>
 
         <div class="rp-filter-bar">
-            <span class="rp-filter-label">Show:</span>
-            <button type="button" class="rp-chip active" data-filter="all">All sanghs</button>
-            <button type="button" class="rp-chip" data-filter="rp_approver">Missing RP Approver</button>
-            <button type="button" class="rp-chip" data-filter="rp_creator">Missing RP Creator</button>
-            <button type="button" class="rp-chip" data-filter="pracharak">Missing Pracharak</button>
-            <button type="button" class="rp-chip" data-filter="mixed">Mixed</button>
+            <span class="rp-filter-label"><%= t("Show:") %></span>
+            <button type="button" class="rp-chip active" data-filter="all"><%= t("All sanghs") %></button>
+            <button type="button" class="rp-chip" data-filter="rp_approver"><%= t("Missing RP Approver") %></button>
+            <button type="button" class="rp-chip" data-filter="rp_creator"><%= t("Missing RP Creator") %></button>
+            <button type="button" class="rp-chip" data-filter="pracharak"><%= t("Missing Pracharak") %></button>
+            <button type="button" class="rp-chip" data-filter="mixed"><%= t("Mixed") %></button>
         </div>
 
         <div class="table-responsive">
             <table class="display" id="sanghTable" style="width:100%">
                 <thead>
-                    <tr><th>Sangh</th><th>Members</th><th>RP Approver</th><th>RP Creator</th><th>Pracharak</th><th>Action</th></tr>
+                    <tr><th><%= t("Sangh") %></th><th><%= t("Members") %></th><th><%= t("RP Approver") %></th><th><%= t("RP Creator") %></th><th><%= t("Pracharak") %></th><th><%= t("Action") %></th></tr>
                 </thead>
                 <tbody>
                 <% sanghs.forEach(s => { %>
@@ -87,8 +83,8 @@
                                 data-missing="<%= Number(s[role + '_missing'] || 0) %>"><%- renderCell(s, role) %></td>
                         <% }) %>
                         <td style="white-space:nowrap">
-                            <button type="button" class="rp-edit-btn js-sangh-edit"><i class="mdi mdi-account-group-outline"></i> Whole sangh</button>
-                            <a class="rp-edit-btn" href="/assign/sangh/<%= encodeURIComponent(s.sangh_code) %>"><i class="mdi mdi-account-multiple-check-outline"></i> Pick members</a>
+                            <button type="button" class="rp-edit-btn js-sangh-edit"><i class="mdi mdi-account-group-outline"></i> <%= t("Whole sangh") %></button>
+                            <a class="rp-edit-btn" href="/assign/sangh/<%= encodeURIComponent(s.sangh_code) %>"><i class="mdi mdi-account-multiple-check-outline"></i> <%= t("Pick members") %></a>
                         </td>
                     </tr>
                 <% }) %>
@@ -129,11 +125,11 @@ $(document).ready(function () {
         columnDefs: [{ targets: [5], orderable: false, searchable: false }],
         language: {
             search: '<i class="mdi mdi-magnify"></i>',
-            searchPlaceholder: 'Search sanghs...',
-            lengthMenu: 'Show _MENU_ entries',
-            info: 'Showing _START_ to _END_ of _TOTAL_ sanghs',
-            infoEmpty: 'No sanghs to show',
-            zeroRecords: 'No sanghs match your search',
+            searchPlaceholder: <%- JSON.stringify(t('Search sanghs...')) %>,
+            lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>,
+            info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ sanghs')) %>,
+            infoEmpty: <%- JSON.stringify(t('No sanghs to show')) %>,
+            zeroRecords: <%- JSON.stringify(t('No sanghs match your search')) %>,
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }
@@ -153,8 +149,8 @@ $(document).ready(function () {
             scope: 'sangh',
             key: $row.data('sangh-code'),
             name: $row.data('name'),
-            meta: $row.data('sangh-code') + ' · ' + members + ' active member' + (members === 1 ? '' : 's'),
-            notice: 'Saving will apply to all ' + members + ' active member' + (members === 1 ? '' : 's') + ' of this sangh.',
+            meta: $row.data('sangh-code') + ' · ' + tr(members === 1 ? '{n} active member' : '{n} active members', { n: members }),
+            notice: tr(members === 1 ? 'Saving will apply to all {n} active member of this sangh.' : 'Saving will apply to all {n} active members of this sangh.', { n: members }),
             values: $row.data('values') || {}
         });
     });

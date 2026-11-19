@@ -9,8 +9,8 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-account-supervisor-outline"></i></div>
             <div>
-                <div class="rp-card-title">My Members</div>
-                <div class="rp-card-subtitle"><%= members.length.toLocaleString() %> members across <%= sanghCount %> sangh<%= sanghCount === 1 ? '' : 's' %></div>
+                <div class="rp-card-title"><%= t("My Members") %></div>
+                <div class="rp-card-subtitle"><%= t.n('{members} members across {n} sangh', '{members} members across {n} sanghs', sanghCount, { members: members.length.toLocaleString('en-IN') }) %></div>
             </div>
         </div>
     </div>
@@ -18,24 +18,24 @@
         <div class="rp-summary">
             <div class="rp-summary-item">
                 <div class="n"><%= members.length.toLocaleString() %></div>
-                <div class="l">Total members</div>
+                <div class="l"><%= t("Total members") %></div>
             </div>
             <% held.forEach(role => { %>
                 <div class="rp-summary-item">
                     <div class="n"><%= roles[role].toLocaleString() %></div>
-                    <div class="l">As their <%= roleLabels[role] %></div>
+                    <div class="l"><%= t('As their {role}', { role: t(roleLabels[role]) }) %></div>
                 </div>
             <% }) %>
             <div class="rp-summary-item">
                 <div class="n"><%= sanghCount %></div>
-                <div class="l">Sangh<%= sanghCount === 1 ? '' : 's' %> covered</div>
+                <div class="l"><%= t(sanghCount === 1 ? 'Sangh covered' : 'Sanghs covered') %></div>
             </div>
         </div>
 
         <div class="table-responsive">
             <table class="display" id="myMemberTable" style="width:100%">
                 <thead>
-                    <tr><th>#</th><th>Member Code</th><th>Name</th><th>Sangh</th><th>Grade</th><th>My role for them</th></tr>
+                    <tr><th>#</th><th><%= t("Member Code") %></th><th><%= t("Name") %></th><th><%= t("Sangh") %></th><th><%= t("Grade") %></th><th><%= t("My role for them") %></th></tr>
                 </thead>
                 <tbody>
                 <% members.forEach((m, i) => { %>
@@ -47,7 +47,7 @@
                                 <span class="emp-name"><%= m.name %></span>
                                 <% if (m.email_id) { %>
                                     <a href="mailto:<%= m.email_id %>" class="emp-email"><%= m.email_id %></a>
-                                <% } else { %><span class="rp-no-email">no email on record</span><% } %>
+                                <% } else { %><span class="rp-no-email"><%= t("no email on record") %></span><% } %>
                             </span>
                         </td>
                         <td><span class="emp-sangh"><%= m.sangh_name || '—' %></span></td>
@@ -79,9 +79,9 @@ $(function () {
             { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel',        className: 'dt-button' }
         ] } },
         language: {
-            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search my members...',
-            lengthMenu: 'Show _MENU_ entries', info: 'Showing _START_ to _END_ of _TOTAL_ members',
-            zeroRecords: 'No members match your search',
+            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: <%- JSON.stringify(t('Search my members...')) %>,
+            lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>, info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ members')) %>,
+            zeroRecords: <%- JSON.stringify(t('No members match your search')) %>,
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }

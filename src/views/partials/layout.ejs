@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= lang %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title || 'Pakka Role Profile' %></title>
-    <meta name="description" content="Pakka Role Profile — Member list with roles, sanghs, and contact information.">
+    <title><%= title || t('Pakka Role Profile') %></title>
+    <meta name="description" content="<%= t('Pakka Role Profile — role profiles, approvals and assessments for every sangh.') %>">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -19,6 +19,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
 
+    <script>
+        // Page scripts' text: each page adds its strings (already translated) to RP_I18N, then
+        // tr('Text {n}', { n: 3 }) fills the placeholders. Unknown text comes back as it is.
+        window.RP_I18N = {};
+        window.tr = function (key, vars) {
+            var s = Object.prototype.hasOwnProperty.call(RP_I18N, key) ? RP_I18N[key] : key;
+            return vars ? s.replace(/\{(\w+)\}/g, function (m, k) { return k in vars ? vars[k] : m; }) : s;
+        };
+    </script>
     <link rel="stylesheet" href="/css/app.css">
     <%- typeof pageStyle !== 'undefined' ? pageStyle : '' %>
 </head>
@@ -26,52 +35,52 @@
 <%
   const navItem = (key, url, icon, label) =>
     `<a class="rp-nav-item${activeNav === key ? ' active' : ''}" href="${url}">` +
-    `<i class="mdi ${icon}"></i>${label}</a>`;
+    `<i class="mdi ${icon}"></i>${h(t(label))}</a>`;
 %>
 <div class="rp-shell">
     <aside class="rp-sidebar" id="rpSidebar">
         <a class="rp-sidebar-brand" href="/">
             <div class="rp-brand-icon"><i class="mdi mdi-account-group"></i></div>
             <div class="rp-brand-text">
-                <span class="rp-brand-title">Pakka Role Profile</span>
-                <span class="rp-brand-subtitle">Member Directory</span>
+                <span class="rp-brand-title"><%= t("Pakka Role Profile") %></span>
+                <span class="rp-brand-subtitle"><%= t("Member Directory") %></span>
             </div>
         </a>
 
         <nav class="rp-sidebar-nav">
             <% if (loggedIn) { %>
                 <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %>
-                    <div class="rp-nav-section">Overview</div>
+                    <div class="rp-nav-section"><%= t("Overview") %></div>
                     <%- navItem('dashboard', '/dashboard', 'mdi-view-dashboard-outline', 'Dashboard') %>
                 <% } %>
                 <% if (rpLeads > 0 || me.isAdmin) { %>
-                    <div class="rp-nav-section">Browse</div>
+                    <div class="rp-nav-section"><%= t("Browse") %></div>
                     <% if (rpLeads > 0) { %><%- navItem('my-members', '/my-members', 'mdi-account-supervisor-outline', 'My Members') %><% } %>
                     <% if (me.isAdmin) { %><%- navItem('members', '/', 'mdi-format-list-bulleted', 'Member List') %><% } %>
                 <% } %>
 
-                <div class="rp-nav-section">Role Profiles</div>
+                <div class="rp-nav-section"><%= t("Role Profiles") %></div>
                 <%- navItem('role-profiles', '/role-profiles', 'mdi-file-document-edit-outline', 'Role Profiles') %>
                 <%- navItem('assessments', '/assessments', 'mdi-clipboard-check-outline', 'Assessments') %>
                 <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %><%- navItem('reports', '/reports/role-profiles', 'mdi-chart-box-outline', 'Reports') %><% } %>
                 <% if (rpLeads > 0 || me.isAdmin || me.isLdpAdmin) { %><%- navItem('designations', '/designations', 'mdi-badge-account-outline', 'Designations') %><% } %>
 
                 <% if (me.isAdmin) { %>
-                    <div class="rp-nav-section">Assign Roles (PSP)</div>
+                    <div class="rp-nav-section"><%= t("Assign Roles (PSP)") %></div>
                     <%- navItem('assign-sangh', '/assign/sangh', 'mdi-account-group-outline', 'By Sangh') %>
                     <%- navItem('assign-member', '/assign', 'mdi-account-edit-outline', 'By Member') %>
                 <% } %>
 
                 <% if (me.isLdpAdmin) { %>
-                    <div class="rp-nav-section">Assign Roles (LDP)</div>
+                    <div class="rp-nav-section"><%= t("Assign Roles (LDP)") %></div>
                     <%- navItem('ldp-assign', '/ldp-assign', 'mdi-shield-account-outline', 'LDP Members') %>
                 <% } %>
 
-                <div class="rp-nav-section">Account</div>
-                <a class="rp-nav-item" href="/manual/" target="_blank" rel="noopener"><i class="mdi mdi-book-open-page-variant-outline"></i>User Manual</a>
+                <div class="rp-nav-section"><%= t("Account") %></div>
+                <a class="rp-nav-item" href="/manual/" target="_blank" rel="noopener"><i class="mdi mdi-book-open-page-variant-outline"></i><%= t("User Manual") %></a>
                 <%- navItem('logout', '/logout', 'mdi-logout', 'Sign Out') %>
             <% } else { %>
-                <div class="rp-nav-section">Account</div>
+                <div class="rp-nav-section"><%= t("Account") %></div>
                 <%- navItem('login', '/login', 'mdi-login', 'Sign In') %>
             <% } %>
         </nav>
@@ -84,13 +93,13 @@
                         <div><%= me.name || me.code %></div>
                         <%
                           const badges = [];
-                          if (me.isAdmin) badges.push('PSP Approver');
-                          if (me.isLdpAdmin) badges.push('LDP Admin');
+                          if (me.isAdmin) badges.push(t('PSP Approver'));
+                          if (me.isLdpAdmin) badges.push(t('LDP Admin'));
                         %>
                         <div class="code"><%= me.code %><%= badges.length ? ' · ' + badges.join(' · ') : '' %></div>
                     </div>
                 <% } else { %>
-                    <div><div>Viewing as guest</div><div class="code">Sign in to continue</div></div>
+                    <div><div><%= t("Viewing as guest") %></div><div class="code"><%= t("Sign in to continue") %></div></div>
                 <% } %>
             </div>
         </div>
@@ -100,28 +109,29 @@
 
     <div class="rp-main">
         <header class="rp-topbar">
-            <button type="button" class="rp-menu-toggle" id="rpMenuToggle" aria-label="Open menu">
+            <button type="button" class="rp-menu-toggle" id="rpMenuToggle" aria-label="<%= t("Open menu") %>">
                 <i class="mdi mdi-menu"></i>
             </button>
-            <span class="rp-topbar-title"><%= pageTitle || 'Member List' %></span>
+            <span class="rp-topbar-title"><%= pageTitle || t('Member List') %></span>
             <div class="rp-topbar-right">
+                <%- await include('lang_switch') %>
                 <% if (loggedIn) { %>
                     <a class="rp-bell<%= rpUnread > 0 ? ' has-unread' : '' %>" href="/notifications"
-                       title="<%= rpUnread %> unread notification(s)">
+                       title="<%= t.n('{n} unread notification', '{n} unread notifications', rpUnread) %>">
                         <i class="mdi mdi-bell-outline"></i>
                         <% if (rpUnread > 0) { %><span class="rp-bell-count"><%= rpUnread > 99 ? '99+' : rpUnread %></span><% } %>
                     </a>
                     <% if (rpPending > 0) { %>
-                        <a class="rp-pending-pill" href="/role-profiles" title="<%= rpPending %> awaiting your approval">
-                            <i class="mdi mdi-clock-alert-outline"></i> <%= rpPending %><span class="rp-pill-text"> awaiting you</span>
+                        <a class="rp-pending-pill" href="/role-profiles" title="<%= t('{n} awaiting your approval', { n: rpPending }) %>">
+                            <i class="mdi mdi-clock-alert-outline"></i> <%= rpPending %><span class="rp-pill-text"> <%= t("awaiting you") %></span>
                         </a>
                     <% } %>
                 <% } %>
                 <div class="rp-nav-stat">
                     <i class="mdi mdi-clock-outline"></i>
                     <div>
-                        <div class="rp-nav-stat-label">Date</div>
-                        <div class="rp-nav-stat-value"><%= new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) %></div>
+                        <div class="rp-nav-stat-label"><%= t("Date") %></div>
+                        <div class="rp-nav-stat-value"><%= new Date().toLocaleDateString(dateLocale, { day: '2-digit', month: 'short', year: 'numeric' }) %></div>
                     </div>
                 </div>
             </div>
@@ -138,12 +148,25 @@
         </main>
 
         <footer class="rp-footer">
-            <span class="rp-footer-brand">Pakka</span> &copy; <%= new Date().getFullYear() %>. All rights reserved.
+            <span class="rp-footer-brand">Pakka</span> &copy; <%= new Date().getFullYear() %>. <%= t("All rights reserved.") %>
         </footer>
     </div>
 </div>
 
 <script>
+    <% if (lang === 'hi') { %>
+    // DataTables' own words, in Hindi; each table's own settings still win where they set some.
+    if (window.DataTable) {
+        $.extend(true, DataTable.defaults, { language: <%- JSON.stringify({
+            search: t('Search:'), lengthMenu: t('Show _MENU_ entries'), info: t('Showing _START_ to _END_ of _TOTAL_ entries'),
+            infoEmpty: t('Showing 0 to 0 of 0 entries'), infoFiltered: t('(filtered from _MAX_ total entries)'),
+            zeroRecords: t('No matching records found'), emptyTable: t('No data available in table'),
+            loadingRecords: t('Loading...'), processing: t('Processing...'),
+            aria: { sortAscending: t(': activate to sort column ascending'), sortDescending: t(': activate to sort column descending') },
+            buttons: { copy: t('Copy'), csv: t('CSV'), excel: t('Excel'), print: t('Print') }
+        }).replace(/</g, '\\u003c') %> });
+    }
+    <% } %>
     (function () {
         var sidebar = document.getElementById('rpSidebar');
         var scrim = document.getElementById('rpScrim');

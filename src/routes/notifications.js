@@ -9,8 +9,8 @@ router.use(mw.loggedIn);
 router.get('/', async (req, res) => {
   await res.page('notifications', {
     items: await notification.forUser(req.session.emp_code),
-    title: 'Notifications — Pakka Role Profile',
-    pageTitle: 'Notifications',
+    title: req.t('Notifications — Pakka Role Profile'),
+    pageTitle: req.t('Notifications'),
     activeNav: 'notifications',
   });
 });
@@ -25,7 +25,7 @@ router.get('/:id(\\d+)/open', async (req, res) => {
 
 router.post('/read-all', async (req, res) => {
   await notification.markAllRead(req.session.emp_code);
-  req.session.flashSuccess = 'All notifications marked as read.';
+  req.session.flashSuccess = req.t('All notifications marked as read.');
   res.redirect('/notifications');
 });
 

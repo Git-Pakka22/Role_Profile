@@ -8,7 +8,7 @@
         + (c.sangh_code ? ' · ' + c.sangh_code : ''),
     }));
   }
-  const labels = {}; for (const [r, c] of Object.entries(roles)) labels[r] = c.label;
+  const labels = {}; for (const [r, c] of Object.entries(roles)) labels[r] = t(c.label);
 %>
 <div class="rp-modal-backdrop" id="assignModal">
     <div class="rp-modal" role="dialog" aria-modal="true">
@@ -20,20 +20,25 @@
             <div class="rp-blast" id="assignNotice" style="display:none"></div>
             <% Object.entries(roles).forEach(([role, cols]) => { %>
                 <div class="rp-assign-field" data-role="<%= role %>">
-                    <label for="assign-<%= role %>"><%= cols.label %></label>
+                    <label for="assign-<%= role %>"><%= t(cols.label) %></label>
                     <select id="assign-<%= role %>" data-role="<%= role %>"></select>
                 </div>
             <% }) %>
         </div>
         <div class="rp-modal-foot">
-            <button type="button" class="rp-btn-ghost" id="assignCancel">Cancel</button>
-            <button type="button" class="rp-btn-solid" id="assignSave">Save changes</button>
+            <button type="button" class="rp-btn-ghost" id="assignCancel"><%= t("Cancel") %></button>
+            <button type="button" class="rp-btn-solid" id="assignSave"><%= t("Save changes") %></button>
         </div>
     </div>
 </div>
 <div class="rp-toast" id="rpToast"></div>
 
 <script>
+Object.assign(RP_I18N, <%- tjs(['— Not assigned —', 'No active members in this sangh', 'Members of this sangh', 'All other members', 'All members', 'Currently set',
+    'Saving…', 'Save changes', '{n} role applied to {members} members.', '{n} roles applied to {members} members.', '{n} change saved.', '{n} changes saved.',
+    'Could not save. Please try again.', '— Not assigned (clear) —', 'Clear {role} for {n} member(s)?', 'Set {role} to {person} for {n} member(s)?',
+    'Applying…', 'Could not apply.', 'Apply to selected', '{n} active member', '{n} active members',
+    'Saving will apply to all {n} active member of this sangh.', 'Saving will apply to all {n} active members of this sangh.']) %>);
 var RP_ASSIGN = (function () {
     // Member scope writes one row; sangh scope writes every member of the sangh.
     var URLS = {
@@ -64,7 +69,7 @@ var RP_ASSIGN = (function () {
      */
     function buildOptions(role, sanghCode, selected, sanghOnly) {
         var $sel = $('#assign-' + role).empty();
-        $sel.append($('<option>', { value: '', text: '— Not assigned —' }));
+        $sel.append($('<option>', { value: '', text: tr('— Not assigned —') }));
 
         var all = CANDIDATES[role] || [];
         var mine = ((SANGH_LEADERS[sanghCode] || {})[role]) || [];
@@ -75,16 +80,16 @@ var RP_ASSIGN = (function () {
             if (only.length) {
                 only.forEach(function (c) { $sel.append(opt(c)); });
             } else {
-                $sel.append($('<option>', { value: '', disabled: true, text: 'No active members in this sangh' }));
+                $sel.append($('<option>', { value: '', disabled: true, text: tr('No active members in this sangh') }));
             }
         } else if (sanghCode && mine.length) {
             var inSangh = all.filter(function (c) { return mine.indexOf(c.key) !== -1; });
             var others = all.filter(function (c) { return mine.indexOf(c.key) === -1; });
-            var $g1 = $('<optgroup>', { label: 'Members of this sangh' });
+            var $g1 = $('<optgroup>', { label: tr('Members of this sangh') });
             inSangh.forEach(function (c) { $g1.append(opt(c)); });
             $sel.append($g1);
             if (others.length) {
-                var $g2 = $('<optgroup>', { label: 'All other members' });
+                var $g2 = $('<optgroup>', { label: tr('All other members') });
                 others.forEach(function (c) { $g2.append(opt(c)); });
                 $sel.append($g2);
             }
@@ -96,7 +101,7 @@ var RP_ASSIGN = (function () {
         // so they won't be in the list above. Keep them visible and selected rather than
         // making the field look empty.
         if (selected && !$sel.find('option[value="' + String(selected).replace(/"/g, '\\"') + '"]').length) {
-            $sel.append($('<optgroup>', { label: 'Currently set' })
+            $sel.append($('<optgroup>', { label: tr('Currently set') })
                 .append($('<option>', { value: selected, text: selected })));
         }
         $sel.val(selected || '');
@@ -129,7 +134,7 @@ var RP_ASSIGN = (function () {
 
         if (!changes.length) { close(); return; }
 
-        var $save = $('#assignSave').prop('disabled', true).text('Saving…');
+        var $save = $('#assignSave').prop('disabled', true).text(tr('Saving…'));
         var scope = current.scope, key = current.key;
 
         var requests = changes.map(function (change) {
@@ -150,13 +155,13 @@ var RP_ASSIGN = (function () {
                 }
             });
             toast(scope === 'sangh'
-                ? results.length + ' role' + (results.length > 1 ? 's' : '') + ' applied to ' + affected + ' members.'
-                : results.length + ' change' + (results.length > 1 ? 's' : '') + ' saved.');
+                ? tr(results.length > 1 ? '{n} roles applied to {members} members.' : '{n} role applied to {members} members.', { n: results.length, members: affected })
+                : tr(results.length > 1 ? '{n} changes saved.' : '{n} change saved.', { n: results.length }));
             close();
         }).fail(function (xhr) {
-            toast((xhr.responseJSON && xhr.responseJSON.message) || 'Could not save. Please try again.', true);
+            toast((xhr.responseJSON && xhr.responseJSON.message) || tr('Could not save. Please try again.'), true);
         }).always(function () {
-            $save.prop('disabled', false).text('Save changes');
+            $save.prop('disabled', false).text(tr('Save changes'));
         });
     }
 

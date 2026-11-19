@@ -30,6 +30,7 @@ function build() {
     next();
   });
 
+  app.use(mw.language);
   app.use(mw.csrf);
   app.use(mw.viewLocals);
   require('../src/lib/render').attach(app);
@@ -46,6 +47,7 @@ function build() {
   app.use('/reports', require('../src/routes/reports'));
   app.use('/manual', mw.loggedIn, express.static(path.join(__dirname, '..', 'public', 'manual')));
   app.use('/assign', require('../src/routes/assign'));
+  app.use('/ldp-assign', require('../src/routes/ldpAssign'));
 
   app.use((req, res) => { res.status(404); res.page('error', { code: 404, message: 'Not found', pageTitle: 'Not found' }); });
   // eslint-disable-next-line no-unused-vars

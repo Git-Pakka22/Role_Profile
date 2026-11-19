@@ -12,7 +12,7 @@
     last.skills.push(d);
   });
 %>
-<a class="rp-back-link" href="/role-profiles/<%= profile.id %>?tab=versions"><i class="mdi mdi-arrow-left"></i> All versions</a>
+<a class="rp-back-link" href="/role-profiles/<%= profile.id %>?tab=versions"><i class="mdi mdi-arrow-left"></i> <%= t("All versions") %></a>
 
 <div class="rp-card">
     <div class="rp-card-header">
@@ -21,13 +21,13 @@
             <div>
                 <div class="rp-card-title"><%= version.designation_name %></div>
                 <div class="rp-card-subtitle">
-                    <strong><%= version.sangh_name %></strong> · frozen on approval, <%= fmt(version.approved_at) %>
+                    <strong><%= version.sangh_name %></strong> · <%= t('frozen on approval, {date}', { date: fmt(version.approved_at) }) %>
                 </div>
             </div>
         </div>
         <div class="rp-header-actions">
             <a class="rp-pdf-btn" href="/role-profiles/<%= profile.id %>/versions/<%= version.id %>/pdf">
-                <i class="mdi mdi-file-pdf-box"></i> Download PDF
+                <i class="mdi mdi-file-pdf-box"></i> <%= t("Download PDF") %>
             </a>
             <span class="rp-vchip<%= isLatest ? ' current' : '' %>">v<%= version.version_no %></span>
         </div>
@@ -37,34 +37,33 @@
         <div class="rp-frozen-note">
             <i class="mdi mdi-lock-outline"></i>
             <div>
-                This is version <%= version.version_no %> exactly as it was approved — it cannot change.
-                <% if (isLatest) { %>It is the version in force today.
-                <% } else { %>The role profile has been revised since; this copy is kept so assessments
-                written against it still read correctly.<% } %>
+                <%= t('This is version {v} exactly as it was approved — it cannot change.', { v: version.version_no }) %>
+                <% if (isLatest) { %><%= t("It is the version in force today.") %>
+                <% } else { %><%= t("The role profile has been revised since; this copy is kept so assessments written against it still read correctly.") %><% } %>
             </div>
         </div>
 
         <div class="rp-applies">
-            <div><span class="l">Written by</span><span class="v"><%= personName(version.created_by, version.created_by_name) %></span></div>
+            <div><span class="l"><%= t("Written by") %></span><span class="v"><%= personName(version.created_by, version.created_by_name) %></span></div>
             <% if (version.rp_approver_name) { %>
-                <div><span class="l">RP Approver</span><span class="v"><%= version.rp_approver_name %></span></div>
+                <div><span class="l"><%= t("RP Approver") %></span><span class="v"><%= version.rp_approver_name %></span></div>
             <% } %>
-            <div><span class="l">In force from</span><span class="v"><%= version.effective_from_year || '—' %></span></div>
-            <div><span class="l">Assessments</span><span class="v"><%= assessmentCount %></span></div>
+            <div><span class="l"><%= t("In force from") %></span><span class="v"><%= version.effective_from_year || '—' %></span></div>
+            <div><span class="l"><%= t("Assessments") %></span><span class="v"><%= assessmentCount %></span></div>
         </div>
 
         <% if (years.length) { %>
             <div class="rp-year-strip">
-                <span class="l">Financial years this version applies to:</span>
+                <span class="l"><%= t("Financial years this version applies to:") %></span>
                 <% years.forEach(y => { %>
-                    <span class="rp-year-tag" title="<%= outcomeLabels[y.outcome] || y.outcome %><%= y.reviewed_by_name ? ' — ' + personName(y.reviewed_by, y.reviewed_by_name) : '' %>"><%= y.financial_year %></span>
+                    <span class="rp-year-tag" title="<%= t(outcomeLabels[y.outcome] || y.outcome) %><%= y.reviewed_by_name ? ' — ' + personName(y.reviewed_by, y.reviewed_by_name) : '' %>"><%= y.financial_year %></span>
                 <% }) %>
             </div>
         <% } %>
 
         <% if (changes) { %>
             <div class="rp-section" style="margin-top:18px">
-                <h3><i class="mdi mdi-compare-horizontal"></i> What changed from version <%= version.version_no - 1 %></h3>
+                <h3><i class="mdi mdi-compare-horizontal"></i> <%= t('What changed from version {v}', { v: version.version_no - 1 }) %></h3>
             </div>
             <ul class="rp-change-list">
                 <% changes.forEach(c => { %><li><%= c %></li><% }) %>
@@ -72,27 +71,29 @@
         <% } %>
 
         <% if (String(version.mission || '').trim()) { %>
-            <div class="rp-section"><h3><i class="mdi mdi-target"></i> Mission</h3></div>
-            <div class="rp-mission"><%= version.mission %></div>
+            <div class="rp-section"><h3><i class="mdi mdi-target"></i> <%= t("Mission") %></h3></div>
+            <div class="rp-mission"><%= tc(version.mission) %></div>
         <% } %>
 
+        <% const linked = groups.some(g => g.skills.some(sk => sk.outcome_links));
+           const otags = (v) => String(v || '').split(',').filter(Boolean); %>
         <% if (outcomes.length) { %>
-            <div class="rp-section"><h3><i class="mdi mdi-flag-checkered"></i> Key Outcomes</h3></div>
+            <div class="rp-section"><h3><i class="mdi mdi-flag-checkered"></i> <%= t("Key Outcomes") %></h3></div>
             <ul class="rp-outcomes">
-                <% outcomes.forEach(o => { %><li><%= o.outcome %></li><% }) %>
+                <% outcomes.forEach((o, i) => { %><li><% if (linked) { %><span class="rp-otag">O<%= i + 1 %></span> <% } %><%= tc(o.outcome) %></li><% }) %>
             </ul>
         <% } %>
 
-        <div class="rp-section"><h3><i class="mdi mdi-format-list-checks"></i> Technical Skills &amp; Attributes</h3></div>
+        <div class="rp-section"><h3><i class="mdi mdi-format-list-checks"></i> <%= t("Technical Skills & Attributes") %></h3></div>
         <% groups.forEach(g => { %>
             <div class="rp-attr">
                 <div class="rp-attr-top">
-                    <div><div class="rp-attr-name"><%= g.no %>. <%= g.name %></div></div>
+                    <div><div class="rp-attr-name"><%= g.no %>. <%= tc(g.name) %></div></div>
                     <div><span class="rp-weight"><%= trim2(g.weight) %></span></div>
                 </div>
                 <% g.skills.forEach(sk => { %>
                     <div class="rp-skill">
-                        <span><%= sk.tech_skill %></span>
+                        <span><%= tc(sk.tech_skill) %><% otags(sk.outcome_links).forEach(n => { %> <span class="rp-otag" title="<%= outcomes[n - 1] ? tc(outcomes[n - 1].outcome) : '' %>">O<%= n %></span><% }) %></span>
                         <span class="rp-weight-sm"><%= trim2(sk.tech_weight) %></span>
                     </div>
                 <% }) %>

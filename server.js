@@ -48,6 +48,16 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(mw.language);
+
+// The language switch: remembered for a year in the rp_lang cookie, then back to the page.
+app.get('/lang/:lang', (req, res) => {
+  const i18n = require('./src/lib/i18n');
+  const lang = i18n.LANGS.includes(req.params.lang) ? req.params.lang : 'en';
+  res.cookie(i18n.COOKIE, lang, { maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', path: '/' });
+  res.redirect(i18n.safeNext(req.query.next));
+});
+
 app.use(mw.csrf);
 app.use(mw.viewLocals);
 require('./src/lib/render').attach(app);
@@ -75,10 +85,10 @@ app.use('/ldp-assign', require('./src/routes/ldpAssign'));
 app.use((req, res) => {
   res.status(404);
   res.page('error', {
-    title: 'Not found — Pakka Role Profile',
-    pageTitle: 'Not found',
+    title: req.t('Not found — Pakka Role Profile'),
+    pageTitle: req.t('Not found'),
     code: 404,
-    message: 'That page does not exist.',
+    message: req.t('That page does not exist.'),
   });
 });
 
@@ -90,10 +100,10 @@ app.use((err, req, res, next) => {
   // res.page pushes render failures back through here, so fall back to plain text.
   Promise.resolve(
     res.page('error', {
-      title: 'Something went wrong — Pakka Role Profile',
-      pageTitle: 'Error',
+      title: req.t('Something went wrong — Pakka Role Profile'),
+      pageTitle: req.t('Error'),
       code: 500,
-      message: 'Something went wrong. The details are in the server log.',
+      message: req.t('Something went wrong. The details are in the server log.'),
     })
   ).catch(() => res.type('text').send('Something went wrong.'));
 });

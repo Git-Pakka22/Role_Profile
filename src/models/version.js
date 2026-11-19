@@ -65,10 +65,10 @@ async function freeze(profile, { effectiveYear, reason, outcome, actor }) {
       await conn.query(
         `INSERT INTO rp_version_details
            (version_id, source_detail_id, attribute_no, attribute, assessment,
-            attribute_weight, tech_skill, tech_weight, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?)`,
+            attribute_weight, tech_skill, tech_weight, outcome_links, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [versionId, d.id, d.attribute_no, d.attribute, d.assessment,
-         d.attribute_weight, d.tech_skill, d.tech_weight, d.sort_order]);
+         d.attribute_weight, d.tech_skill, d.tech_weight, d.outcome_links || null, d.sort_order]);
     }
 
     await conn.query(
@@ -92,7 +92,7 @@ async function freeze(profile, { effectiveYear, reason, outcome, actor }) {
  */
 async function carryForward(profileId, year, actor, note = '') {
   const existing = await reviewFor(profileId, year);
-  if (existing) return { ok: false, message: `${year} has already been reviewed.` };
+  if (existing) return { ok: false, message: `${year} has already been reviewed.`, i18n: ['{year} has already been reviewed.', { year }] };
 
   const latest = await latestFor(profileId);
   if (!latest) return { ok: false, message: 'This role profile has no approved version yet.' };
@@ -178,7 +178,7 @@ async function outcomesFor(versionId) {
 async function detailsFor(versionId, assessmentId = null) {
   return db.query(
     `SELECT d.id, d.attribute_no, d.attribute, d.attribute_weight,
-            d.tech_skill, d.tech_weight,
+            d.tech_skill, d.tech_weight, d.outcome_links,
             r.rating, r.score, r.training_gap
      FROM rp_version_details d
      LEFT JOIN rp_assessment_ratings r
@@ -188,26 +188,29 @@ async function detailsFor(versionId, assessmentId = null) {
     [Number(assessmentId) || 0, versionId]);
 }
 
-/** What changed between two versions, in plain terms. */
-function diff(oldV, newV, oldDetails, newDetails, oldOutcomes, newOutcomes) {
+/** What changed between two versions, in plain terms — in the reader's language when given `t`. */
+function diff(oldV, newV, oldDetails, newDetails, oldOutcomes, newOutcomes, t = require('../lib/i18n').translator('en')) {
   const changes = [];
-  if (String(oldV.mission || '').trim() !== String(newV.mission || '').trim()) changes.push('Mission reworded');
+  if (String(oldV.mission || '').trim() !== String(newV.mission || '').trim()) changes.push(t('Mission reworded'));
 
   const outText = (list) => list.map((o) => String(o.outcome).trim()).join(' | ');
-  if (outText(oldOutcomes) !== outText(newOutcomes)) changes.push('Key outcomes changed');
+  if (outText(oldOutcomes) !== outText(newOutcomes)) changes.push(t('Key outcomes changed'));
 
   const key = (d) => `${d.attribute_no}|${String(d.attribute).trim()}|${String(d.tech_skill).trim()}|${d.tech_weight}`;
   const oldKeys = new Set(oldDetails.map(key));
   const newKeys = new Set(newDetails.map(key));
   const added = newDetails.filter((d) => !oldKeys.has(key(d))).length;
   const removed = oldDetails.filter((d) => !newKeys.has(key(d))).length;
-  if (added) changes.push(`${added} skill line${added > 1 ? 's' : ''} added or reworded`);
-  if (removed) changes.push(`${removed} skill line${removed > 1 ? 's' : ''} removed or replaced`);
+  if (added) changes.push(t.n('{n} skill line added or reworded', '{n} skill lines added or reworded', added));
+  if (removed) changes.push(t.n('{n} skill line removed or replaced', '{n} skill lines removed or replaced', removed));
 
   const attrs = (list) => [...new Set(list.map((d) => `${d.attribute_no}:${d.attribute_weight}`))].join(',');
-  if (attrs(oldDetails) !== attrs(newDetails)) changes.push('Attribute weights changed');
+  if (attrs(oldDetails) !== attrs(newDetails)) changes.push(t('Attribute weights changed'));
 
-  return changes.length ? changes : ['No differences in the recorded text'];
+  const links = (list) => list.map((d) => `${d.attribute_no}|${String(d.tech_skill).trim()}|${d.outcome_links || ''}`).join(';');
+  if (links(oldDetails) !== links(newDetails)) changes.push(t('Outcome links changed'));
+
+  return changes.length ? changes : [t('No differences in the recorded text')];
 }
 
 /**

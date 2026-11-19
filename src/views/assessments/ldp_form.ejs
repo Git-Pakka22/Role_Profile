@@ -8,14 +8,14 @@
   const finalLocked = !canFinal;    // read-only until self is in, or if this isn't the leader/admin
   let lastAttr = null;
 %>
-<a class="rp-back-link" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-arrow-left"></i> Back to role profile</a>
+<a class="rp-back-link" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-arrow-left"></i> <%= t("Back to role profile") %></a>
 
 <div class="rp-card">
     <div class="rp-card-header">
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-clipboard-check-outline"></i></div>
             <div>
-                <div class="rp-card-title">LDP Role Profile Assessment</div>
+                <div class="rp-card-title"><%= t("LDP Role Profile Assessment") %></div>
                 <div class="rp-card-subtitle"><%= profile.designation_name %> · <%= profile.sangh_name %></div>
             </div>
         </div>
@@ -28,43 +28,43 @@
                 <div class="sub">
                     <%= member.emp_code %><%= member.designation ? ' · ' + member.designation : '' %>
                     · <strong><%= chosen %></strong>
-                    · leader: <%= leader ? leader.name + ' (' + leader.code + ')' : 'not set' %>
+                    · <%= t('leader: {name}', { name: leader ? leader.name + ' (' + leader.code + ')' : t('not set') }) %>
                     <% if (existing && existing.final_submitted_at) { %>
-                        · last final-rated by <%= personName(existing.assessed_by, existing.assessed_by_name) %> on <%= fmtDate(existing.updated_at || existing.created_at) %>
+                        · <%= t('last final-rated by {name} on {date}', { name: personName(existing.assessed_by, existing.assessed_by_name), date: fmtDate(existing.updated_at || existing.created_at) }) %>
                     <% } %>
                 </div>
             </div>
             <div class="rp-head-right">
                 <div class="rp-score-box">
                     <div class="n"><span id="selfPct">0</span>%</div>
-                    <div class="l">Self: <span id="selfTotal">0</span> of <span id="selfMax">0</span></div>
+                    <div class="l"><%- t.html('Self: {total} of {max}', { total: raw('<span id="selfTotal">0</span>'), max: raw('<span id="selfMax">0</span>') }) %></div>
                 </div>
                 <div class="rp-score-box">
                     <div class="n"><span id="grandPct">0</span>%</div>
-                    <div class="l">Final: <span id="grandTotal">0</span> of <span id="grandMax">0</span></div>
+                    <div class="l"><%- t.html('Final: {total} of {max}', { total: raw('<span id="grandTotal">0</span>'), max: raw('<span id="grandMax">0</span>') }) %></div>
                 </div>
             </div>
         </div>
 
         <form method="get" class="rp-year-bar">
-            <label for="fy"><i class="mdi mdi-calendar-range-outline"></i> Financial year</label>
+            <label for="fy"><i class="mdi mdi-calendar-range-outline"></i> <%= t("Financial year") %></label>
             <select name="fy" id="fy" onchange="this.form.submit()">
                 <% years.forEach(y => { %>
-                    <option value="<%= y.year %>" <%= y.year === chosen ? 'selected' : '' %>><%= y.year %><%= y.is_current ? ' — current' : '' %></option>
+                    <option value="<%= y.year %>" <%= y.year === chosen ? 'selected' : '' %>><%= y.year %><%= y.is_current ? ' — ' + t('current') : '' %></option>
                 <% }) %>
             </select>
             <% if (!selfSubmitted) { %>
-                <span class="rp-year-note"><i class="mdi mdi-information-outline"></i> Not yet self-rated for <%= chosen %></span>
+                <span class="rp-year-note"><i class="mdi mdi-information-outline"></i> <%= t('Not yet self-rated for {fy}', { fy: chosen }) %></span>
             <% } else if (!existing.final_submitted_at) { %>
-                <span class="rp-year-note rp-locked"><i class="mdi mdi-clock-outline"></i> Self-rated — waiting on the leader's final rating.</span>
+                <span class="rp-year-note rp-locked"><i class="mdi mdi-clock-outline"></i> <%= t("Self-rated — waiting on the leader's final rating.") %></span>
             <% } else { %>
-                <span class="rp-year-note rp-locked"><i class="mdi mdi-check-circle-outline"></i> Final rating recorded for <%= chosen %>.</span>
+                <span class="rp-year-note rp-locked"><i class="mdi mdi-check-circle-outline"></i> <%= t('Final rating recorded for {fy}.', { fy: chosen }) %></span>
             <% } %>
             <% if (!yearOpen) { %>
-                <span class="rp-year-note rp-closed"><i class="mdi mdi-lock-outline"></i> <%= chosen %> is closed — only <%= current %> and <%= previous %> are open.</span>
+                <span class="rp-year-note rp-closed"><i class="mdi mdi-lock-outline"></i> <%= t('{fy} is closed — only {current} and {previous} are open.', { fy: chosen, current, previous }) %></span>
             <% } %>
             <% if (historyYears.filter(h => h.financial_year !== chosen).length) { %>
-                <span class="rp-year-note">Earlier:
+                <span class="rp-year-note"><%= t("Earlier:") %>
                     <% historyYears.filter(h => h.financial_year !== chosen).forEach(h => { %>
                         <a class="rp-year-chip" href="?fy=<%= encodeURIComponent(h.financial_year) %>"><%= h.financial_year %><% if (h.percentage !== null) { %> · <%= trim2(h.percentage) %>%<% } %></a>
                     <% }) %>
@@ -73,11 +73,11 @@
         </form>
 
         <div class="rp-legend">
-            <span>Rate each attribute from <b>1</b> to <b>4</b>.</span>
-            <span>Each stage's score is <b>weight &times; that stage's rating</b>.</span>
-            <span>All weights total <b><%= trim2(weightSum) %></b>.</span>
-            <span>The member self-rates and submits first; only then can the leader give the final rating.</span>
-            <span>Note a <b>development plan</b> against any attribute that needs it — required when the leader's rating is <b>2</b> or below, optional otherwise.</span>
+            <span><%- t.html('Rate each attribute from <b>1</b> to <b>4</b>.') %></span>
+            <span><%- t.html("Each stage's score is <b>weight × that stage's rating</b>.") %></span>
+            <span><%- t.html('All weights total <b>{total}</b>.', { total: trim2(weightSum) }) %></span>
+            <span><%= t("The member self-rates and submits first; only then can the leader give the final rating.") %></span>
+            <span><%- t.html("Note a <b>development plan</b> against any attribute that needs it — required when the leader's rating is <b>2</b> or below, optional otherwise.") %></span>
         </div>
 
         <form method="post" action="/role-profiles/<%= profile.id %>/assess/<%= encodeURIComponent(member.emp_code) %>" id="ldpAssessForm">
@@ -88,26 +88,26 @@
                 <table class="rp-assess-table">
                     <thead>
                         <tr>
-                            <th>Attribute</th><th class="num">Weight</th><th>Assessment Mechanism</th>
-                            <th class="num">Self Marking</th><th class="num">Final Score</th>
-                            <th class="num">Leader Scoring</th><th class="num">Final Scoring</th>
-                            <th>Development Plan</th>
+                            <th><%= t("Attribute") %></th><th class="num"><%= t("Weight") %></th><th><%= t("Assessment Mechanism") %></th>
+                            <th class="num"><%= t("Self Marking") %></th><th class="num"><%= t("Final Score") %></th>
+                            <th class="num"><%= t("Leader Scoring") %></th><th class="num"><%= t("Final Scoring") %></th>
+                            <th><%= t("Development Plan") %></th>
                         </tr>
                     </thead>
                     <tbody>
                     <% skills.forEach(s => { %>
                         <% if (lastAttr !== s.attribute_no) { lastAttr = s.attribute_no; %>
                             <tr class="rp-attr-row">
-                                <td colspan="8"><%= s.attribute_no %>. <%= s.attribute %>
-                                    <span class="wt">skill weight <%= trim2(s.attribute_weight) %></span></td>
+                                <td colspan="8"><%= s.attribute_no %>. <%= tc(s.attribute) %>
+                                    <span class="wt"><%= t('skill weight {n}', { n: trim2(s.attribute_weight) }) %></span></td>
                             </tr>
                         <% } %>
                         <% const selfRating = s.self_rating === null ? '' : Number(s.self_rating); %>
                         <% const finalRating = s.rating === null ? '' : Number(s.rating); %>
                         <tr>
-                            <td><span class="rp-skill-text"><%= s.tech_skill %></span></td>
+                            <td><span class="rp-skill-text"><%= tc(s.tech_skill) %></span></td>
                             <td class="num"><span class="rp-wt js-weight" data-weight="<%= Number(s.tech_weight) %>"><%= trim2(s.tech_weight) %></span></td>
-                            <td><span class="rp-skill-text"><%= s.assessment || '—' %></span></td>
+                            <td><span class="rp-skill-text"><%= s.assessment ? tc(s.assessment) : '—' %></span></td>
                             <td class="num">
                                 <select class="rp-rating js-self-rating<%= selfRating === '' ? ' unrated' : '' %>" name="rating[d<%= s.id %>]" <%= selfLocked ? 'disabled' : '' %>>
                                     <option value="">—</option>
@@ -131,20 +131,20 @@
                                     <% const g = String(s.training_gap || '').trim(); %>
                                     <span class="rp-gap-read<%= g === '' ? ' none' : '' %>"><%= g === '' ? '—' : g %></span>
                                 <% } else { %>
-                                    <input type="text" class="rp-gap js-plan" name="gap[d<%= s.id %>]" value="<%= s.training_gap || '' %>" placeholder="Development plan, if any">
+                                    <input type="text" class="rp-gap js-plan" name="gap[d<%= s.id %>]" value="<%= s.training_gap || '' %>" placeholder="<%= t("Development plan, if any") %>">
                                 <% } %>
                             </td>
                         </tr>
                     <% }) %>
                         <tr class="rp-total-row">
-                            <td>Total</td>
+                            <td><%= t("Total") %></td>
                             <td class="num"><span id="weightSum">0</span></td>
                             <td></td>
                             <td class="num"></td>
                             <td class="num"><span id="selfTotalCell">0</span></td>
                             <td class="num"></td>
                             <td class="num"><span id="finalTotalCell">0</span></td>
-                            <td><span id="planCount"><%= plansNoted %></span> plan(s) noted</td>
+                            <td><%- t.html('{n} plan(s) noted', { n: raw('<span id="planCount">' + plansNoted + '</span>') }) %></td>
                         </tr>
                     </tbody>
                 </table>
@@ -153,31 +153,30 @@
             <div class="rp-save-bar">
                 <% if (canSelf) { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
-                        Rate yourself, then submit — this locks and hands off to your leader.
+                        <%= t("Rate yourself, then submit — this locks and hands off to your leader.") %>
                     </span>
-                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>">Cancel</a>
+                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>"><%= t("Cancel") %></a>
                     <button type="submit" class="rp-btn-save" id="submitSelf" onclick="document.getElementById('stageField').value='self'">
-                        <i class="mdi mdi-content-save-outline"></i> Submit self-rating
+                        <i class="mdi mdi-content-save-outline"></i> <%= t("Submit self-rating") %>
                     </button>
                 <% } else if (canFinal) { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
-                        Give the final rating — you may come back and change it while <%= chosen %> is open.
+                        <%= t('Give the final rating — you may come back and change it while {fy} is open.', { fy: chosen }) %>
                     </span>
-                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>">Cancel</a>
+                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>"><%= t("Cancel") %></a>
                     <button type="submit" class="rp-btn-save" id="submitFinal" onclick="document.getElementById('stageField').value='final'">
-                        <i class="mdi mdi-content-save-outline"></i> Save final rating
+                        <i class="mdi mdi-content-save-outline"></i> <%= t("Save final rating") %>
                     </button>
                 <% } else { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
                         <% if (!yearOpen) { %>
-                            <i class="mdi mdi-lock-outline"></i> <%= chosen %> is closed. Only <%= current %> and <%= previous %> can be entered or corrected.
+                            <i class="mdi mdi-lock-outline"></i> <%= t('{fy} is closed. Only {current} and {previous} can be entered or corrected.', { fy: chosen, current, previous }) %>
                         <% } else if (isSelf && selfSubmitted) { %>
-                            <i class="mdi mdi-lock-check-outline"></i> Your self-rating for <%= chosen %> is submitted and final.
+                            <i class="mdi mdi-lock-check-outline"></i> <%= t('Your self-rating for {fy} is submitted and final.', { fy: chosen }) %>
                         <% } else if (isLeader && !selfSubmitted) { %>
-                            <i class="mdi mdi-lock-outline"></i> Waiting on <%= member.name || member.emp_code %>'s self-rating before you can give a final rating.
+                            <i class="mdi mdi-lock-outline"></i> <%= t("Waiting on {name}'s self-rating before you can give a final rating.", { name: member.name || member.emp_code }) %>
                         <% } else { %>
-                            <i class="mdi mdi-lock-outline"></i> You can view this assessment, but only <%= member.name || member.emp_code %> can self-rate,
-                            and only their leader<%= leader ? ' (' + leader.name + ')' : '' %> can give the final rating.
+                            <i class="mdi mdi-lock-outline"></i> <%= leader ? t('You can view this assessment, but only {name} can self-rate, and only their leader ({leader}) can give the final rating.', { name: member.name || member.emp_code, leader: leader.name }) : t('You can view this assessment, but only {name} can self-rate, and only their leader can give the final rating.', { name: member.name || member.emp_code }) %>
                         <% } %>
                     </span>
                 <% } %>
@@ -187,6 +186,7 @@
 </div>
 
 <script>
+Object.assign(RP_I18N, <%- tjs(['A rating of 2 or below needs a development plan noted:']) %>);
 $(function () {
     function fmt(n) { var r = Math.round(n * 100) / 100; return (r % 1 === 0) ? r.toString() : r.toFixed(2).replace(/0$/, ''); }
 
@@ -267,7 +267,7 @@ $(function () {
         });
         if (missing.length) {
             e.preventDefault();
-            window.alert('A rating of 2 or below needs a development plan noted:\n\n' + missing.join('\n'));
+            window.alert(tr('A rating of 2 or below needs a development plan noted:') + '\n\n' + missing.join('\n'));
         }
     });
 });

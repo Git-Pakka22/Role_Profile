@@ -5,15 +5,20 @@
   const trim2 = (v) => String(Math.round(Number(v) * 100) / 100);
   const fmtDate = (v) => fmtDateTime(v) || '—';
   let lastAttr = null;
+  // The outcome-based method: offered when the version links attributes to key outcomes.
+  const byOutcome = method === 'outcome';
+  const linksOf = (v) => String(v || '').split(',').map(Number).filter((n) => n > 0);
+  // Attributes linked to no outcome are still rated directly, on the Preview tab.
+  const unlinkedCount = skills.filter((k) => !linksOf(k.outcome_links).length).length;
 %>
-<a class="rp-back-link" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-arrow-left"></i> Back to role profile</a>
+<a class="rp-back-link" href="/role-profiles/<%= profile.id %>"><i class="mdi mdi-arrow-left"></i> <%= t("Back to role profile") %></a>
 
 <div class="rp-card">
     <div class="rp-card-header">
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-clipboard-check-outline"></i></div>
             <div>
-                <div class="rp-card-title">Role Profile Assessment</div>
+                <div class="rp-card-title"><%= t("Role Profile Assessment") %></div>
                 <div class="rp-card-subtitle"><%= profile.designation_name %> · <%= profile.sangh_name %></div>
             </div>
         </div>
@@ -27,19 +32,19 @@
                     <%= member.emp_code %><%= member.designation ? ' · ' + member.designation : '' %>
                     · <strong><%= chosen %></strong>
                     <% if (existing) { %>
-                        · last assessed by <%= personName(existing.assessed_by, existing.assessed_by_name) %> on <%= fmtDate(existing.updated_at || existing.created_at) %>
+                        · <%= t('last assessed by {name} on {date}', { name: personName(existing.assessed_by, existing.assessed_by_name), date: fmtDate(existing.updated_at || existing.created_at) }) %>
                     <% } %>
                 </div>
             </div>
             <div class="rp-head-right">
                 <% if (existing) { %>
                     <a class="rp-pdf-btn" href="/role-profiles/<%= profile.id %>/assess/<%= encodeURIComponent(member.emp_code) %>/pdf?fy=<%= encodeURIComponent(chosen) %>">
-                        <i class="mdi mdi-file-pdf-box"></i> Download PDF
+                        <i class="mdi mdi-file-pdf-box"></i> <%= t("Download PDF") %>
                     </a>
                 <% } %>
                 <div class="rp-score-box">
                     <div class="n"><span id="grandPct">0</span>%</div>
-                    <div class="l"><span id="grandTotal">0</span> of <span id="grandMax">0</span></div>
+                    <div class="l"><%- t.html('{total} of {max}', { total: raw('<span id="grandTotal">0</span>'), max: raw('<span id="grandMax">0</span>') }) %></div>
                 </div>
             </div>
         </div>
@@ -49,41 +54,38 @@
                 <i class="mdi <%= (reviewDue && !existing) ? 'mdi-calendar-alert' : 'mdi-source-branch' %>"></i>
                 <div>
                     <% if (existing) { %>
-                        Assessed against <strong>version <%= version.version_no %></strong> of this role profile,
-                        approved <%= fmtDate(version.approved_at) %>. The wording below is the wording of that day —
-                        later revisions do not change it.
+                        <%- t.html('Assessed against <strong>version {v}</strong> of this role profile, approved {date}. The wording below is the wording of that day — later revisions do not change it.', { v: version.version_no, date: fmtDate(version.approved_at) }) %>
                     <% } else if (reviewDue) { %>
-                        <strong><%= chosen %> has not been reviewed yet.</strong>
-                        Confirm the role profile still stands for this year — or update it — before assessing.
-                        <a href="/role-profiles/<%= profile.id %>?tab=versions">Go to the yearly review</a>.
+                        <strong><%= t('{fy} has not been reviewed yet.', { fy: chosen }) %></strong>
+                        <%= t("Confirm the role profile still stands for this year — or update it — before assessing.") %>
+                        <a href="/role-profiles/<%= profile.id %>?tab=versions"><%= t("Go to the yearly review") %></a>.
                     <% } else { %>
-                        Assessing against <strong>version <%= version.version_no %></strong>
-                        <% if (review) { %>(<%= (outcomeLabels[review.outcome] || review.outcome).toLowerCase() %> for <%= chosen %>)<% } %>.
+                        <%- t.html('Assessing against <strong>version {v}</strong>', { v: version.version_no }) %><% if (review) { %> (<%= t('{outcome} for {fy}', { outcome: t(outcomeLabels[review.outcome] || review.outcome), fy: chosen }) %>)<% } %>.
                     <% } %>
-                    <a href="/role-profiles/<%= profile.id %>/versions/<%= version.id %>">View that version</a>
+                    <a href="/role-profiles/<%= profile.id %>/versions/<%= version.id %>"><%= t("View that version") %></a>
                 </div>
             </div>
         <% } %>
 
         <form method="get" class="rp-year-bar">
-            <label for="fy"><i class="mdi mdi-calendar-range-outline"></i> Financial year</label>
+            <label for="fy"><i class="mdi mdi-calendar-range-outline"></i> <%= t("Financial year") %></label>
             <select name="fy" id="fy" onchange="this.form.submit()">
                 <% years.forEach(y => { %>
-                    <option value="<%= y.year %>" <%= y.year === chosen ? 'selected' : '' %>><%= y.year %><%= y.is_current ? ' — current' : '' %></option>
+                    <option value="<%= y.year %>" <%= y.year === chosen ? 'selected' : '' %>><%= y.year %><%= y.is_current ? ' — ' + t('current') : '' %></option>
                 <% }) %>
             </select>
             <% if (!existing) { %>
-                <span class="rp-year-note"><i class="mdi mdi-information-outline"></i> Not yet assessed for <%= chosen %></span>
+                <span class="rp-year-note"><i class="mdi mdi-information-outline"></i> <%= t('Not yet assessed for {fy}', { fy: chosen }) %></span>
             <% } else if (canAssess) { %>
-                <span class="rp-year-note rp-locked"><i class="mdi mdi-pencil-outline"></i> Already assessed for <%= chosen %> — as PSP Approver you may correct it.</span>
+                <span class="rp-year-note rp-locked"><i class="mdi mdi-pencil-outline"></i> <%= t('Already assessed for {fy} — as PSP Approver you may correct it.', { fy: chosen }) %></span>
             <% } else if (isAuthor) { %>
-                <span class="rp-year-note rp-locked"><i class="mdi mdi-lock-check-outline"></i> Assessed for <%= chosen %> — final. The next assessment is due in the following financial year.</span>
+                <span class="rp-year-note rp-locked"><i class="mdi mdi-lock-check-outline"></i> <%= t('Assessed for {fy} — final. The next assessment is due in the following financial year.', { fy: chosen }) %></span>
             <% } %>
             <% if (!yearOpen) { %>
-                <span class="rp-year-note rp-closed"><i class="mdi mdi-lock-outline"></i> <%= chosen %> is closed — only <%= current %> and <%= previous %> are open.</span>
+                <span class="rp-year-note rp-closed"><i class="mdi mdi-lock-outline"></i> <%= t('{fy} is closed — only {current} and {previous} are open.', { fy: chosen, current, previous }) %></span>
             <% } %>
             <% if (historyYears.filter(h => h.financial_year !== chosen).length) { %>
-                <span class="rp-year-note">Earlier:
+                <span class="rp-year-note"><%= t("Earlier:") %>
                     <% historyYears.filter(h => h.financial_year !== chosen).forEach(h => { %>
                         <a class="rp-year-chip" href="?fy=<%= encodeURIComponent(h.financial_year) %>"><%= h.financial_year %> · <%= trim2(h.percentage) %>%</a>
                     <% }) %>
@@ -92,31 +94,100 @@
         </form>
 
         <div class="rp-legend">
-            <span>Rate each attribute from <b>1</b> to <b>4</b>.</span>
-            <span>Score for a line is <b>weight &times; rating</b>.</span>
-            <span>All weights total <b><%= trim2(weightSum) %></b>, so a full <b>4</b> everywhere scores <b><%= trim2(weightSum * 4) %></b>.</span>
-            <span>Note a <b>training gap</b> against any attribute that needs development — required when the rating is <b>2</b> or below, optional otherwise.</span>
+            <% if (byOutcomeReady) { %>
+            <span class="js-when-outcome"<%= byOutcome ? '' : ' hidden' %>><%- t.html('Rate each <b>key outcome</b> from <b>1</b> to <b>4</b>. Each attribute linked to it takes that rating — the average, when it is linked to more than one. Attributes linked to no outcome are rated directly.') %></span>
+            <% } %>
+            <span><%- t.html('Rate each attribute from <b>1</b> to <b>4</b>.') %></span>
+            <span><%- t.html('Score for a line is <b>weight × rating</b>.') %></span>
+            <span><%- t.html('All weights total <b>{total}</b>, so a full <b>4</b> everywhere scores <b>{max}</b>.', { total: trim2(weightSum), max: trim2(weightSum * 4) }) %></span>
+            <span><%- t.html('Note a <b>training gap</b> against any attribute that needs development — required when the rating is <b>2</b> or below, optional otherwise.') %></span>
         </div>
 
         <form method="post" action="/role-profiles/<%= profile.id %>/assess/<%= encodeURIComponent(member.emp_code) %>">
             <input type="hidden" name="csrf_test_name" value="<%= csrfToken %>">
             <input type="hidden" name="financial_year" value="<%= chosen %>">
-            <div class="table-responsive">
+
+            <% if (byOutcomeReady) { %>
+                <div class="rp-method">
+                    <span class="rp-method-label"><%= t("Assessment method") %></span>
+                    <div class="rp-method-switch" role="radiogroup" aria-label="<%= t("Assessment method") %>">
+                        <label class="<%= byOutcome ? '' : 'on' %>">
+                            <input type="radio" name="method" value="attribute" class="js-method" <%= byOutcome ? '' : 'checked' %> <%= readOnly ? 'disabled' : '' %>>
+                            <i class="mdi mdi-format-list-checks"></i> <%= t("By attribute") %>
+                        </label>
+                        <label class="<%= byOutcome ? 'on' : '' %>">
+                            <input type="radio" name="method" value="outcome" class="js-method" <%= byOutcome ? 'checked' : '' %> <%= readOnly ? 'disabled' : '' %>>
+                            <i class="mdi mdi-flag-checkered"></i> <%= t("By key outcome") %>
+                        </label>
+                    </div>
+                    <span class="rp-method-note"><%= readOnly ? t(byOutcome ? 'This assessment was made by key outcome.' : 'This assessment was made by attribute.') : t('Either way the attributes carry the score, so totals and reports compare like for like.') %></span>
+                </div>
+
+                <div class="rp-tabs rp-assess-tabs js-when-outcome" role="tablist"<%= byOutcome ? '' : ' hidden' %>>
+                    <button type="button" class="rp-tab active js-atab" data-atab="rate"><i class="mdi mdi-flag-checkered"></i> <%= t("Rate key outcomes") %></button>
+                    <button type="button" class="rp-tab js-atab" data-atab="preview"><i class="mdi mdi-eye-outline"></i> <%= t("Preview — attributes & score") %></button>
+                </div>
+
+                <div class="rp-outcome-panel js-when-outcome js-rate-panel"<%= byOutcome ? '' : ' hidden' %>>
+                    <div class="table-responsive">
+                        <table class="rp-assess-table rp-outcome-table">
+                            <thead>
+                                <tr><th><%= t("Key outcome") %></th><th class="num"><%= t("Rating") %></th><th><%= t("Training gap") %></th></tr>
+                            </thead>
+                            <tbody>
+                            <% outcomes.forEach(o => {
+                                 const got = outcomeRatings.get(o.no);
+                                 const r = got ? Number(got.rating) : ''; %>
+                                <tr class="js-outcome" data-no="<%= o.no %>">
+                                    <td><span class="rp-otag">O<%= o.no %></span> <span class="js-otext"><%= tc(o.outcome) %></span></td>
+                                    <td class="num">
+                                        <select class="rp-rating js-orating<%= r === '' ? ' unrated' : '' %>" name="orating[o<%= o.no %>]" data-no="<%= o.no %>" <%= readOnly ? 'disabled' : '' %>>
+                                            <option value="">—</option>
+                                            <% scale.forEach(v => { %>
+                                                <option value="<%= v %>" <%= r !== '' && Math.abs(r - v) < 0.001 ? 'selected' : '' %>><%= v %></option>
+                                            <% }) %>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <% if (readOnly) { %>
+                                            <% const n = String((got && got.note) || '').trim(); %>
+                                            <span class="rp-gap-read<%= n === '' ? ' none' : '' %>"><%= n === '' ? '—' : n %></span>
+                                        <% } else { %>
+                                            <input type="text" class="rp-gap js-onote" name="onote[o<%= o.no %>]" value="<%= (got && got.note) || '' %>" placeholder="<%= t("Needed when rated 2 or below") %>">
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% if (unlinkedCount && !readOnly) { %>
+                        <p class="rp-unlinked-note">
+                            <i class="mdi mdi-information-outline"></i>
+                            <%= t.n('{n} attribute is not linked to a key outcome — rate it on the Preview tab.', '{n} attributes are not linked to a key outcome — rate them on the Preview tab.', unlinkedCount) %>
+                            <button type="button" class="rp-link-btn js-atab" data-atab="preview"><%= t("Open Preview") %></button>
+                        </p>
+                    <% } %>
+                </div>
+            <% } %>
+
+            <div class="table-responsive js-attr-panel"<%= byOutcome ? ' hidden' : '' %>>
                 <table class="rp-assess-table">
                     <thead>
-                        <tr><th>Attribute</th><th class="num">Weight</th><th class="num">Rating</th><th class="num">Weight &times; Rating</th><th>Training gap</th></tr>
+                        <tr><th><%= t("Attribute") %></th><th class="num"><%= t("Weight") %></th><th class="num"><%= t("Rating") %></th><th class="num"><%= t("Weight × Rating") %></th><th><%= t("Training gap") %></th></tr>
                     </thead>
                     <tbody>
                     <% skills.forEach(s => { %>
                         <% if (lastAttr !== s.attribute_no) { lastAttr = s.attribute_no; %>
                             <tr class="rp-attr-row">
-                                <td colspan="5"><%= s.attribute_no %>. <%= s.attribute %>
-                                    <span class="wt">skill weight <%= trim2(s.attribute_weight) %></span></td>
+                                <td colspan="5"><%= s.attribute_no %>. <%= tc(s.attribute) %>
+                                    <span class="wt"><%= t('skill weight {n}', { n: trim2(s.attribute_weight) }) %></span></td>
                             </tr>
                         <% } %>
-                        <% const rating = s.rating === null ? '' : Number(s.rating); %>
-                        <tr>
-                            <td><span class="rp-skill-text"><%= s.tech_skill %></span></td>
+                        <% const rating = s.rating === null ? '' : Number(s.rating);
+                           const links = linksOf(s.outcome_links); %>
+                        <tr class="js-line" data-links="<%= links.join(',') %>">
+                            <td><span class="rp-skill-text"><%= tc(s.tech_skill) %></span><% if (byOutcomeReady) { links.forEach(n => { %> <span class="rp-otag" title="<%= outcomes[n - 1] ? tc(outcomes[n - 1].outcome) : '' %>">O<%= n %></span><% }) } %></td>
                             <td class="num"><span class="rp-wt js-weight" data-weight="<%= Number(s.tech_weight) %>"><%= trim2(s.tech_weight) %></span></td>
                             <td class="num">
                                 <select class="rp-rating js-rating<%= rating === '' ? ' unrated' : '' %>" name="rating[d<%= s.id %>]" <%= readOnly ? 'disabled' : '' %>>
@@ -125,6 +196,7 @@
                                         <option value="<%= v %>" <%= rating !== '' && Math.abs(rating - v) < 0.001 ? 'selected' : '' %>><%= v %></option>
                                     <% }) %>
                                 </select>
+                                <% if (links.length) { %><span class="rp-derived js-derived" hidden title="<%= t("Worked out from the linked key outcomes") %>">—</span><% } %>
                             </td>
                             <td class="num"><span class="rp-line-score zero js-score">0</span></td>
                             <td>
@@ -132,17 +204,17 @@
                                     <% const g = String(s.training_gap || '').trim(); %>
                                     <span class="rp-gap-read<%= g === '' ? ' none' : '' %>"><%= g === '' ? '—' : g %></span>
                                 <% } else { %>
-                                    <input type="text" class="rp-gap js-gap" name="gap[d<%= s.id %>]" value="<%= s.training_gap || '' %>" placeholder="Training needed, if any">
+                                    <input type="text" class="rp-gap js-gap" name="gap[d<%= s.id %>]" value="<%= s.training_gap || '' %>" placeholder="<%= t("Training needed, if any") %>">
                                 <% } %>
                             </td>
                         </tr>
                     <% }) %>
                         <tr class="rp-total-row">
-                            <td>Total</td>
+                            <td><%= t("Total") %></td>
                             <td class="num"><span id="weightSum">0</span></td>
                             <td class="num"><span id="pct">0</span>%</td>
                             <td class="num"><span id="totalScore">0</span> / <span id="maxScore">0</span></td>
-                            <td><span id="gapCount"><%= gapsNoted %></span> gap(s) noted</td>
+                            <td><%- t.html('{n} gap(s) noted', { n: raw('<span id="gapCount">' + gapsNoted + '</span>') }) %></td>
                         </tr>
                     </tbody>
                 </table>
@@ -151,27 +223,25 @@
             <div class="rp-save-bar">
                 <% if (!readOnly && reviewDue && !existing) { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
-                        <i class="mdi mdi-calendar-alert"></i> <%= chosen %> must be reviewed before anyone is assessed against this profile.
+                        <i class="mdi mdi-calendar-alert"></i> <%= t('{fy} must be reviewed before anyone is assessed against this profile.', { fy: chosen }) %>
                     </span>
                     <a class="rp-btn-save" href="/role-profiles/<%= profile.id %>?tab=versions">
-                        <i class="mdi mdi-calendar-check-outline"></i> Review <%= chosen %> first
+                        <i class="mdi mdi-calendar-check-outline"></i> <%= t('Review {fy} first', { fy: chosen }) %>
                     </a>
                 <% } else if (!readOnly) { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
-                        <span id="ratedCount">0</span> of <%= skills.length %> attributes rated — unrated attributes are left out of the total.
-                        Training gaps save with the assessment.
+                        <%- t.html('{rated} of {n} attributes rated — unrated attributes are left out of the total. Training gaps save with the assessment.', { rated: raw('<span id="ratedCount">0</span>'), n: skills.length }) %>
                     </span>
-                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>">Cancel</a>
-                    <button type="submit" class="rp-btn-save"><i class="mdi mdi-content-save-outline"></i> <%= existing ? 'Save correction' : 'Save assessment' %></button>
+                    <a class="rp-btn-cancel" href="/role-profiles/<%= profile.id %>"><%= t("Cancel") %></a>
+                    <button type="submit" class="rp-btn-save"><i class="mdi mdi-content-save-outline"></i> <%= existing ? t('Save correction') : t('Save assessment') %></button>
                 <% } else { %>
                     <span style="font-size:0.78rem;color:var(--text-muted)">
                         <% if (!yearOpen) { %>
-                            <i class="mdi mdi-lock-outline"></i> <%= chosen %> is closed. Only <%= current %> and <%= previous %> can be entered or corrected.
+                            <i class="mdi mdi-lock-outline"></i> <%= t('{fy} is closed. Only {current} and {previous} can be entered or corrected.', { fy: chosen, current, previous }) %>
                         <% } else if (isAuthor && existing) { %>
-                            <i class="mdi mdi-lock-check-outline"></i> This assessment is complete for <%= chosen %> and cannot be changed.
-                            Choose the next financial year above to assess again.
+                            <i class="mdi mdi-lock-check-outline"></i> <%= t('This assessment is complete for {fy} and cannot be changed. Choose the next financial year above to assess again.', { fy: chosen }) %>
                         <% } else { %>
-                            <i class="mdi mdi-lock-outline"></i> Only the RP Creator who wrote this profile can change the ratings.
+                            <i class="mdi mdi-lock-outline"></i> <%= t("Only the RP Creator who wrote this profile can change the ratings.") %>
                         <% } %>
                     </span>
                 <% } %>
@@ -181,18 +251,75 @@
 </div>
 
 <script>
+Object.assign(RP_I18N, <%- tjs(['A rating of 2 or below needs a training gap noted:', 'A key outcome rated 2 or below needs a training gap noted:',
+    'Filled in from the key outcomes — edit it if you like.']) %>);
 $(function () {
     var MAX_RATING = 4;
+    var READ_ONLY = <%- JSON.stringify(readOnly) %>;
     function fmt(n) { var r = Math.round(n * 100) / 100; return (r % 1 === 0) ? r.toString() : r.toFixed(2).replace(/0$/, ''); }
+
+    /* ---- method: by attribute (each line rated) or by key outcome (lines take their outcomes' rating) */
+    function byOutcome() { return $('.js-method:checked').val() === 'outcome'; }
+    function linksOf($row) { return String($row.data('links') || '').split(',').map(Number).filter(function (n) { return n > 0; }); }
+    function outcomeRating(no) { return parseFloat($('.js-orating[data-no="' + no + '"]').val()); }
+    function outcomeNote(no) { return $.trim($('.js-outcome[data-no="' + no + '"] .js-onote').val() || ''); }
+    /** null when the line is rated directly; NaN when none of its outcomes is rated yet. */
+    function derived($row) {
+        var links = linksOf($row);
+        if (!byOutcome() || !links.length) return null;
+        var vals = links.map(outcomeRating).filter(function (v) { return !isNaN(v); });
+        if (!vals.length) return NaN;
+        return Math.round(vals.reduce(function (a, b) { return a + b; }, 0) / vals.length * 10) / 10;
+    }
+    /** The training gap a linked line gets from its outcomes: the notes of those rated 2 or below. */
+    function autoGap($row) {
+        return linksOf($row).filter(function (no) { var r = outcomeRating(no); return !isNaN(r) && r <= 2 && outcomeNote(no) !== ''; })
+            .map(function (no) { return 'O' + no + ': ' + outcomeNote(no); }).join('; ');
+    }
+    /** By key outcome: rate on one tab, check every attribute and the score on the other. */
+    var tab = 'rate';
+    function showTab(which) {
+        var on = byOutcome();
+        if (on) tab = which;
+        $('.js-atab').each(function () { $(this).toggleClass('active', $(this).data('atab') === which); });
+        $('.js-rate-panel').prop('hidden', !on || which !== 'rate');
+        $('.js-attr-panel').prop('hidden', on && which !== 'preview');
+    }
+    function applyMethod() {
+        var on = byOutcome();
+        $('.js-when-outcome').prop('hidden', !on);
+        $('.rp-method-switch label').each(function () { $(this).toggleClass('on', $(this).find('input').is(':checked')); });
+        $('.js-line').each(function () {
+            var $row = $(this), linked = on && linksOf($row).length > 0;
+            var $gap = $row.find('.js-gap');
+            $row.toggleClass('rp-line-derived', linked);
+            $row.find('.js-rating').prop('hidden', linked);
+            $row.find('.js-derived').prop('hidden', !linked);
+            $gap.attr('title', linked ? tr('Filled in from the key outcomes — edit it if you like.') : null);
+            // Back to rating by attribute: a gap that was only filled in from the outcomes goes.
+            if (!on && $gap.length && !$gap.data('edited')) $gap.val('');
+            // A line that takes its rating from the outcomes does not send one of its own.
+            if (!READ_ONLY) $row.find('.js-rating').prop('disabled', linked);
+        });
+        if (!READ_ONLY) $('.js-orating, .js-onote').prop('disabled', !on);
+        showTab(on ? tab : 'preview');
+    }
 
     function recalc() {
         var total = 0, weightSum = 0, rated = 0;
-        $('.js-rating').each(function () {
-            var $row = $(this).closest('tr');
+        $('.js-line').each(function () {
+            var $row = $(this);
             var weight = parseFloat($row.find('.js-weight').data('weight')) || 0;
-            var rating = parseFloat($(this).val());
+            var d = derived($row);
+            var rating = d === null ? parseFloat($row.find('.js-rating').val()) : d;
             var $score = $row.find('.js-score');
-            $(this).toggleClass('unrated', isNaN(rating));
+            $row.find('.js-rating').toggleClass('unrated', isNaN(rating));
+            if (d !== null) {
+                $row.find('.js-derived').text(isNaN(d) ? '—' : fmt(d)).toggleClass('unrated', isNaN(d));
+                // Kept in step with the outcomes until someone types in it.
+                var $gap = $row.find('.js-gap');
+                if ($gap.length && !$gap.data('edited')) $gap.val(autoGap($row));
+            }
             if (isNaN(rating)) { $score.text('0').addClass('zero'); return; }
             var score = weight * rating;
             $score.text(fmt(score)).removeClass('zero');
@@ -216,39 +343,71 @@ $(function () {
         $gaps.each(function () {
             var filled = $.trim(this.value) !== '';
             $(this).toggleClass('filled', filled);
-            if (filled) n++;
+            if (filled && !this.disabled) n++;
         });
         $('#gapCount').text(n);
     }
 
-    // A rating of 2 or below needs a training gap noted, same rule the server enforces.
+    // A rating of 2 or below needs a training gap noted, same rule the server enforces —
+    // on a line rated directly, or on the key outcome when assessing by outcome.
     function markRequiredGaps() {
-        $('.js-rating').each(function () {
-            var $row = $(this).closest('tr');
-            var rating = parseFloat($(this).val());
-            var low = !isNaN(rating) && rating <= 2;
+        $('.js-line').each(function () {
+            var $row = $(this);
+            var direct = derived($row) === null;
+            var rating = parseFloat($row.find('.js-rating').val());
             var $gap = $row.find('.js-gap');
-            var missing = low && $.trim($gap.val()) === '';
+            var missing = direct && !isNaN(rating) && rating <= 2 && $.trim($gap.val()) === '';
             $gap.toggleClass('rp-gap-missing', missing).css('border-color', missing ? 'var(--danger, #c0392b)' : '');
+        });
+        $('.js-outcome').each(function () {
+            var no = $(this).data('no'), r = outcomeRating(no);
+            var missing = byOutcome() && !isNaN(r) && r <= 2 && outcomeNote(no) === '';
+            $(this).find('.js-onote').css('border-color', missing ? 'var(--danger, #c0392b)' : '');
+            $(this).find('.js-orating').toggleClass('unrated', isNaN(r));
         });
     }
 
-    $('.js-rating').on('change', function () { recalc(); markRequiredGaps(); });
-    $('.js-gap').on('input', function () { recountGaps(); markRequiredGaps(); });
-    recalc(); recountGaps(); markRequiredGaps();
+    function refresh() { recalc(); recountGaps(); markRequiredGaps(); }
+    $('.js-rating, .js-orating').on('change', refresh);
+    $('.js-gap').on('input', function () { $(this).data('edited', true); recountGaps(); markRequiredGaps(); });
+    $('.js-onote').on('input', refresh);
+    $('.js-method').on('change', function () { applyMethod(); refresh(); });
+    $('.js-atab').on('click', function () { showTab($(this).data('atab')); });
+
+    // A gap already saved counts as written by hand unless it is exactly what the outcomes give.
+    var startOutcome = byOutcome();
+    $('.js-line').each(function () {
+        var $gap = $(this).find('.js-gap');
+        if (!$gap.length || $.trim($gap.val()) === '') return;
+        var auto = startOutcome && linksOf($(this)).length ? autoGap($(this)) : null;
+        $gap.data('edited', auto === null || $.trim($gap.val()) !== auto);
+    });
+    applyMethod(); refresh();
 
     $('form:has(.js-rating)').on('submit', function (e) {
         var missing = [];
-        $('.js-rating').each(function () {
-            var $row = $(this).closest('tr');
-            var rating = parseFloat($(this).val());
+        $('.js-line').each(function () {
+            var $row = $(this);
+            if (derived($row) !== null) return;
+            var rating = parseFloat($row.find('.js-rating').val());
             if (!isNaN(rating) && rating <= 2 && $.trim($row.find('.js-gap').val()) === '') {
                 missing.push($.trim($row.find('.rp-skill-text').first().text()));
             }
         });
-        if (missing.length) {
+        var missingO = [];
+        if (byOutcome()) {
+            $('.js-outcome').each(function () {
+                var no = $(this).data('no'), r = outcomeRating(no);
+                if (!isNaN(r) && r <= 2 && outcomeNote(no) === '') missingO.push('O' + no + ' — ' + $.trim($(this).find('.js-otext').text()));
+            });
+        }
+        if (missing.length || missingO.length) {
             e.preventDefault();
-            window.alert('A rating of 2 or below needs a training gap noted:\n\n' + missing.join('\n'));
+            if (byOutcome()) showTab(missingO.length ? 'rate' : 'preview');
+            var msg = [];
+            if (missingO.length) msg.push(tr('A key outcome rated 2 or below needs a training gap noted:') + '\n\n' + missingO.join('\n'));
+            if (missing.length) msg.push(tr('A rating of 2 or below needs a training gap noted:') + '\n\n' + missing.join('\n'));
+            window.alert(msg.join('\n\n'));
         }
     });
 });

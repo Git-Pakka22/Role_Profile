@@ -173,7 +173,7 @@ async function main() {
   }
 
   console.log('\nDone.');
-  process.exit(0);
+  if (require.main === module) process.exit(0);
 }
 
 /** The financial year a timestamp falls in. */
@@ -236,4 +236,5 @@ async function snapshot(profile, { effectiveYear, reason, outcome }) {
   });
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+module.exports = { main };
+if (require.main === module) main().catch((err) => { console.error(err); process.exit(1); });

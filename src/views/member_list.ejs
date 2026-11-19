@@ -12,27 +12,27 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-format-list-bulleted"></i></div>
             <div>
-                <div class="rp-card-title">Member List</div>
-                <div class="rp-card-subtitle"><%= members.length.toLocaleString() %> active members and the RP Approver, RP Creator and Pracharak assigned to each</div>
+                <div class="rp-card-title"><%= t("Member List") %></div>
+                <div class="rp-card-subtitle"><%= t('{n} active members and the RP Approver, RP Creator and Pracharak assigned to each', { n: members.length.toLocaleString('en-IN') }) %></div>
             </div>
         </div>
     </div>
     <div class="rp-card-body">
         <div class="rp-filter-bar">
-            <span class="rp-filter-label">Show members with:</span>
-            <button type="button" class="rp-chip active" data-role="all">All</button>
-            <button type="button" class="rp-chip" data-role="rp_approver">An RP Approver</button>
-            <button type="button" class="rp-chip" data-role="rp_creator">An RP Creator</button>
-            <button type="button" class="rp-chip" data-role="pracharak">A Pracharak</button>
-            <button type="button" class="rp-chip" data-role="none">No one assigned</button>
+            <span class="rp-filter-label"><%= t("Show members with:") %></span>
+            <button type="button" class="rp-chip active" data-role="all"><%= t("All") %></button>
+            <button type="button" class="rp-chip" data-role="rp_approver"><%= t("An RP Approver") %></button>
+            <button type="button" class="rp-chip" data-role="rp_creator"><%= t("An RP Creator") %></button>
+            <button type="button" class="rp-chip" data-role="pracharak"><%= t("A Pracharak") %></button>
+            <button type="button" class="rp-chip" data-role="none"><%= t("No one assigned") %></button>
         </div>
 
         <div class="table-responsive">
             <table class="display" id="memberTable" style="width:100%">
                 <thead>
                     <tr>
-                        <th>#</th><th>Member Code</th><th>Name</th><th>Sangh</th><th>Grade</th>
-                        <th>RP Approver</th><th>RP Creator</th><th>Pracharak</th>
+                        <th>#</th><th><%= t("Member Code") %></th><th><%= t("Name") %></th><th><%= t("Sangh") %></th><th><%= t("Grade") %></th>
+                        <th><%= t("RP Approver") %></th><th><%= t("RP Creator") %></th><th><%= t("Pracharak") %></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,7 +46,7 @@
                                 <% if (m.email_id) { %>
                                     <a href="mailto:<%= m.email_id %>" class="emp-email"><%= m.email_id %></a>
                                 <% } else { %>
-                                    <span class="rp-no-email">no email on record</span>
+                                    <span class="rp-no-email"><%= t("no email on record") %></span>
                                 <% } %>
                             </span>
                         </td>
@@ -96,9 +96,9 @@ $(function () {
             { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel',        className: 'dt-button' }
         ] } },
         language: {
-            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search members...',
-            lengthMenu: 'Show _MENU_ entries', info: 'Showing _START_ to _END_ of _TOTAL_ members',
-            infoEmpty: 'No members to show', zeroRecords: 'No members match your search',
+            search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: <%- JSON.stringify(t('Search members...')) %>,
+            lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>, info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ members')) %>,
+            infoEmpty: <%- JSON.stringify(t('No members to show')) %>, zeroRecords: <%- JSON.stringify(t('No members match your search')) %>,
             paginate: { first: '<i class="mdi mdi-chevron-double-left"></i>', last: '<i class="mdi mdi-chevron-double-right"></i>',
                         previous: '<i class="mdi mdi-chevron-left"></i>', next: '<i class="mdi mdi-chevron-right"></i>' }
         }

@@ -3,6 +3,7 @@ const db = require('../lib/db');
 const employee = require('./employee');
 const config = require('../config');
 const scope = require('../lib/scope');
+const outcomeLinks = require('../lib/outcomeLinks');
 
 const ACTIVE = employee.STATUS_ACTIVE;
 
@@ -43,6 +44,15 @@ async function writeChildren(conn, id, outcomes, attributes, program = PROGRAM.P
     .filter(Boolean)
     .slice(0, maxOutcomes);
 
+  // Attribute lines link to outcomes by their position on the form, blanks included; turn
+  // that into the outcome's number as saved (1-based, blanks dropped).
+  const savedNo = new Map();
+  outcomes.forEach((o, i) => {
+    if (String(o ?? '').trim() !== '' && savedNo.size < clean.length) savedNo.set(i, savedNo.size + 1);
+  });
+  const linksFor = (raw) => outcomeLinks.format(
+    outcomeLinks.parse(raw).map((n) => savedNo.get(n - 1)).filter(Boolean));
+
   for (let i = 0; i < clean.length; i++) {
     await conn.query(
       'INSERT INTO rp_role_key_outcomes (role_profile_id, outcome, sort_order) VALUES (?,?,?)',
@@ -65,26 +75,27 @@ async function writeChildren(conn, id, outcomes, attributes, program = PROGRAM.P
       .map((s) => ({
         skill: String(s.skill ?? '').trim(),
         weight: s.weight === '' || s.weight == null ? null : Number(s.weight),
+        links: linksFor(s.outcomes),
       }))
       .filter((s) => s.skill !== '');
 
     // PSP repeats the attribute across its skill rows; with no skills a single row
     // still records the attribute itself.
-    if (!skills.length) skills = [{ skill: null, weight: null }];
+    if (!skills.length) skills = [{ skill: null, weight: null, links: null }];
 
     for (const s of skills) {
       await conn.query(
         `INSERT INTO rp_role_profile_details
-           (role_profile_id, attribute_no, attribute, assessment, attribute_weight, tech_skill, tech_weight, sort_order)
-         VALUES (?,?,?,?,?,?,?,?)`,
-        [id, attributeNo, name, assessment, weight, s.skill, s.weight, rowSort++]
+           (role_profile_id, attribute_no, attribute, assessment, attribute_weight, tech_skill, tech_weight, outcome_links, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        [id, attributeNo, name, assessment, weight, s.skill, s.weight, s.links, rowSort++]
       );
     }
   }
 }
 
 async function createProfile(header, outcomes, attributes) {
-  return db.transaction(async (conn) => {
+  const id = await db.transaction(async (conn) => {
     const cols = Object.keys(header);
     const [res] = await conn.query(
       `INSERT INTO rp_role_profiles (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`,
@@ -94,10 +105,13 @@ async function createProfile(header, outcomes, attributes) {
     await writeChildren(conn, id, outcomes, attributes, header.program);
     return id;
   });
+  // Hindi drafts for the content, in the background (only when translation is switched on).
+  require('../lib/translate').queueProfile(id);
+  return id;
 }
 
 async function updateProfile(id, header, outcomes, attributes) {
-  return db.transaction(async (conn) => {
+  await db.transaction(async (conn) => {
     const cols = Object.keys(header);
     await conn.query(
       `UPDATE rp_role_profiles SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`,
@@ -108,6 +122,8 @@ async function updateProfile(id, header, outcomes, attributes) {
     await conn.query('DELETE FROM rp_role_profile_details WHERE role_profile_id = ?', [id]);
     await writeChildren(conn, id, outcomes, attributes, header.program);
   });
+  // Lines that kept their wording keep their Hindi; new or changed ones get a draft.
+  require('../lib/translate').queueProfile(id);
 }
 
 /* ---------------------------------------------------------------- reading */
@@ -146,7 +162,7 @@ async function fullProfile(id) {
       });
     }
     if (String(row.tech_skill ?? '').trim() !== '') {
-      byNo.get(no).skills.push({ tech_skill: row.tech_skill, tech_weight: row.tech_weight });
+      byNo.get(no).skills.push({ tech_skill: row.tech_skill, tech_weight: row.tech_weight, outcome_links: row.outcome_links || null });
     }
   }
   profile.attributes = [...byNo.values()];
@@ -248,7 +264,7 @@ function skippedRpApprover(profile) {
 
 /**
  * The author may edit a draft, a rejected profile, and — for the yearly review — one that
- * is already approved. Revising an approved profile sends it back through approval; the
+ * is already approved (as may the final approver). Revising an approved profile sends it back through approval; the
  * version already frozen stays in force until the new one is approved, so nothing that
  * has been assessed is disturbed.
  *
@@ -263,8 +279,11 @@ function canEdit(profile, empCode, isAdmin = false, isLdpAdmin = false) {
   switch (profile.status) {
     case STATUS.DRAFT:
     case STATUS.REJECTED:
-    case STATUS.APPROVED:
       return profile.created_by === empCode;
+    // An approved profile can also be updated by its final approver (PSP Approver, or LDP
+    // Admin for LDP). The update still goes through approval as the next version.
+    case STATUS.APPROVED:
+      return profile.created_by === empCode || isFinalApprover(profile, isAdmin, isLdpAdmin);
     // Level 1: the author and the RP Approver it is waiting on may both still change it.
     case STATUS.PENDING_SEVAK:
       return profile.created_by === empCode || profile.rp_approver_code === empCode;
@@ -721,11 +740,13 @@ async function addDesignation(actor, sanghCode, rawName) {
   const known = await knownDesignation(actor.code, actor.name, sanghCode, name, reach);
   if (known !== null) {
     return { ok: true, created: false, sangh, designation: known.trim(),
-      message: `"${known.trim()}" already exists in ${sangh.sangh_name}; it has been selected.` };
+      message: `"${known.trim()}" already exists in ${sangh.sangh_name}; it has been selected.`,
+      i18n: ['"{name}" already exists in {sangh}; it has been selected.', { name: known.trim(), sangh: sangh.sangh_name }] };
   }
 
   await createDesignation(sanghCode, name, actor);
-  return { ok: true, created: true, sangh, designation: name, message: `"${name}" added to ${sangh.sangh_name}.` };
+  return { ok: true, created: true, sangh, designation: name, message: `"${name}" added to ${sangh.sangh_name}.`,
+    i18n: ['"{name}" added to {sangh}.', { name, sangh: sangh.sangh_name }] };
 }
 
 /**

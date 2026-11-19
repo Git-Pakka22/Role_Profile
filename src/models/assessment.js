@@ -12,6 +12,14 @@ const RATING_MIN = 1;
 const RATING_MAX = 4;
 const RATING_STEP = 1;
 
+/**
+ * How an assessment was made. ATTRIBUTE is the original: every attribute line is rated.
+ * OUTCOME rates the key outcomes instead, and each attribute line linked to them takes the
+ * average of their ratings (lines linked to no outcome are still rated directly). Either
+ * way the attribute lines carry the ratings and scores, so totals and reports read the same.
+ */
+const METHOD = { ATTRIBUTE: 'attribute', OUTCOME: 'outcome' };
+
 function ratingScale() {
   const scale = [];
   for (let r = RATING_MIN; r <= RATING_MAX; r += RATING_STEP) scale.push(r);
@@ -28,7 +36,7 @@ function isValidRating(rating) {
 async function skillsFor(profileId, assessmentId) {
   return db.query(
     `SELECT d.id, d.attribute_no, d.attribute, d.attribute_weight,
-            d.tech_skill, d.tech_weight,
+            d.tech_skill, d.tech_weight, d.outcome_links,
             r.rating, r.score, r.training_gap
      FROM rp_role_profile_details d
      LEFT JOIN rp_assessment_ratings r
@@ -54,6 +62,14 @@ async function yearsForMember(profileId, empCode) {
      ORDER BY financial_year DESC`,
     [profileId, empCode]
   );
+}
+
+/** The key outcome ratings of an outcome-based assessment: Map(outcome_no -> row). */
+async function outcomeRatingsFor(assessmentId) {
+  if (!assessmentId) return new Map();
+  const rows = await db.query(
+    'SELECT * FROM rp_assessment_outcome_ratings WHERE assessment_id = ? ORDER BY outcome_no', [assessmentId]);
+  return new Map(rows.map((r) => [Number(r.outcome_no), r]));
 }
 
 async function forProfile(profileId, financialYear) {
@@ -109,8 +125,18 @@ async function overviewFor(empCode, isAdmin, financialYear) {
 /**
  * Save an assessment and its per-skill ratings. Re-assessing replaces the ratings
  * rather than stacking a second set.
+ *
+ * `options.method` is METHOD.ATTRIBUTE (the default) or METHOD.OUTCOME; for the latter,
+ * `options.outcomes` is [{ no, outcome, rating, note }] and `ratings` holds the attribute
+ * ratings already worked out from them (which may be averages such as 2.5).
  */
-async function save(profileId, member, actor, ratings, financialYear, gaps = {}, versionId = null) {
+async function save(profileId, member, actor, ratings, financialYear, gaps = {}, versionId = null, options = {}) {
+  const method = options.method === METHOD.OUTCOME ? METHOD.OUTCOME : METHOD.ATTRIBUTE;
+  const outcomeRows = method === METHOD.OUTCOME ? (options.outcomes || []) : [];
+  // A worked-out rating is an average, so any value in range stands; a direct one is whole.
+  const valid = (r) => (method === METHOD.OUTCOME
+    ? Number.isFinite(r) && r >= RATING_MIN && r <= RATING_MAX
+    : isValidRating(r));
   return db.transaction(async (conn) => {
     const [existingRows] = await conn.query(
       'SELECT * FROM rp_assessments WHERE role_profile_id = ? AND emp_code = ? AND financial_year = ? LIMIT 1',
@@ -120,6 +146,7 @@ async function save(profileId, member, actor, ratings, financialYear, gaps = {},
     const now = roleProfile.nowStamp();
     const prior = new Map();
     const written = new Map();
+    let priorOutcomes = '';
 
     let assessmentId;
     if (!existing) {
@@ -142,7 +169,13 @@ async function save(profileId, member, actor, ratings, financialYear, gaps = {},
         prior.set(String(row.version_detail_id ?? row.role_profile_detail_id),
           `${Number(row.rating)}|${String(row.training_gap || '').trim()}`);
       }
+      const [priorOut] = await conn.query(
+        'SELECT outcome_no, rating, note FROM rp_assessment_outcome_ratings WHERE assessment_id = ? ORDER BY outcome_no',
+        [assessmentId]);
+      priorOutcomes = `${existing.method || METHOD.ATTRIBUTE}#`
+        + priorOut.map((o) => `${o.outcome_no}:${Number(o.rating)}:${String(o.note || '').trim()}`).join(';');
       await conn.query('DELETE FROM rp_assessment_ratings WHERE assessment_id = ?', [assessmentId]);
+      await conn.query('DELETE FROM rp_assessment_outcome_ratings WHERE assessment_id = ?', [assessmentId]);
     }
 
     // Weights and the skill list come from the frozen version, never from the form — so a
@@ -165,7 +198,7 @@ async function save(profileId, member, actor, ratings, financialYear, gaps = {},
       const weight = Number(skill.tech_weight) || 0;
       const rating = Number(ratings[detailId] ?? 0);
       const gap = String(gaps[detailId] ?? '').trim();
-      const scored = rating > 0 && isValidRating(rating);
+      const scored = rating > 0 && valid(rating);
 
       // A skill is stored if it was rated OR a gap was noted, so a gap recorded
       // without a rating is not silently thrown away.
@@ -189,19 +222,30 @@ async function save(profileId, member, actor, ratings, financialYear, gaps = {},
     // Score as a share of what was achievable on the skills actually rated.
     const percentage = max > 0 ? Math.round((total / max) * 10000) / 100 : 0;
 
+    for (const o of outcomeRows) {
+      await conn.query(
+        `INSERT INTO rp_assessment_outcome_ratings (assessment_id, outcome_no, outcome, rating, note)
+         VALUES (?,?,?,?,?)`,
+        [assessmentId, o.no, o.outcome || '', o.rating, String(o.note || '').trim() || null]);
+    }
+    const nowOutcomes = `${method}#`
+      + outcomeRows.map((o) => `${o.no}:${Number(o.rating)}:${String(o.note || '').trim()}`).join(';');
+
     await conn.query(
       `UPDATE rp_assessments
-       SET version_id = ?, member_name = ?, assessed_by = ?, assessed_by_name = ?,
+       SET version_id = ?, method = ?, member_name = ?, assessed_by = ?, assessed_by_name = ?,
            weight_total = ?, total_score = ?, max_score = ?, percentage = ?, gap_count = ?, updated_at = ?
        WHERE id = ?`,
-      [versionId, member.name, actor.code, actor.name, weightTotal,
+      [versionId, method, member.name, actor.code, actor.name, weightTotal,
        Math.round(total * 100) / 100, max, percentage, gapCount, now, assessmentId]
     );
 
-    // Nothing to report if every line came back with the same rating and the same gap.
+    // Nothing to report if every line came back with the same rating and the same gap
+    // (and, for an outcome-based one, every outcome with the same rating and note).
     const changed = !existing
       || prior.size !== written.size
-      || [...written].some(([key, value]) => prior.get(key) !== value);
+      || [...written].some(([key, value]) => prior.get(key) !== value)
+      || priorOutcomes !== nowOutcomes;
 
     return {
       id: assessmentId, total: Math.round(total * 100) / 100, max, percentage,
@@ -211,7 +255,7 @@ async function save(profileId, member, actor, ratings, financialYear, gaps = {},
 }
 
 module.exports = {
-  RATING_MIN, RATING_MAX, RATING_STEP,
-  ratingScale, isValidRating, skillsFor, forMember, yearsForMember,
+  RATING_MIN, RATING_MAX, RATING_STEP, METHOD,
+  ratingScale, isValidRating, skillsFor, forMember, yearsForMember, outcomeRatingsFor,
   forProfile, overviewFor, save,
 };

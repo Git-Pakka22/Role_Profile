@@ -3,30 +3,28 @@
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-badge-account-outline"></i></div>
             <div>
-                <div class="rp-card-title">Designations</div>
-                <div class="rp-card-subtitle">Add a role nobody has held yet — it appears in the designation list when creating a role profile</div>
+                <div class="rp-card-title"><%= t("Designations") %></div>
+                <div class="rp-card-subtitle"><%= t("Add a role nobody has held yet — it appears in the designation list when creating a role profile") %></div>
             </div>
         </div>
     </div>
     <div class="rp-card-body">
         <div class="rp-form-section">
-            <h3><i class="mdi mdi-plus-circle-outline"></i> New designation</h3>
+            <h3><i class="mdi mdi-plus-circle-outline"></i> <%= t("New designation") %></h3>
             <div class="rp-form-hint">
-                A designation belongs to one sangh, and so to its programme: Sanghrakshak Sangh, Seva Sangh and Core Teams
-                (SS/SS1/CT) are <strong>LDP</strong>, every other sangh is <strong>PSP</strong>. If the sangh already has it — in any capitalisation —
-                the existing one is kept and nothing is added.
+                <%- t.html('A designation belongs to one sangh, and so to its programme: Sanghrakshak Sangh, Seva Sangh and Core Teams (SS/SS1/CT) are <strong>LDP</strong>, every other sangh is <strong>PSP</strong>. If the sangh already has it — in any capitalisation — the existing one is kept and nothing is added.') %>
             </div>
             <form method="post" action="/designations">
                 <input type="hidden" name="csrf_test_name" value="<%= csrfToken %>">
                 <div class="rp-grid-2">
                     <div class="rp-field">
-                        <label for="sangh_code">Sangh</label>
+                        <label for="sangh_code"><%= t("Sangh") %></label>
                         <select class="rp-select" name="sangh_code" id="sangh_code" required>
-                            <% if (sanghs.length > 1) { %><option value="">— Choose a sangh —</option><% } %>
+                            <% if (sanghs.length > 1) { %><option value=""><%= t("— Choose a sangh —") %></option><% } %>
                             <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                                  const group = sanghs.filter(s => s.program === prog);
                                  if (!group.length) return; %>
-                                <optgroup label="<%= groupLabel %>">
+                                <optgroup label="<%= t(groupLabel) %>">
                                 <% group.forEach(s => { %>
                                     <option value="<%= s.sangh_code %>" <%= chosen === s.sangh_code ? 'selected' : '' %>><%= s.sangh_name %></option>
                                 <% }) %>
@@ -35,28 +33,28 @@
                         </select>
                     </div>
                     <div class="rp-field">
-                        <label for="designation_name">Designation name</label>
+                        <label for="designation_name"><%= t("Designation name") %></label>
                         <input type="text" class="rp-input" name="designation_name" id="designation_name"
-                               maxlength="100" minlength="2" required placeholder="e.g. SAP Security Head">
+                               maxlength="100" minlength="2" required placeholder="<%= t("e.g. SAP Security Head") %>">
                     </div>
                 </div>
                 <div class="rp-form-foot">
-                    <button type="submit" class="rp-btn-submit"><i class="mdi mdi-plus"></i> Add designation</button>
+                    <button type="submit" class="rp-btn-submit"><i class="mdi mdi-plus"></i> <%= t("Add designation") %></button>
                 </div>
             </form>
         </div>
 
         <div class="rp-form-section">
-            <h3><i class="mdi mdi-format-list-bulleted"></i> Designations<%= chosen ? ` in ${sanghNames[chosen] || chosen}` : '' %></h3>
+            <h3><i class="mdi mdi-format-list-bulleted"></i> <%= chosen ? t('Designations in {sangh}', { sangh: sanghNames[chosen] || chosen }) : t('Designations') %></h3>
             <% if (sanghs.length > 1) { %>
                 <div class="rp-form-hint">
-                    Showing:
+                    <%= t("Showing:") %>
                     <select class="rp-select" id="sanghFilter" style="display:inline-block;width:auto;margin-left:6px">
-                        <option value="">All sanghs</option>
+                        <option value=""><%= t("All sanghs") %></option>
                         <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                              const group = sanghs.filter(s => s.program === prog);
                              if (!group.length) return; %>
-                            <optgroup label="<%= groupLabel %>">
+                            <optgroup label="<%= t(groupLabel) %>">
                             <% group.forEach(s => { %>
                                 <option value="<%= s.sangh_code %>" <%= chosen === s.sangh_code ? 'selected' : '' %>><%= s.sangh_name %></option>
                             <% }) %>
@@ -66,12 +64,12 @@
                 </div>
             <% } %>
             <% if (!rows.length) { %>
-                <div class="rp-empty-inline">No designations yet.</div>
+                <div class="rp-empty-inline"><%= t("No designations yet.") %></div>
             <% } else { %>
                 <div class="table-responsive">
                     <table class="display" id="desigTable" style="width:100%">
                         <thead>
-                            <tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Active members</th><th>Origin</th><th>Role profile</th></tr>
+                            <tr><th><%= t("Designation") %></th><th><%= t("Sangh") %></th><th><%= t("Programme") %></th><th><%= t("Active members") %></th><th><%= t("Origin") %></th><th><%= t("Role profile") %></th></tr>
                         </thead>
                         <tbody>
                         <% rows.forEach(r => { %>
@@ -82,19 +80,19 @@
                                 <td data-order="<%= r.active %>"><span class="emp-sangh"><%= r.active || '—' %></span></td>
                                 <td>
                                     <% if (r.created) { %>
-                                        <span class="emp-sangh">Added by <%= personName(r.created.code, r.created.by) %></span>
+                                        <span class="emp-sangh"><%= t('Added by {name}', { name: personName(r.created.code, r.created.by) }) %></span>
                                         <div class="rp-sub"><%= fmtDateTime(r.created.at) %></div>
                                     <% } else if (r.active) { %>
-                                        <span class="emp-sangh">Held by members</span>
+                                        <span class="emp-sangh"><%= t("Held by members") %></span>
                                     <% } else { %>
-                                        <span class="emp-sangh">Former members only</span>
+                                        <span class="emp-sangh"><%= t("Former members only") %></span>
                                     <% } %>
                                 </td>
                                 <td>
                                     <% if (r.profile) { %>
                                         <a class="rp-status rp-status-<%= r.profile.status %>" href="/role-profiles/<%= r.profile.id %>"><%= statusText({ status: r.profile.status, program: r.program }) %></a>
                                     <% } else { %>
-                                        <span class="rp-sub">None yet</span>
+                                        <span class="rp-sub"><%= t("None yet") %></span>
                                     <% } %>
                                 </td>
                             </tr>
@@ -116,9 +114,9 @@ $(function () {
         new DataTable('#desigTable', {
             pageLength: 25, order: [[2, 'desc'], [1, 'asc'], [0, 'asc']],
             language: {
-                search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search designations...',
-                lengthMenu: 'Show _MENU_ entries', info: 'Showing _START_ to _END_ of _TOTAL_ designations',
-                zeroRecords: 'No designations match your search',
+                search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: <%- JSON.stringify(t('Search designations...')) %>,
+                lengthMenu: <%- JSON.stringify(t('Show _MENU_ entries')) %>, info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ designations')) %>,
+                zeroRecords: <%- JSON.stringify(t('No designations match your search')) %>,
             },
         });
     }

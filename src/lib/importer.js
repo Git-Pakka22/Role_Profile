@@ -1,6 +1,8 @@
 'use strict';
 const ExcelJS = require('exceljs');
 const roleProfile = require('../models/roleProfile');
+// Messages are in English unless the caller passes its reader's translator as options.t.
+const EN = require('./i18n').translator('en');
 
 /**
  * Read a role profile out of a spreadsheet laid out the way Pakka writes them:
@@ -8,9 +10,13 @@ const roleProfile = require('../models/roleProfile');
  *   A1                designation
  *   A2                Mission: / Mission- ...
  *   A3..              Key Outcomes:  then one numbered line each, or all in one cell
- *   header row        SN | Attribute | Technical Skills | Weightage | Sub-Weightage
- *   rows              the attribute and its weightage span that attribute's skills
+ *   header row        SN | Technical Skills | Attribute | Weightage | Sub-Weightage | Key Outcomes
+ *   rows              the skill and its weightage span that skill's attributes
  *   last row          Total
+ *
+ * Key Outcome No. is optional: for each attribute line, the numbers of the key outcomes it
+ * delivers ("1, 3"; "O1, O3" is read too). Only numbers — outcome text there is not guessed
+ * at, it is reported. Those become the links used by the outcome assessment.
  *
  * Merged cells leave the copies blank, so an attribute and its weight carry down until the
  * next one appears. Nothing here is saved — the parsed content goes back into the form for
@@ -55,6 +61,7 @@ function detectColumns(cells) {
     const t = text(cell).toLowerCase();
     if (!t) return;
     if (idx.sn === undefined && /^(sn|s\.n\.?|sr\.?\s*no\.?)$/.test(t)) idx.sn = i;
+    else if (idx.outcomes === undefined && t.includes('outcome')) idx.outcomes = i;
     else if (idx.attribute === undefined && t.includes('attribute')) idx.attribute = i;
     else if (idx.skill === undefined && t.includes('skill')) idx.skill = i;
     else if (idx.assessment === undefined && t.includes('assessment')) idx.assessment = i;
@@ -72,9 +79,22 @@ function detectColumns(cells) {
     attribute: idx.attribute ?? 1,
     skill: idx.skill ?? 2,
     assessment: idx.assessment,
+    outcomes: idx.outcomes,
     weight: idx.weight ?? 3,
     subWeight: idx.subWeight ?? 4,
   };
+}
+
+/**
+ * "1, 3" / "O1, O3" / "1 & 3" → [1, 3]; blank → []. Anything else — such as the outcome's own
+ * wording, whose "2%" must not become a link to outcome 2 — gives null.
+ */
+function outcomeNumbers(value) {
+  const raw = text(value).trim();
+  if (raw === '') return [];
+  const tokens = raw.split(/\s*(?:,|;|&|\/|\band\b|\s)\s*/i).filter(Boolean);
+  if (!tokens.every((tk) => /^o?\d+$/i.test(tk))) return null;
+  return [...new Set(tokens.map((tk) => Number(tk.replace(/^o/i, ''))).filter((n) => n > 0))].sort((a, b) => a - b);
 }
 
 /** "Mission- Build ..." / "Mission: Build ..." → "Build ..." */
@@ -122,7 +142,7 @@ function splitNumbered(value) {
  * Read one sheet. A workbook often holds an old version alongside the current one, so the
  * caller reads them all and keeps whichever comes out cleanest.
  */
-function parseSheet(sheet) {
+function parseSheet(sheet, t = EN) {
   const rows = [];
   sheet.eachRow({ includeEmpty: true }, (row, n) => {
     const cells = [];
@@ -132,9 +152,7 @@ function parseSheet(sheet) {
 
   const headerAt = rows.findIndex((r) => isHeaderRow(r.cells));
   if (headerAt === -1) {
-    return { error: 'Could not find the table header — a row reading "SN, Attribute, '
-      + 'Technical Skills, Weightage, Sub-Weightage". Check the sheet is laid out like the '
-      + 'Pakka role profile format.' };
+    return { error: t('Could not find the table header — a row reading "SN, Attribute, Technical Skills, Weightage, Sub-Weightage". Check the sheet is laid out like the Pakka role profile format.') };
   }
 
   const warnings = [];
@@ -176,6 +194,11 @@ function parseSheet(sheet) {
     const assessment = cols.assessment !== undefined ? row.cells[cols.assessment] : null;
     const weight = row.cells[cols.weight];
     const subWeight = row.cells[cols.subWeight];
+    const links = cols.outcomes !== undefined ? outcomeNumbers(row.cells[cols.outcomes]) : [];
+    if (links === null && text(skill) !== '') {
+      warnings.push(t('"{name}": the Key Outcome No. column takes only outcome numbers, such as 1, 3 — "{value}" was left out.',
+        { name: text(skill), value: text(row.cells[cols.outcomes]) }));
+    }
     if (/^total$/i.test(text(sn)) || /^total$/i.test(text(attribute))) break;
 
     const attrName = text(attribute);
@@ -197,11 +220,11 @@ function parseSheet(sheet) {
     if (current.weight === null && attrWeight !== null) current.weight = attrWeight;
     if (!current.assessment && assessmentText !== '') current.assessment = assessmentText;
 
-    if (skillName !== '') current.skills.push({ skill: skillName, weight: skillWeight });
+    if (skillName !== '') current.skills.push({ skill: skillName, weight: skillWeight, outcomes: links || [] });
   }
 
   if (!attributes.length) {
-    return { error: 'The table header was found but no attribute rows under it.' };
+    return { error: t('The table header was found but no attribute rows under it.') };
   }
 
   /* --------------------------------------------------------------- trimming */
@@ -213,29 +236,41 @@ function parseSheet(sheet) {
   const MAX_O = roleProfile.MAX_OUTCOMES_LDP;
 
   if (attributes.length > MAX_A) {
-    warnings.push(`The sheet has ${attributes.length} skills; only the first ${MAX_A} were taken.`);
+    warnings.push(t('The sheet has {n} skills; only the first {max} were taken.', { n: attributes.length, max: MAX_A }));
   }
   const kept = attributes.slice(0, MAX_A);
   for (const attr of kept) {
     if (attr.skills.length > MAX_S) {
-      warnings.push(`"${attr.attribute}" has ${attr.skills.length} attributes; only the first ${MAX_S} were taken.`);
+      warnings.push(t('"{name}" has {n} attributes; only the first {max} were taken.', { name: attr.attribute, n: attr.skills.length, max: MAX_S }));
       attr.skills = attr.skills.slice(0, MAX_S);
     }
   }
   if (outcomes.length > MAX_O) {
-    warnings.push(`The sheet has ${outcomes.length} key outcomes; only the first ${MAX_O} were taken.`);
+    warnings.push(t('The sheet has {n} key outcomes; only the first {max} were taken.', { n: outcomes.length, max: MAX_O }));
+  }
+
+  // A link to an outcome the sheet does not have is dropped, and said so.
+  const outcomeCount = Math.min(outcomes.length, MAX_O);
+  for (const attr of kept) {
+    for (const sk of attr.skills) {
+      const unknown = (sk.outcomes || []).filter((n) => n > outcomeCount);
+      if (unknown.length) {
+        warnings.push(t('"{name}" is linked to outcome {list}, but the sheet has only {n} key outcomes — that link was left out.',
+          { name: sk.skill, list: unknown.join(', '), n: outcomeCount }));
+      }
+      sk.outcomes = (sk.outcomes || []).filter((n) => n <= outcomeCount).join(',');
+    }
   }
 
   /* ---------------------------------------------------------------- totals */
   const attrTotal = kept.reduce((t, a) => t + (a.weight || 0), 0);
   if (Math.abs(attrTotal - roleProfile.TOTAL_WEIGHT) > 0.001) {
-    warnings.push(`The skill weights add up to ${attrTotal}, not ${roleProfile.TOTAL_WEIGHT}. `
-      + 'Fix them below before submitting.');
+    warnings.push(t('The skill weights add up to {total}, not {max}. Fix them below before submitting.', { total: attrTotal, max: roleProfile.TOTAL_WEIGHT }));
   }
   for (const attr of kept) {
     const sum = attr.skills.reduce((t, s) => t + (s.weight || 0), 0);
     if (attr.weight !== null && Math.abs(sum - attr.weight) > 0.001) {
-      warnings.push(`"${attr.attribute}": its attribute weights total ${sum}, but the skill weight is ${attr.weight}.`);
+      warnings.push(t('"{name}": its attribute weights total {total}, but the skill weight is {weight}.', { name: attr.attribute, total: sum, weight: attr.weight }));
     }
   }
 
@@ -256,26 +291,27 @@ function parseSheet(sheet) {
  * draft on another tab.
  */
 async function parse(buffer, options = {}) {
+  const t = options.t || EN;
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(buffer);
   } catch (err) {
-    return { error: 'That file could not be opened as a spreadsheet. Save it as .xlsx and try again.' };
+    return { error: t('That file could not be opened as a spreadsheet. Save it as .xlsx and try again.') };
   }
-  if (!workbook.worksheets.length) return { error: 'That file has no sheets in it.' };
+  if (!workbook.worksheets.length) return { error: t('That file has no sheets in it.') };
 
   const names = workbook.worksheets.map((s) => s.name);
 
   if (options.sheet) {
     const wanted = workbook.worksheets.find((s) => s.name === options.sheet);
-    if (!wanted) return { error: `That workbook has no sheet called "${options.sheet}".` };
-    const one = parseSheet(wanted);
+    if (!wanted) return { error: t('That workbook has no sheet called "{sheet}".', { sheet: options.sheet }) };
+    const one = parseSheet(wanted, t);
     return one.error ? { ...one, sheets: names } : { ...one, sheets: names };
   }
 
-  const results = workbook.worksheets.map((sheet) => parseSheet(sheet)).filter((r) => !r.error);
+  const results = workbook.worksheets.map((sheet) => parseSheet(sheet, t)).filter((r) => !r.error);
   if (!results.length) {
-    const first = parseSheet(workbook.worksheets[0]);
+    const first = parseSheet(workbook.worksheets[0], t);
     return { ...first, sheets: names };
   }
 

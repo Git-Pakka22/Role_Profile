@@ -5,6 +5,7 @@ const notification = require('../models/notification');
 const roleProfile = require('../models/roleProfile');
 const employee = require('../models/employee');
 const { displayName, isAdminCode } = require('../lib/displayName');
+const i18n = require('../lib/i18n');
 
 /* -------------------------------------------------------------- helpers */
 
@@ -33,6 +34,24 @@ async function landingUrl(req) {
   return (await leadsCount(req)) > 0 ? '/dashboard' : '/role-profiles';
 }
 
+/* -------------------------------------------------------------- language */
+
+/** English or Hindi for this request: req.t for routes, t for views (see lib/i18n.js). */
+function language(req, res, next) {
+  const lang = i18n.langOf(req);
+  req.lang = lang;
+  req.t = i18n.translator(lang);
+  res.locals.lang = lang;
+  res.locals.t = req.t;
+  res.locals.raw = i18n.raw;
+  // Role profile content as written; res.page swaps in the Hindi when the reader chose Hindi.
+  res.locals.tc = (s) => (s == null ? '' : s);
+  // For page scripts: the given strings, translated, as a JSON object safe inside <script>.
+  res.locals.tjs = (keys) => JSON.stringify(Object.fromEntries(keys.map((k) => [k, req.t(k)])))
+    .replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  next();
+}
+
 /* ------------------------------------------------------------------ CSRF */
 
 /**
@@ -57,7 +76,7 @@ function csrf(req, res, next) {
     const multipart = String(req.get('content-type') || '').startsWith('multipart/form-data');
     if (!multipart && !verifyToken(req)) {
       res.status(403);
-      return res.send('The action you requested is not allowed. (CSRF)');
+      return res.send(req.t('The action you requested is not allowed. (CSRF)'));
     }
   }
   next();
@@ -69,7 +88,7 @@ function csrf(req, res, next) {
 function loggedIn(req, res, next) {
   if (req.session.logged_in) return next();
 
-  req.session.flashError = 'Please sign in to continue.';
+  req.session.flashError = req.t('Please sign in to continue.');
   // Only a GET is worth returning to; replaying a POST target as a GET would fail.
   if (req.method === 'GET') req.session.redirect_after_login = req.originalUrl;
   return res.redirect('/login');
@@ -78,12 +97,12 @@ function loggedIn(req, res, next) {
 /** Guards everything only the PSP Approver may reach. */
 async function adminAuth(req, res, next) {
   if (!req.session.logged_in) {
-    req.session.flashError = 'Please sign in to continue.';
+    req.session.flashError = req.t('Please sign in to continue.');
     if (req.method === 'GET') req.session.redirect_after_login = req.originalUrl;
     return res.redirect('/login');
   }
   if (!isAdmin(req.session.emp_code)) {
-    req.session.flashError = 'That page is restricted to the PSP Approver.';
+    req.session.flashError = req.t('That page is restricted to the PSP Approver.');
     return res.redirect(await landingUrl(req));
   }
   next();
@@ -92,12 +111,12 @@ async function adminAuth(req, res, next) {
 /** Guards everything only the LDP Admin may reach (sevak/sanghrakshak management). */
 async function ldpAdminAuth(req, res, next) {
   if (!req.session.logged_in) {
-    req.session.flashError = 'Please sign in to continue.';
+    req.session.flashError = req.t('Please sign in to continue.');
     if (req.method === 'GET') req.session.redirect_after_login = req.originalUrl;
     return res.redirect('/login');
   }
   if (!isLdpAdmin(req.session.emp_code)) {
-    req.session.flashError = 'That page is restricted to the LDP Admin.';
+    req.session.flashError = req.t('That page is restricted to the LDP Admin.');
     return res.redirect(await landingUrl(req));
   }
   next();
@@ -116,7 +135,9 @@ async function viewLocals(req, res, next) {
     isLdpAdmin: !!req.session.is_ldp_admin,
   };
 
-  // One date format for the whole portal: 18 Aug 2026, 3:45 PM.
+  // One date format for the whole portal: 18 Aug 2026, 3:45 PM — or 18 अग॰ 2026 in Hindi.
+  const locale = req.lang === 'hi' ? 'hi-IN' : 'en-GB';
+  res.locals.dateLocale = locale;
   const parse = (v) => {
     if (!v) return null;
     const d = new Date(String(v).replace(' ', 'T'));
@@ -124,13 +145,13 @@ async function viewLocals(req, res, next) {
   };
   res.locals.fmtDate = (v) => {
     const d = parse(v);
-    return d ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+    return d ? d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }) : '';
   };
   res.locals.fmtDateTime = (v) => {
     const d = parse(v);
     if (!d) return '';
-    // en-GB gives "pm"; the portal shows "PM".
-    return d.toLocaleString('en-GB', {
+    // Both locales give "pm"; the portal shows "PM".
+    return d.toLocaleString(locale, {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: 'numeric', minute: '2-digit', hour12: true,
     }).replace(/\b(am|pm)\b/i, (m) => m.toUpperCase());
@@ -143,14 +164,15 @@ async function viewLocals(req, res, next) {
 
   res.locals.me = me;
   // "Awaiting LDP Admin" or "Awaiting PSP Approver", by the profile's programme.
-  res.locals.statusText = (p) => roleProfile.statusLabel(p);
+  res.locals.statusText = (p) => req.t(roleProfile.statusLabel(p));
   res.locals.personName = displayName;
-  res.locals.finalApproverLabel = (p) => roleProfile.finalApprover(p).label;
+  res.locals.finalApproverLabel = (p) => req.t(roleProfile.finalApprover(p).label);
   res.locals.loggedIn = !!req.session.logged_in;
   res.locals.currentPath = req.path;
+  res.locals.currentUrl = req.originalUrl;
   res.locals.activeNav = '';
   res.locals.pageTitle = '';
-  res.locals.title = 'Pakka Role Profile';
+  res.locals.title = req.t('Pakka Role Profile');
 
   // Flash messages, consumed once.
   res.locals.flashError = req.session.flashError || '';
@@ -172,6 +194,6 @@ async function viewLocals(req, res, next) {
 }
 
 module.exports = {
-  isAdmin, isLdpAdmin, leadsCount, landingUrl, csrf, verifyToken, loggedIn,
+  isAdmin, isLdpAdmin, leadsCount, landingUrl, language, csrf, verifyToken, loggedIn,
   adminAuth, ldpAdminAuth, viewLocals,
 };

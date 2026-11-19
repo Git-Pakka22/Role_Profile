@@ -1,0 +1,6 @@
+<%# English / Hindi switch: remembered in a cookie, then back to this same page. %>
+<% const back = encodeURIComponent(typeof currentUrl !== 'undefined' ? currentUrl : '/'); %>
+<div class="rp-lang" role="group" aria-label="<%= t('Language') %>">
+    <a href="/lang/en?next=<%= back %>" class="<%= lang === 'en' ? 'on' : '' %>" lang="en" hreflang="en"<%- lang === 'en' ? ' aria-current="true"' : '' %>>EN</a>
+    <a href="/lang/hi?next=<%= back %>" class="<%= lang === 'hi' ? 'on' : '' %>" lang="hi" hreflang="hi"<%- lang === 'hi' ? ' aria-current="true"' : '' %>>हिंदी</a>
+</div>

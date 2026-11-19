@@ -11,6 +11,7 @@ const mw = require('../middleware');
 const db = require('../lib/db');
 const pdf = require('../lib/pdf');
 const version = require('../models/version');
+const outcomeLinks = require('../lib/outcomeLinks');
 
 const router = express.Router({ mergeParams: true });
 router.use(mw.loggedIn);
@@ -21,6 +22,14 @@ const me = (req) => ({
   isAdmin: !!req.session.is_admin,
 });
 const num = (v) => String(Math.round(Number(v) * 100) / 100).replace(/\.00$/, '');
+
+/** The key outcomes of a version (or of the live profile), numbered as on the profile. */
+async function outcomesOf(profileId, v) {
+  const rows = v
+    ? await version.outcomesFor(v.id)
+    : await db.query('SELECT outcome FROM rp_role_key_outcomes WHERE role_profile_id = ? ORDER BY sort_order ASC', [profileId]);
+  return rows.map((r, i) => ({ no: i + 1, outcome: r.outcome }));
+}
 
 async function chosenYear(req) {
   const asked = String(req.query.fy || req.body.financial_year || '').trim();
@@ -59,24 +68,24 @@ router.get('/:empCode/pdf', async (req, res) => {
   const empCode = req.params.empCode;
 
   const { profile, member, error } = await load(id, empCode);
-  if (error) { req.session.flashError = error; return res.redirect(`/role-profiles/${id}`); }
+  if (error) { req.session.flashError = req.t(error); return res.redirect(`/role-profiles/${id}`); }
 
   if (profile.program === roleProfile.PROGRAM.LDP) {
-    req.session.flashError = 'PDF download is not available for LDP assessments yet.';
+    req.session.flashError = req.t('PDF download is not available for LDP assessments yet.');
     return res.redirect(`/role-profiles/${id}/assess/${encodeURIComponent(empCode)}`);
   }
 
   const mayView = profile.created_by === actor.code || actor.isAdmin
     || actor.code === empCode || profile.rp_approver_code === actor.code;
   if (!mayView) {
-    req.session.flashError = 'That assessment is not yours to view.';
+    req.session.flashError = req.t('That assessment is not yours to view.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
   const chosen = await chosenYear(req);
   const existing = await assessment.forMember(id, empCode, chosen);
   if (!existing) {
-    req.session.flashError = `There is no assessment for ${chosen} to download yet.`;
+    req.session.flashError = req.t('There is no assessment for {fy} to download yet.', { fy: chosen });
     return res.redirect(`/role-profiles/${id}/assess/${encodeURIComponent(empCode)}?fy=${encodeURIComponent(chosen)}`);
   }
 
@@ -96,6 +105,7 @@ router.get('/:empCode/pdf', async (req, res) => {
   pdf.roleProfile({
     profile: v ? { ...v, id } : profile,
     outcomes, details, assessment: existing,
+    outcomeRatings: existing.method === assessment.METHOD.OUTCOME ? await assessment.outcomeRatingsFor(existing.id) : null,
     versionLabel: v ? `Version ${v.version_no}` : null,
   }).pipe(res);
 });
@@ -106,7 +116,7 @@ router.get('/:empCode', async (req, res) => {
   const empCode = req.params.empCode;
 
   const { profile, member, error } = await load(id, empCode);
-  if (error) { req.session.flashError = error; return res.redirect(`/role-profiles/${id}`); }
+  if (error) { req.session.flashError = req.t(error); return res.redirect(`/role-profiles/${id}`); }
 
   if (profile.program === roleProfile.PROGRAM.LDP) {
     return renderLdp(req, res, profile, member, actor);
@@ -119,7 +129,7 @@ router.get('/:empCode', async (req, res) => {
   const mayView = profile.created_by === actor.code || actor.isAdmin
     || actor.code === empCode || profile.rp_approver_code === actor.code;
   if (!mayView) {
-    req.session.flashError = 'That assessment is not yours to view.';
+    req.session.flashError = req.t('That assessment is not yours to view.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -133,9 +143,15 @@ router.get('/:empCode', async (req, res) => {
     ? await version.detailsFor(v.id, existing ? existing.id : null)
     : await assessment.skillsFor(id, existing ? existing.id : null);
 
+  const outcomes = await outcomesOf(id, v);
   await res.page('assessments/form', {
     profile, member, existing,
     version: v, reviewDue,
+    // The outcome method is offered once the profile links its attributes to key outcomes.
+    outcomes,
+    byOutcomeReady: outcomes.length > 0 && outcomeLinks.hasLinks(skills),
+    method: (existing && existing.method) || assessment.METHOD.ATTRIBUTE,
+    outcomeRatings: existing ? await assessment.outcomeRatingsFor(existing.id) : new Map(),
     review: await version.reviewFor(id, chosen),
     outcomeLabels: version.OUTCOME_LABELS,
     skills,
@@ -148,8 +164,8 @@ router.get('/:empCode', async (req, res) => {
     previous: await financialYear.previous(),
     yearOpen: await financialYear.isOpen(chosen),
     historyYears: await assessment.yearsForMember(id, empCode),
-    title: `Assessment · ${member.name || empCode}`,
-    pageTitle: `Assessment ${chosen} · ${member.name || empCode}`,
+    title: req.t('Assessment · {name}', { name: member.name || empCode }),
+    pageTitle: req.t('Assessment {fy} · {name}', { fy: chosen, name: member.name || empCode }),
     activeNav: 'assessments',
   });
 });
@@ -160,7 +176,7 @@ router.post('/:empCode', async (req, res) => {
   const empCode = req.params.empCode;
 
   const { profile, member, error } = await load(id, empCode);
-  if (error) { req.session.flashError = error; return res.redirect(`/role-profiles/${id}`); }
+  if (error) { req.session.flashError = req.t(error); return res.redirect(`/role-profiles/${id}`); }
 
   if (profile.program === roleProfile.PROGRAM.LDP) {
     return handleLdpPost(req, res, profile, member, actor);
@@ -171,26 +187,25 @@ router.post('/:empCode', async (req, res) => {
   const already = await assessment.forMember(id, empCode, chosen);
 
   if (!(await financialYear.isOpen(chosen))) {
-    req.session.flashError = `${chosen} is closed. Only ${await financialYear.current()} and ${await financialYear.previous()} can be entered or corrected.`;
+    req.session.flashError = req.t('{fy} is closed. Only {current} and {previous} can be entered or corrected.',
+      { fy: chosen, current: await financialYear.current(), previous: await financialYear.previous() });
     return res.redirect(back);
   }
 
   // Assessing means assessing against a settled version, so the year's review comes first.
   const settled = await version.reviewFor(id, chosen);
   if (!settled && !already) {
-    req.session.flashError = `${chosen} has not been reviewed yet. Confirm the role profile still `
-      + 'stands for this year — or update it — before assessing anyone against it.';
+    req.session.flashError = req.t('{fy} has not been reviewed yet. Confirm the role profile still stands for this year — or update it — before assessing anyone against it.', { fy: chosen });
     return res.redirect(`/role-profiles/${id}?tab=versions`);
   }
 
   if (!(await canAssess(profile, actor, already, chosen))) {
     if (profile.created_by !== actor.code) {
-      req.session.flashError = 'Only the RP Creator who wrote this profile can assess against it.';
+      req.session.flashError = req.t('Only the RP Creator who wrote this profile can assess against it.');
       return res.redirect(`/role-profiles/${id}`);
     }
-    req.session.flashError = `${member.name || empCode} has already been assessed for ${chosen}. `
-      + 'An assessment cannot be changed once saved — the next one is due in the following financial year, '
-      + 'or the PSP Approver can correct it.';
+    req.session.flashError = req.t('{name} has already been assessed for {fy}. An assessment cannot be changed once saved — the next one is due in the following financial year, or the PSP Approver can correct it.',
+      { name: member.name || empCode, fy: chosen });
     return res.redirect(back);
   }
 
@@ -203,6 +218,14 @@ router.post('/:empCode', async (req, res) => {
     return m ? Number(m[1]) : null;
   };
 
+  const ctx = { id, profile, member, empCode, actor, chosen, already, back, skillId };
+  if (String(req.body.method || '') === assessment.METHOD.OUTCOME) return saveByOutcome(req, res, ctx);
+  return saveByAttribute(req, res, ctx);
+});
+
+/** The original method: every attribute line is rated directly. */
+async function saveByAttribute(req, res, ctx) {
+  const { id, member, actor, chosen, back, skillId } = ctx;
   const postedRatings = req.body.rating || {};
   const ratings = {};
   for (const [key, value] of Object.entries(postedRatings)) {
@@ -210,9 +233,8 @@ router.post('/:empCode', async (req, res) => {
     if (detailId === null || String(value).trim() === '') continue;
     const rating = Number(value);
     if (!assessment.isValidRating(rating)) {
-      req.session.flashError = `Ratings must be between ${num(assessment.RATING_MIN)} and `
-        + `${num(assessment.RATING_MAX)} in steps of ${num(assessment.RATING_STEP)} — `
-        + `"${value}" is not allowed. Nothing was changed.`;
+      req.session.flashError = req.t('Ratings must be between {min} and {max} in steps of {step} — "{value}" is not allowed. Nothing was changed.',
+        { min: num(assessment.RATING_MIN), max: num(assessment.RATING_MAX), step: num(assessment.RATING_STEP), value });
       return res.redirect(back);
     }
     ratings[detailId] = rating;
@@ -234,26 +256,113 @@ router.post('/:empCode', async (req, res) => {
     .filter((detailId) => !gaps[detailId]);
   if (lowUnexplained.length) {
     const named = await db.query('SELECT tech_skill FROM rp_role_profile_details WHERE id IN (?)', [lowUnexplained]);
-    req.session.flashError = 'A rating of 2 or below needs a training gap noted — missing for: '
-      + `${named.map((n) => n.tech_skill).join(', ')}. Nothing was changed.`;
+    req.session.flashError = req.t('A rating of 2 or below needs a training gap noted — missing for: {list}. Nothing was changed.', { list: named.map((n) => n.tech_skill).join(', ') });
     return res.redirect(back);
   }
 
   if (!Object.keys(ratings).length && !Object.keys(gaps).length) {
-    req.session.flashError = 'Rate at least one skill, or note a training gap, before saving. Nothing was changed.';
+    req.session.flashError = req.t('Rate at least one skill, or note a training gap, before saving. Nothing was changed.');
     return res.redirect(back);
   }
 
   const forYear = await version.versionForYear(id, chosen);
   const result = await assessment.save(id, member, actor, ratings, chosen, gaps,
     forYear ? forYear.id : null);
+  return afterSave(req, res, { ...ctx, result });
+}
 
+/**
+ * The outcome-based method: the key outcomes are rated, and every attribute line linked to
+ * them takes the average of their ratings. Lines linked to no outcome are rated directly.
+ * Everything is checked before anything is saved, as in the attribute method.
+ */
+async function saveByOutcome(req, res, ctx) {
+  const { id, member, actor, chosen, already, back, skillId } = ctx;
+  const forYear = await version.versionForYear(id, chosen);
+  // The same version save() will score against: a correction stays on its original one.
+  const versionId = (already && already.version_id) || (forYear ? forYear.id : null);
+  const v = versionId ? await version.find(versionId) : null;
+  const lines = v ? await version.detailsFor(v.id) : await assessment.skillsFor(id, null);
+  const outcomes = await outcomesOf(id, v);
+  if (!outcomes.length || !outcomeLinks.hasLinks(lines)) {
+    req.session.flashError = req.t('This role profile does not link its attributes to key outcomes, so it can only be assessed by attribute. Nothing was changed.');
+    return res.redirect(back);
+  }
+
+  const badRating = (value) => req.t('Ratings must be between {min} and {max} in steps of {step} — "{value}" is not allowed. Nothing was changed.',
+    { min: num(assessment.RATING_MIN), max: num(assessment.RATING_MAX), step: num(assessment.RATING_STEP), value });
+
+  // Key outcome ratings come in as orating[o<no>] and onote[o<no>].
+  const postedO = req.body.orating || {};
+  const postedNotes = req.body.onote || {};
+  const rated = new Map();
+  for (const o of outcomes) {
+    const value = String(postedO[`o${o.no}`] ?? '').trim();
+    if (value === '') continue;
+    const rating = Number(value);
+    if (!assessment.isValidRating(rating)) { req.session.flashError = badRating(value); return res.redirect(back); }
+    rated.set(o.no, { rating, note: String(postedNotes[`o${o.no}`] ?? '').trim() });
+  }
+
+  const lowOutcomes = outcomes.filter((o) => rated.has(o.no) && rated.get(o.no).rating <= 2 && !rated.get(o.no).note);
+  if (lowOutcomes.length) {
+    req.session.flashError = req.t('A key outcome rated 2 or below needs a training gap noted — missing for: {list}. Nothing was changed.',
+      { list: lowOutcomes.map((o) => `O${o.no}`).join(', ') });
+    return res.redirect(back);
+  }
+
+  // Lines linked to no outcome are rated directly, as in the attribute method.
+  const unlinked = new Set(lines.filter((l) => !outcomeLinks.parse(l.outcome_links).length).map((l) => Number(l.id)));
+  const direct = {};
+  for (const [key, value] of Object.entries(req.body.rating || {})) {
+    const detailId = skillId(key);
+    if (detailId === null || !unlinked.has(detailId) || String(value).trim() === '') continue;
+    const rating = Number(value);
+    if (!assessment.isValidRating(rating)) { req.session.flashError = badRating(value); return res.redirect(back); }
+    direct[detailId] = rating;
+  }
+  // Gaps typed on the Preview tab: for an unlinked line its own, for a linked line an edit of
+  // what its outcomes gave it.
+  const directGaps = {};
+  const editedGaps = {};
+  for (const [key, text] of Object.entries(req.body.gap || {})) {
+    const detailId = skillId(key);
+    if (detailId === null) continue;
+    const t = String(text).trim();
+    if (t === '') continue;
+    if (unlinked.has(detailId)) directGaps[detailId] = t; else editedGaps[detailId] = t;
+  }
+  const lowDirect = lines.filter((l) => direct[l.id] !== undefined && direct[l.id] <= 2 && !directGaps[l.id]);
+  if (lowDirect.length) {
+    req.session.flashError = req.t('A rating of 2 or below needs a training gap noted — missing for: {list}. Nothing was changed.', { list: lowDirect.map((l) => l.tech_skill).join(', ') });
+    return res.redirect(back);
+  }
+
+  if (!rated.size && !Object.keys(direct).length) {
+    req.session.flashError = req.t('Rate at least one key outcome before saving. Nothing was changed.');
+    return res.redirect(back);
+  }
+
+  const { ratings, gaps } = outcomeLinks.derive(lines, rated, direct, directGaps);
+  for (const line of lines) {
+    const lid = Number(line.id);
+    if (editedGaps[lid] && ratings[lid] !== undefined) gaps[lid] = editedGaps[lid];
+  }
+  const result = await assessment.save(id, member, actor, ratings, chosen, gaps, forYear ? forYear.id : null, {
+    method: assessment.METHOD.OUTCOME,
+    outcomes: outcomes.filter((o) => rated.has(o.no)).map((o) => ({ ...o, ...rated.get(o.no) })),
+  });
+  return afterSave(req, res, { ...ctx, result, byOutcome: true });
+}
+
+/** History, notification and the message — the same for both methods. */
+async function afterSave(req, res, { id, profile, member, empCode, actor, chosen, already, back, result, byOutcome = false }) {
   // A re-save that leaves every rating and gap as they were is not an event: logging it
   // would fill the timeline with entries that say nothing happened.
   if (result.changed) {
     await history.log(id, history.ACTION.ASSESSED, actor,
       `${already && actor.isAdmin ? 'Corrected assessment of ' : 'Assessed '}`
-      + `${member.name || empCode} (${empCode}) for ${chosen} — `
+      + `${member.name || empCode} (${empCode}) for ${chosen}${byOutcome ? ' by key outcome' : ''} — `
       + `${num(result.percentage)}% (${num(result.total)} of ${num(result.max)})`);
 
     await notification.notify([empCode], notification.TYPE.INFO,
@@ -263,14 +372,15 @@ router.post('/:empCode', async (req, res) => {
       `role-profiles/${id}/assess/${empCode}?fy=${encodeURIComponent(chosen)}`, id, actor.code);
   }
 
+  const scoreVars = { fy: chosen, pct: num(result.percentage), total: num(result.total), max: num(result.max), rated: result.rated, gaps: result.gaps };
   req.session.flashSuccess = result.changed
-    ? `Assessment saved for ${chosen} — ${num(result.percentage)}% `
-      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} skills`
-      + (result.gaps > 0 ? `, ${result.gaps} training gap${result.gaps === 1 ? '' : 's'} noted` : '') + '.'
-    : `Nothing changed — ${member.name || empCode} still stands at ${num(result.percentage)}% `
-      + `for ${chosen}, so the history is unchanged.`;
+    ? (result.gaps > 0
+      ? req.t.n('Assessment saved for {fy} — {pct}% ({total} of {max}) across {rated} skills, {n} training gap noted.',
+        'Assessment saved for {fy} — {pct}% ({total} of {max}) across {rated} skills, {n} training gaps noted.', result.gaps, scoreVars)
+      : req.t('Assessment saved for {fy} — {pct}% ({total} of {max}) across {rated} skills.', scoreVars))
+    : req.t('Nothing changed — {name} still stands at {pct}% for {fy}, so the history is unchanged.', { ...scoreVars, name: member.name || empCode });
   res.redirect(back);
-});
+}
 
 /* ---------------------------------------------------------------- LDP ---- */
 
@@ -284,7 +394,7 @@ async function renderLdp(req, res, profile, member, actor) {
     || actor.code === empCode || profile.rp_approver_code === actor.code
     || (leader && leader.code === actor.code);
   if (!mayView) {
-    req.session.flashError = 'That assessment is not yours to view.';
+    req.session.flashError = req.t('That assessment is not yours to view.');
     return res.redirect(`/role-profiles/${id}`);
   }
 
@@ -307,8 +417,8 @@ async function renderLdp(req, res, profile, member, actor) {
     previous: await financialYear.previous(),
     yearOpen,
     historyYears: await ldpAssessment.yearsForMember(id, empCode),
-    title: `LDP Assessment · ${member.name || empCode}`,
-    pageTitle: `LDP Assessment ${chosen} · ${member.name || empCode}`,
+    title: req.t('LDP Assessment · {name}', { name: member.name || empCode }),
+    pageTitle: req.t('LDP Assessment {fy} · {name}', { fy: chosen, name: member.name || empCode }),
     activeNav: 'assessments',
   });
 }
@@ -322,7 +432,8 @@ async function handleLdpPost(req, res, profile, member, actor) {
   const stage = String(req.body.stage || '').trim();
 
   if (!(await financialYear.isOpen(chosen))) {
-    req.session.flashError = `${chosen} is closed. Only ${await financialYear.current()} and ${await financialYear.previous()} can be entered or corrected.`;
+    req.session.flashError = req.t('{fy} is closed. Only {current} and {previous} can be entered or corrected.',
+      { fy: chosen, current: await financialYear.current(), previous: await financialYear.previous() });
     return res.redirect(back);
   }
 
@@ -337,9 +448,8 @@ async function handleLdpPost(req, res, profile, member, actor) {
     if (detailId === null || String(value).trim() === '') continue;
     const rating = Number(value);
     if (!ldpAssessment.isValidRating(rating)) {
-      req.session.flashError = `Ratings must be between ${num(ldpAssessment.RATING_MIN)} and `
-        + `${num(ldpAssessment.RATING_MAX)} in steps of ${num(ldpAssessment.RATING_STEP)} — `
-        + `"${value}" is not allowed. Nothing was changed.`;
+      req.session.flashError = req.t('Ratings must be between {min} and {max} in steps of {step} — "{value}" is not allowed. Nothing was changed.',
+        { min: num(ldpAssessment.RATING_MIN), max: num(ldpAssessment.RATING_MAX), step: num(ldpAssessment.RATING_STEP), value });
       return res.redirect(back);
     }
     ratings[detailId] = rating;
@@ -348,20 +458,20 @@ async function handleLdpPost(req, res, profile, member, actor) {
   if (stage === 'self') {
     const existing = await ldpAssessment.forMember(id, empCode, chosen);
     if (actor.code !== empCode) {
-      req.session.flashError = 'Only the member themselves can submit a self-rating.';
+      req.session.flashError = req.t('Only the member themselves can submit a self-rating.');
       return res.redirect(back);
     }
     if (existing && existing.self_submitted_at) {
-      req.session.flashError = 'Your self-rating for this year is already submitted and cannot be changed.';
+      req.session.flashError = req.t('Your self-rating for this year is already submitted and cannot be changed.');
       return res.redirect(back);
     }
     if (!Object.keys(ratings).length) {
-      req.session.flashError = 'Rate at least one skill before submitting. Nothing was changed.';
+      req.session.flashError = req.t('Rate at least one skill before submitting. Nothing was changed.');
       return res.redirect(back);
     }
 
     const result = await ldpAssessment.saveSelf(id, member, ratings, chosen);
-    if (result.error) { req.session.flashError = result.error; return res.redirect(back); }
+    if (result.error) { req.session.flashError = req.t(result.error); return res.redirect(back); }
 
     await history.log(id, history.ACTION.ASSESSED, actor,
       `${member.name || empCode} (${empCode}) self-rated for ${chosen} — ${num(result.percentage)}%`);
@@ -372,15 +482,15 @@ async function handleLdpPost(req, res, profile, member, actor) {
         + 'Your final rating is now open.',
         `role-profiles/${id}/assess/${empCode}?fy=${encodeURIComponent(chosen)}`, id, actor.code);
     }
-    req.session.flashSuccess = `Self-rating submitted for ${chosen} — ${num(result.percentage)}% `
-      + `(${num(result.total)} of ${num(result.max)}).`;
+    req.session.flashSuccess = req.t('Self-rating submitted for {fy} — {pct}% ({total} of {max}).',
+      { fy: chosen, pct: num(result.percentage), total: num(result.total), max: num(result.max) });
     return res.redirect(back);
   }
 
   if (stage === 'final') {
     const authorized = !!((leader && actor.code === leader.code) || actor.isAdmin);
     if (!authorized) {
-      req.session.flashError = 'Only this member’s leader (or the PSP Approver) can give the final rating.';
+      req.session.flashError = req.t('Only this member’s leader (or the PSP Approver) can give the final rating.');
       return res.redirect(back);
     }
 
@@ -393,7 +503,7 @@ async function handleLdpPost(req, res, profile, member, actor) {
       if (t !== '') gaps[detailId] = t;
     }
     if (!Object.keys(ratings).length && !Object.keys(gaps).length) {
-      req.session.flashError = 'Rate at least one skill, or note a development plan, before saving. Nothing was changed.';
+      req.session.flashError = req.t('Rate at least one skill, or note a development plan, before saving. Nothing was changed.');
       return res.redirect(back);
     }
 
@@ -404,13 +514,12 @@ async function handleLdpPost(req, res, profile, member, actor) {
       .filter((detailId) => !gaps[detailId]);
     if (lowUnexplained.length) {
       const named = await db.query('SELECT tech_skill FROM rp_role_profile_details WHERE id IN (?)', [lowUnexplained]);
-      req.session.flashError = 'A rating of 2 or below needs a development plan noted — missing for: '
-        + `${named.map((n) => n.tech_skill).join(', ')}. Nothing was changed.`;
+      req.session.flashError = req.t('A rating of 2 or below needs a development plan noted — missing for: {list}. Nothing was changed.', { list: named.map((n) => n.tech_skill).join(', ') });
       return res.redirect(back);
     }
 
     const result = await ldpAssessment.saveFinal(id, member, actor, ratings, gaps, chosen);
-    if (result.error) { req.session.flashError = result.error; return res.redirect(back); }
+    if (result.error) { req.session.flashError = req.t(result.error); return res.redirect(back); }
 
     await history.log(id, history.ACTION.ASSESSED, actor,
       `Final rating for ${member.name || empCode} (${empCode}) for ${chosen} — ${num(result.percentage)}%`);
@@ -420,13 +529,15 @@ async function handleLdpPost(req, res, profile, member, actor) {
       + `(${num(result.total)} of ${num(result.max)}).`,
       `role-profiles/${id}/assess/${empCode}?fy=${encodeURIComponent(chosen)}`, id, actor.code);
 
-    req.session.flashSuccess = `Final rating saved for ${chosen} — ${num(result.percentage)}% `
-      + `(${num(result.total)} of ${num(result.max)}) across ${result.rated} skills`
-      + (result.gaps > 0 ? `, ${result.gaps} development note${result.gaps === 1 ? '' : 's'} recorded` : '') + '.';
+    const finalVars = { fy: chosen, pct: num(result.percentage), total: num(result.total), max: num(result.max), rated: result.rated };
+    req.session.flashSuccess = result.gaps > 0
+      ? req.t.n('Final rating saved for {fy} — {pct}% ({total} of {max}) across {rated} skills, {n} development note recorded.',
+        'Final rating saved for {fy} — {pct}% ({total} of {max}) across {rated} skills, {n} development notes recorded.', result.gaps, finalVars)
+      : req.t('Final rating saved for {fy} — {pct}% ({total} of {max}) across {rated} skills.', finalVars);
     return res.redirect(back);
   }
 
-  req.session.flashError = 'Nothing was changed.';
+  req.session.flashError = req.t('Nothing was changed.');
   return res.redirect(back);
 }
 

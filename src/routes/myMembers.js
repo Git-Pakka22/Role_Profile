@@ -24,8 +24,8 @@ router.get('/', mw.loggedIn, async (req, res) => {
 
   await res.page('my_members', {
     members, roles, bySangh,
-    title: 'My Members — Pakka Role Profile',
-    pageTitle: 'My Members',
+    title: req.t('My Members — Pakka Role Profile'),
+    pageTitle: req.t('My Members'),
     activeNav: 'my-members',
   });
 });

@@ -1,20 +1,20 @@
 <%
   const f = filters;
-  const stageLabel = (key) => key === UPDATE_PENDING ? 'Update awaiting approval'
-    : (stages.find((s) => s.key === key) || {}).label || key;
+  const stageLabel = (key) => t(key === UPDATE_PENDING ? 'Update awaiting approval'
+    : (stages.find((s) => s.key === key) || {}).label || key);
   const progTag = (p) => `<span class="rp-prog rp-prog-${p === 'ldp' ? 'ldp' : 'psp'}" style="margin-left:0">${p === 'ldp' ? 'LDP' : 'PSP'}</span>`;
   const cell = (n, changes) => n ? `<a class="rp-rep-num" href="${link(changes)}">${n}</a>` : '<span class="rp-rep-zero">0</span>';
-  const cards = [{ key: '', label: 'All role profiles', icon: 'mdi-file-document-multiple-outline', n: stageCards.total }]
-    .concat(stages.map((s) => ({ key: s.key, label: s.label, icon: s.icon, n: stageCards[s.key] || 0 })))
-    .concat([{ key: UPDATE_PENDING, label: 'Update awaiting approval', icon: 'mdi-source-branch', n: stageCards[UPDATE_PENDING] || 0 }]);
+  const cards = [{ key: '', label: t('All role profiles'), icon: 'mdi-file-document-multiple-outline', n: stageCards.total }]
+    .concat(stages.map((s) => ({ key: s.key, label: t(s.label), icon: s.icon, n: stageCards[s.key] || 0 })))
+    .concat([{ key: UPDATE_PENDING, label: t('Update awaiting approval'), icon: 'mdi-source-branch', n: stageCards[UPDATE_PENDING] || 0 }]);
 %>
 <div class="rp-card rp-report">
     <div class="rp-card-header">
         <div class="rp-card-header-left">
             <div class="rp-card-header-icon"><i class="mdi mdi-chart-box-outline"></i></div>
             <div>
-                <div class="rp-card-title">Role Profile Report</div>
-                <div class="rp-card-subtitle">How many role profiles are at each stage — covering <%= scopeNote %> (<%= totalVisible %>)</div>
+                <div class="rp-card-title"><%= t("Role Profile Report") %></div>
+                <div class="rp-card-subtitle"><%= t('How many role profiles are at each stage — covering {scope} ({n})', { scope: t(scopeNote), n: totalVisible }) %></div>
             </div>
         </div>
     </div>
@@ -22,92 +22,92 @@
 
         <!-- ------------------------------------------------------------ filters -->
         <button type="button" class="rp-rep-filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="reportFilters">
-            <i class="mdi mdi-filter-variant"></i> Filters<% if (activeFilters) { %> <span class="rp-count-pill"><%= activeFilters %> on</span><% } %>
+            <i class="mdi mdi-filter-variant"></i> <%= t("Filters") %><% if (activeFilters) { %> <span class="rp-count-pill"><%= t('{n} on', { n: activeFilters }) %></span><% } %>
             <i class="mdi mdi-chevron-down"></i>
         </button>
         <form method="get" action="/reports/role-profiles" class="rp-rep-filters" id="reportFilters">
             <div class="rp-rep-grid">
-                <label>Financial year (created)
+                <label><%= t("Financial year (created)") %>
                     <select name="fy" class="rp-select">
-                        <option value="">All years</option>
-                        <% years.forEach((y) => { %><option value="<%= y.year %>" <%= f.fy === y.year ? 'selected' : '' %>><%= y.year %><%= y.year === fyNow ? ' — current' : '' %></option><% }) %>
+                        <option value=""><%= t("All years") %></option>
+                        <% years.forEach((y) => { %><option value="<%= y.year %>" <%= f.fy === y.year ? 'selected' : '' %>><%= y.year %><%= y.year === fyNow ? ' — ' + t('current') : '' %></option><% }) %>
                     </select>
                 </label>
-                <label>Created from
+                <label><%= t("Created from") %>
                     <input type="date" name="from" class="rp-input" value="<%= f.from || '' %>">
                 </label>
-                <label>Created to
+                <label><%= t("Created to") %>
                     <input type="date" name="to" class="rp-input" value="<%= f.to || '' %>">
                 </label>
-                <label>Sangh
+                <label><%= t("Sangh") %>
                     <select name="sangh" class="rp-select">
-                        <option value="">All sanghs</option>
+                        <option value=""><%= t("All sanghs") %></option>
                         <% [['psp', 'PSP sanghs'], ['ldp', 'LDP — Sanghrakshak, Seva Sangh & Core Teams']].forEach(([prog, groupLabel]) => {
                              const group = options.sanghs.filter((s) => (s.program === 'ldp' ? 'ldp' : 'psp') === prog);
                              if (!group.length) return; %>
-                            <optgroup label="<%= groupLabel %>">
+                            <optgroup label="<%= t(groupLabel) %>">
                             <% group.forEach((s) => { %><option value="<%= s.code %>" <%= f.sangh === s.code ? 'selected' : '' %>><%= s.name %></option><% }) %>
                             </optgroup>
                         <% }) %>
                     </select>
                 </label>
-                <label>Programme
+                <label><%= t("Programme") %>
                     <select name="program" class="rp-select">
-                        <option value="">PSP and LDP</option>
-                        <option value="psp" <%= f.program === 'psp' ? 'selected' : '' %>>PSP</option>
-                        <option value="ldp" <%= f.program === 'ldp' ? 'selected' : '' %>>LDP</option>
+                        <option value=""><%= t("PSP and LDP") %></option>
+                        <option value="psp" <%= f.program === 'psp' ? 'selected' : '' %>><%= t("PSP") %></option>
+                        <option value="ldp" <%= f.program === 'ldp' ? 'selected' : '' %>><%= t("LDP") %></option>
                     </select>
                 </label>
-                <label>Stage
+                <label><%= t("Stage") %>
                     <select name="stage" class="rp-select">
-                        <option value="">All stages</option>
-                        <% stages.forEach((s) => { %><option value="<%= s.key %>" <%= f.stage === s.key ? 'selected' : '' %>><%= s.label %></option><% }) %>
-                        <option value="<%= UPDATE_PENDING %>" <%= f.stage === UPDATE_PENDING ? 'selected' : '' %>>Update awaiting approval</option>
+                        <option value=""><%= t("All stages") %></option>
+                        <% stages.forEach((s) => { %><option value="<%= s.key %>" <%= f.stage === s.key ? 'selected' : '' %>><%= t(s.label) %></option><% }) %>
+                        <option value="<%= UPDATE_PENDING %>" <%= f.stage === UPDATE_PENDING ? 'selected' : '' %>><%= t("Update awaiting approval") %></option>
                     </select>
                 </label>
-                <label>Created by
+                <label><%= t("Created by") %>
                     <select name="creator" class="rp-select">
-                        <option value="">Anyone</option>
+                        <option value=""><%= t("Anyone") %></option>
                         <% options.creators.forEach((c) => { %><option value="<%= c.code %>" <%= f.creator === c.code ? 'selected' : '' %>><%= personName(c.code, c.name) %></option><% }) %>
                     </select>
                 </label>
-                <label>RP Approver
+                <label><%= t("RP Approver") %>
                     <select name="approver" class="rp-select">
-                        <option value="">Anyone</option>
+                        <option value=""><%= t("Anyone") %></option>
                         <% options.approvers.forEach((a) => { %><option value="<%= a.code %>" <%= f.approver === a.code ? 'selected' : '' %>><%= personName(a.code, a.name) %></option><% }) %>
                     </select>
                 </label>
-                <label>Designation
-                    <input type="search" name="q" class="rp-input" placeholder="Search designation…" value="<%= f.q %>">
+                <label><%= t("Designation") %>
+                    <input type="search" name="q" class="rp-input" placeholder="<%= t("Search designation…") %>" value="<%= f.q %>">
                 </label>
-                <label>Members
+                <label><%= t("Members") %>
                     <select name="members" class="rp-select">
-                        <option value="">Any</option>
-                        <option value="yes" <%= f.members === 'yes' ? 'selected' : '' %>>Assigned</option>
-                        <option value="no" <%= f.members === 'no' ? 'selected' : '' %>>None assigned</option>
+                        <option value=""><%= t("Any") %></option>
+                        <option value="yes" <%= f.members === 'yes' ? 'selected' : '' %>><%= t("Assigned") %></option>
+                        <option value="no" <%= f.members === 'no' ? 'selected' : '' %>><%= t("None assigned") %></option>
                     </select>
                 </label>
-                <label>Versions
+                <label><%= t("Versions") %>
                     <select name="updated" class="rp-select">
-                        <option value="">Any</option>
-                        <option value="yes" <%= f.updated === 'yes' ? 'selected' : '' %>>Updated (v2 or later)</option>
-                        <option value="no" <%= f.updated === 'no' ? 'selected' : '' %>>First version only</option>
+                        <option value=""><%= t("Any") %></option>
+                        <option value="yes" <%= f.updated === 'yes' ? 'selected' : '' %>><%= t("Updated (v2 or later)") %></option>
+                        <option value="no" <%= f.updated === 'no' ? 'selected' : '' %>><%= t("First version only") %></option>
                     </select>
                 </label>
-                <label>Assessed in <%= fyNow %>
+                <label><%= t('Assessed in {fy}', { fy: fyNow }) %>
                     <select name="assessed" class="rp-select">
-                        <option value="">Any</option>
-                        <option value="yes" <%= f.assessed === 'yes' ? 'selected' : '' %>>Has assessments</option>
-                        <option value="no" <%= f.assessed === 'no' ? 'selected' : '' %>>No assessments</option>
+                        <option value=""><%= t("Any") %></option>
+                        <option value="yes" <%= f.assessed === 'yes' ? 'selected' : '' %>><%= t("Has assessments") %></option>
+                        <option value="no" <%= f.assessed === 'no' ? 'selected' : '' %>><%= t("No assessments") %></option>
                     </select>
                 </label>
             </div>
             <div class="rp-rep-actions">
-                <button type="submit" class="rp-btn-submit"><i class="mdi mdi-filter-outline"></i> Apply filters</button>
+                <button type="submit" class="rp-btn-submit"><i class="mdi mdi-filter-outline"></i> <%= t("Apply filters") %></button>
                 <% if (activeFilters) { %>
-                    <a class="rp-btn-cancel" href="/reports/role-profiles"><i class="mdi mdi-close"></i> Clear all (<%= activeFilters %>)</a>
+                    <a class="rp-btn-cancel" href="/reports/role-profiles"><i class="mdi mdi-close"></i> <%= t('Clear all ({n})', { n: activeFilters }) %></a>
                 <% } %>
-                <span class="rp-sub">Showing <strong><%= rows.length %></strong> of <%= totalVisible %> role profiles</span>
+                <span class="rp-sub"><%- t.html('Showing <strong>{n}</strong> of {total} role profiles', { n: rows.length, total: totalVisible }) %></span>
             </div>
         </form>
 
@@ -115,19 +115,19 @@
         <% const pct = coverage.designations ? Math.round(coverage.created / coverage.designations * 100) : 0; %>
         <div class="rp-cov">
             <div class="rp-cov-main">
-                <div class="rp-cov-label">Role profile coverage<%= f.sangh ? '' : ' — all sanghs' %></div>
-                <div class="rp-cov-big"><span><%= pct %>%</span> of designations have a role profile</div>
-                <div class="rp-cov-bar" role="img" aria-label="<%= coverage.created %> of <%= coverage.designations %> designations have a role profile">
+                <div class="rp-cov-label"><%= f.sangh ? t('Role profile coverage') : t('Role profile coverage — all sanghs') %></div>
+                <div class="rp-cov-big"><%- t.html('<span>{pct}%</span> of designations have a role profile', { pct }) %></div>
+                <div class="rp-cov-bar" role="img" aria-label="<%= t('{created} of {total} designations have a role profile', { created: coverage.created, total: coverage.designations }) %>">
                     <span class="done" style="width:<%= pct %>%"></span>
                 </div>
             </div>
             <div class="rp-cov-tiles">
-                <div class="rp-cov-tile"><span class="n"><%= coverage.designations %></span><span class="l">Designations</span></div>
-                <div class="rp-cov-tile ok"><span class="n"><%= coverage.created %></span><span class="l">RP created</span></div>
-                <a class="rp-cov-tile todo" href="#missing"><span class="n"><%= coverage.designations - coverage.created %></span><span class="l">RP not created yet</span></a>
+                <div class="rp-cov-tile"><span class="n"><%= coverage.designations %></span><span class="l"><%= t("Designations") %></span></div>
+                <div class="rp-cov-tile ok"><span class="n"><%= coverage.created %></span><span class="l"><%= t("RP created") %></span></div>
+                <a class="rp-cov-tile todo" href="#missing"><span class="n"><%= coverage.designations - coverage.created %></span><span class="l"><%= t("RP not created yet") %></span></a>
             </div>
         </div>
-        <p class="rp-sub" style="margin:-6px 0 18px">Designations held by an active member, or added in the portal. "RP created" counts any role profile in progress or approved; a rejected first draft does not count.</p>
+        <p class="rp-sub" style="margin:-6px 0 18px"><%= t("Designations held by an active member, or added in the portal. \"RP created\" counts any role profile in progress or approved; a rejected first draft does not count.") %></p>
 
         <!-- -------------------------------------------------------- stage cards -->
         <div class="rp-rep-cards">
@@ -139,26 +139,26 @@
                 </a>
             <% }) %>
         </div>
-        <p class="rp-sub" style="margin:-6px 0 18px">Role profiles by stage — click one to filter. "Awaiting final approval" is the PSP Approver for PSP profiles and the LDP Admin for LDP ones. "Update awaiting approval" counts approved profiles with an update in approval or sent back.</p>
+        <p class="rp-sub" style="margin:-6px 0 18px"><%= t("Role profiles by stage — click one to filter. \"Awaiting final approval\" is the PSP Approver for PSP profiles and the LDP Admin for LDP ones. \"Update awaiting approval\" counts approved profiles with an update in approval or sent back.") %></p>
 
         <!-- --------------------------------------------------- sangh table -->
-        <div class="rp-section"><h3><i class="mdi mdi-table-large"></i> By sangh</h3></div>
+        <div class="rp-section"><h3><i class="mdi mdi-table-large"></i> <%= t("By sangh") %></h3></div>
         <% if (!sanghRows.length) { %>
-            <div class="rp-empty-inline">No sanghs match these filters.</div>
+            <div class="rp-empty-inline"><%= t("No sanghs match these filters.") %></div>
         <% } else { %>
         <div class="table-responsive">
             <table class="rp-member-table rp-rep-matrix">
                 <thead>
                     <tr>
-                        <th rowspan="2">Sangh</th>
-                        <th colspan="4" class="num grp">Designations</th>
-                        <th colspan="<%= stages.length + 1 %>" class="num grp">Role profiles by stage</th>
+                        <th rowspan="2"><%= t("Sangh") %></th>
+                        <th colspan="4" class="num grp"><%= t("Designations") %></th>
+                        <th colspan="<%= stages.length + 1 %>" class="num grp"><%= t("Role profiles by stage") %></th>
                     </tr>
                     <tr>
-                        <th class="num">Total</th><th class="num">RP created</th><th class="num">Not created</th><th>Coverage</th>
-                        <% const short = { draft: 'Draft', rejected: 'Rejected', pending_sevak: 'With RP Approver', pending_admin: 'With final approver', approved: 'Approved' }; %>
-                        <% stages.forEach((s) => { %><th class="num" title="<%= s.label %>"><%= short[s.key] || s.label %></th><% }) %>
-                        <th class="num">All</th>
+                        <th class="num"><%= t("Total") %></th><th class="num"><%= t("RP created") %></th><th class="num"><%= t("Not created") %></th><th><%= t("Coverage") %></th>
+                        <% const short = { draft: t('Draft'), rejected: t('Rejected'), pending_sevak: t('With RP Approver'), pending_admin: t('With final approver'), approved: t('Approved') }; %>
+                        <% stages.forEach((s) => { %><th class="num" title="<%= t(s.label) %>"><%= short[s.key] || t(s.label) %></th><% }) %>
+                        <th class="num"><%= t("All") %></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -170,7 +170,7 @@
                         <td class="num"><%= g.cov.designations %></td>
                         <td class="num"><%- g.cov.created ? `<span class="rp-rep-num ok">${g.cov.created}</span>` : '<span class="rp-rep-zero">0</span>' %></td>
                         <td class="num"><%- miss ? `<a class="rp-rep-num todo" href="${link({ sangh: g.sangh_code })}#missing">${miss}</a>` : '<span class="rp-rep-zero">0</span>' %></td>
-                        <td class="rp-cov-cell"><span class="rp-mini-bar" title="<%= gp %>% covered"><span style="width:<%= gp %>%"></span></span> <span class="rp-sub"><%= gp %>%</span></td>
+                        <td class="rp-cov-cell"><span class="rp-mini-bar" title="<%= t('{pct}% covered', { pct: gp }) %>"><span style="width:<%= gp %>%"></span></span> <span class="rp-sub"><%= gp %>%</span></td>
                         <% stages.forEach((s) => { totals[s.key] += g.counts[s.key] || 0; %>
                             <td class="num"><%- cell(g.counts[s.key] || 0, { sangh: g.sangh_code, stage: s.key }) %></td>
                         <% }) %>
@@ -180,7 +180,7 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th>All sanghs</th>
+                        <th><%= t("All sanghs") %></th>
                         <th class="num"><%= totals.d %></th>
                         <th class="num"><%= totals.c %></th>
                         <th class="num"><%= totals.d - totals.c %></th>
@@ -195,19 +195,19 @@
 
         <!-- -------------------------------------------------- programme split -->
         <% if (programRows.length) { %>
-        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-chart-bar"></i> By programme</h3></div>
+        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-chart-bar"></i> <%= t("By programme") %></h3></div>
         <div class="rp-rep-programs">
             <% programRows.forEach((r) => { %>
                 <div class="rp-rep-program">
-                    <div class="head"><%- progTag(r.program) %> <strong><%= r.counts.total %></strong> role profile<%= r.counts.total === 1 ? '' : 's' %></div>
+                    <div class="head"><%- progTag(r.program) %> <%- t.html(r.counts.total === 1 ? '<strong>{n}</strong> role profile' : '<strong>{n}</strong> role profiles', { n: r.counts.total }) %></div>
                     <div class="bar">
                         <% stages.forEach((s) => { const n = r.counts[s.key] || 0; if (!n) return; %>
-                            <a class="seg rp-rep-<%= s.key %>" style="flex:<%= n %>" href="<%= link({ program: r.program, stage: s.key }) %>" title="<%= s.label %>: <%= n %>"><%= n %></a>
+                            <a class="seg rp-rep-<%= s.key %>" style="flex:<%= n %>" href="<%= link({ program: r.program, stage: s.key }) %>" title="<%= t(s.label) %>: <%= n %>"><%= n %></a>
                         <% }) %>
                     </div>
                     <div class="legend">
                         <% stages.forEach((s) => { const n = r.counts[s.key] || 0; if (!n) return; %>
-                            <span><i class="dot rp-rep-<%= s.key %>"></i><%= s.label %> <strong><%= n %></strong></span>
+                            <span><i class="dot rp-rep-<%= s.key %>"></i><%= t(s.label) %> <strong><%= n %></strong></span>
                         <% }) %>
                     </div>
                 </div>
@@ -216,13 +216,13 @@
         <% } %>
 
         <!-- ------------------------------------------------ designations without an RP -->
-        <div class="rp-section" style="margin-top:22px" id="missing"><h3><i class="mdi mdi-file-alert-outline"></i> Designations without a role profile<%= f.sangh ? '' : '' %> <span class="rp-count-pill"><%= coverage.missing.length %></span></h3></div>
+        <div class="rp-section" style="margin-top:22px" id="missing"><h3><i class="mdi mdi-file-alert-outline"></i> <%= t("Designations without a role profile") %> <span class="rp-count-pill"><%= coverage.missing.length %></span></h3></div>
         <% if (!coverage.missing.length) { %>
-            <div class="rp-empty-inline">Every designation here has a role profile.</div>
+            <div class="rp-empty-inline"><%= t("Every designation here has a role profile.") %></div>
         <% } else { %>
         <div class="table-responsive">
             <table class="display rp-cards-sm" id="missingTable" style="width:100%">
-                <thead><tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Active holders</th><th>Origin</th></tr></thead>
+                <thead><tr><th><%= t("Designation") %></th><th><%= t("Sangh") %></th><th><%= t("Programme") %></th><th><%= t("Active holders") %></th><th><%= t("Origin") %></th></tr></thead>
                 <tbody>
                 <% coverage.missing.forEach((d) => { %>
                     <tr>
@@ -230,7 +230,7 @@
                         <td><%= (options.sanghs.find((x) => x.code === d.sangh_code) || {}).name || d.sangh_code %></td>
                         <td data-order="<%= d.program %>"><%= d.program === 'ldp' ? 'LDP' : 'PSP' %></td>
                         <td data-order="<%= d.active %>"><%= d.active || '—' %></td>
-                        <td><%= d.created ? 'Added in the portal' : 'Held by members' %></td>
+                        <td><%= d.created ? t('Added in the portal') : t('Held by members') %></td>
                     </tr>
                 <% }) %>
                 </tbody>
@@ -239,15 +239,15 @@
         <% } %>
 
         <!-- --------------------------------------------------------- detail list -->
-        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-format-list-bulleted"></i> Role profiles<%= f.stage ? ' — ' + stageLabel(f.stage) : '' %></h3></div>
+        <div class="rp-section" style="margin-top:22px"><h3><i class="mdi mdi-format-list-bulleted"></i> <%= t("Role profiles") %><%= f.stage ? ' — ' + stageLabel(f.stage) : '' %></h3></div>
         <% if (!rows.length) { %>
-            <div class="rp-empty-inline">No role profiles match these filters.</div>
+            <div class="rp-empty-inline"><%= t("No role profiles match these filters.") %></div>
         <% } else { %>
         <div class="table-responsive">
             <table class="display rp-cards-sm" id="reportTable" style="width:100%">
                 <thead>
-                    <tr><th>Designation</th><th>Sangh</th><th>Programme</th><th>Stage</th><th>Created by</th><th>RP Approver</th>
-                        <th>Created</th><th>Last change</th><th>Version</th><th>Members</th><th>Assessed <%= fyNow %></th></tr>
+                    <tr><th><%= t("Designation") %></th><th><%= t("Sangh") %></th><th><%= t("Programme") %></th><th><%= t("Stage") %></th><th><%= t("Created by") %></th><th><%= t("RP Approver") %></th>
+                        <th><%= t("Created") %></th><th><%= t("Last change") %></th><th><%= t("Version") %></th><th><%= t("Members") %></th><th><%= t('Assessed {fy}', { fy: fyNow }) %></th></tr>
                 </thead>
                 <tbody>
                 <% rows.forEach((p) => { %>
@@ -256,8 +256,8 @@
                         <td><%= p.sangh_name || p.sangh_code %></td>
                         <td data-order="<%= p.program %>"><%= p.program === 'ldp' ? 'LDP' : 'PSP' %></td>
                         <td data-order="<%= p.status %>">
-                            <span class="rp-status rp-status-<%= p.status %>"><%= p.stage_label %></span>
-                            <% if (p.update_pending) { %><div class="rp-sub">update in approval · v<%= p.version_no %> in force</div><% } %>
+                            <span class="rp-status rp-status-<%= p.status %>"><%= t(p.stage_label) %></span>
+                            <% if (p.update_pending) { %><div class="rp-sub"><%= t('update in approval · v{v} in force', { v: p.version_no }) %></div><% } %>
                         </td>
                         <td><%= personName(p.created_by, p.created_by_name) %></td>
                         <td><%= p.rp_approver_code ? personName(p.rp_approver_code, p.rp_approver_name) : '—' %></td>
@@ -287,23 +287,23 @@ $(function () {
         new DataTable('#missingTable', {
             pageLength: 10, order: [[3, 'desc']],
             layout: { topStart: { buttons: [
-                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: 'Designations without a role profile' },
-                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: 'Designations without a role profile' }
+                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: <%- JSON.stringify(t('Designations without a role profile')) %> },
+                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: <%- JSON.stringify(t('Designations without a role profile')) %> }
             ] } },
-            language: { search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search designations...',
-                info: 'Showing _START_ to _END_ of _TOTAL_ designations', zeroRecords: 'No designations match your search' }
+            language: { search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: <%- JSON.stringify(t('Search designations...')) %>,
+                info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ designations')) %>, zeroRecords: <%- JSON.stringify(t('No designations match your search')) %> }
         });
     }
     if ($('#reportTable').length) {
         new DataTable('#reportTable', {
             pageLength: 25, order: [[6, 'desc']],
             layout: { topStart: { buttons: [
-                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: 'Role Profile Report' },
-                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: 'Role Profile Report' }
+                { extend: 'excel', text: '<i class="mdi mdi-microsoft-excel"></i> Excel', className: 'dt-button', title: <%- JSON.stringify(t('Role Profile Report')) %> },
+                { extend: 'csv', text: '<i class="mdi mdi-file-delimited-outline"></i> CSV', className: 'dt-button', title: <%- JSON.stringify(t('Role Profile Report')) %> }
             ] } },
             language: {
-                search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: 'Search in results...',
-                info: 'Showing _START_ to _END_ of _TOTAL_ role profiles', zeroRecords: 'No role profiles match your search'
+                search: '<i class="mdi mdi-magnify"></i>', searchPlaceholder: <%- JSON.stringify(t('Search in results...')) %>,
+                info: <%- JSON.stringify(t('Showing _START_ to _END_ of _TOTAL_ role profiles')) %>, zeroRecords: <%- JSON.stringify(t('No role profiles match your search')) %>
             }
         });
     }

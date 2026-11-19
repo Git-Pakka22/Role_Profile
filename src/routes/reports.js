@@ -29,7 +29,7 @@ router.get('/', (req, res) => res.redirect('/reports/role-profiles'));
 
 router.get('/role-profiles', async (req, res) => {
   if (!(await mayReport(req))) {
-    req.session.flashError = 'Reports are for RP Creators, RP Approvers, the PSP Approver and the LDP Admin.';
+    req.session.flashError = req.t('Reports are for RP Creators, RP Approvers, the PSP Approver and the LDP Admin.');
     return res.redirect('/role-profiles');
   }
   const actor = me(req);
@@ -56,8 +56,8 @@ router.get('/role-profiles', async (req, res) => {
         : 'the role profiles you can see',
     finalLabel: actor.isLdpAdmin && !actor.isAdmin ? 'LDP Admin' : 'PSP Approver / LDP Admin',
     statusLabels: roleProfile.STATUS_LABELS,
-    title: 'Role Profile Report — Pakka Role Profile',
-    pageTitle: 'Role Profile Report',
+    title: req.t('Role Profile Report — Pakka Role Profile'),
+    pageTitle: req.t('Role Profile Report'),
     activeNav: 'reports',
   });
 });

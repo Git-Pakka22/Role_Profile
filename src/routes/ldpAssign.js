@@ -35,8 +35,8 @@ router.get('/', async (req, res) => {
     members, counts, roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
-    title: 'LDP Members — Pakka Role Profile',
-    pageTitle: 'Assign Roles · LDP Members',
+    title: req.t('LDP Members — Pakka Role Profile'),
+    pageTitle: req.t('Assign Roles · LDP Members'),
     activeNav: 'ldp-assign',
   });
 });
@@ -46,11 +46,11 @@ router.post('/save', async (req, res) => {
   const role = String(req.body.role || '').trim();
   const personCode = String(req.body.person_code || '').trim();
 
-  if (!empCode || !employee.ROLES[role]) return fail(res, 'Unknown member or role.');
-  if (!(await ldp.findActiveByCode(empCode))) return fail(res, 'That member is not an active LDP member.');
+  if (!empCode || !employee.ROLES[role]) return fail(res, req.t('Unknown member or role.'));
+  if (!(await ldp.findActiveByCode(empCode))) return fail(res, req.t('That member is not an active LDP member.'));
 
   const person = await resolvePerson(role, personCode);
-  if (person.error) return fail(res, person.error);
+  if (person.error) return fail(res, req.t(person.error));
 
   await ldp.setAssignment(empCode, role, person.code, person.name);
 
@@ -58,8 +58,8 @@ router.post('/save', async (req, res) => {
     ok: true, role, emp_code: empCode,
     person_code: person.code, person_name: person.name,
     message: person.name === ''
-      ? `${label(role)} unassigned.`
-      : `${label(role)} set to ${person.name}.`,
+      ? req.t('{role} unassigned.', { role: req.t(label(role)) })
+      : req.t('{role} set to {name}.', { role: req.t(label(role)), name: person.name }),
   });
 });
 

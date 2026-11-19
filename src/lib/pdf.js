@@ -190,7 +190,7 @@ function rowHeight(doc, cols, cells, pad = 4) {
  * then SN / Attribute / Technical Skills / Weightage / Sub-Weightage with the attribute
  * cells spanning their skills, and a total row.
  */
-function roleProfile({ profile, outcomes, details, assessment = null, versionLabel = null }) {
+function roleProfile({ profile, outcomes, details, assessment = null, versionLabel = null, outcomeRatings = null }) {
   const doc = new PDFDocument({ ...PAGE, margin: MARGIN, bufferPages: true,
     info: { Title: `Role Profile — ${profile.designation_name}`, Author: 'Pakka' } });
 
@@ -221,6 +221,7 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
     chips.push(['Financial year', assessment.financial_year]);
     chips.push(['Score', `${num(assessment.total_score)} / ${num(assessment.max_score)}`]);
     chips.push(['Percentage', `${num(assessment.percentage)}%`]);
+    if (outcomeRatings) chips.push(['Method', 'By key outcome']);
     if (versionLabel) chips.push(['Assessed against', versionLabel]);
   } else {
     chips.push(['Sangh', profile.sangh_name || '—']);
@@ -250,8 +251,15 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
 
   /* -------- key outcomes */
   if (outcomes.length) {
-    y = panel(doc, MARGIN, y, fullW, 'Key Outcomes', C.blueDark,
-      outcomes.map((o, i) => ({ num: `${i + 1}.`, text: o.outcome })));
+    // Assessed by key outcome: each outcome carries its rating (and the note, if any).
+    const rated = (i) => {
+      const r = outcomeRatings && outcomeRatings.get(i + 1);
+      if (!r) return outcomeRatings ? '   [not rated]' : '';
+      const note = String(r.note || '').trim();
+      return `   [Rating ${num(r.rating)} / 4${note ? ` — ${note}` : ''}]`;
+    };
+    y = panel(doc, MARGIN, y, fullW, outcomeRatings ? 'Key Outcomes — rated' : 'Key Outcomes', C.blueDark,
+      outcomes.map((o, i) => ({ num: `${i + 1}.`, text: `${o.outcome}${rated(i)}` })));
   }
 
   /* -------- the table */
