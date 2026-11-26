@@ -68,6 +68,11 @@ async function writeChildren(conn, id, outcomes, attributes, program = PROGRAM.P
     attributeNo++;
 
     const assessment = String(attr.assessment ?? '').trim();
+    // Outcomes Measurability: the skill's targets for its three years, repeated on each row.
+    const measures = [0, 1, 2].map((i) => {
+      const v = String((attr.measures || [])[i] ?? '').trim();
+      return v === '' ? null : v;
+    });
     const weight = attr.attribute_weight === '' || attr.attribute_weight == null
       ? null : Number(attr.attribute_weight);
 
@@ -86,9 +91,10 @@ async function writeChildren(conn, id, outcomes, attributes, program = PROGRAM.P
     for (const s of skills) {
       await conn.query(
         `INSERT INTO rp_role_profile_details
-           (role_profile_id, attribute_no, attribute, assessment, attribute_weight, tech_skill, tech_weight, outcome_links, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?)`,
-        [id, attributeNo, name, assessment, weight, s.skill, s.weight, s.links, rowSort++]
+           (role_profile_id, attribute_no, attribute, assessment, measure_1, measure_2, measure_3,
+            attribute_weight, tech_skill, tech_weight, outcome_links, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [id, attributeNo, name, assessment, ...measures, weight, s.skill, s.weight, s.links, rowSort++]
       );
     }
   }
@@ -157,6 +163,7 @@ async function fullProfile(id) {
         attribute_no: no,
         attribute: row.attribute,
         assessment: row.assessment,
+        measures: [row.measure_1, row.measure_2, row.measure_3].map((v) => v || ''),
         attribute_weight: row.attribute_weight,
         skills: [],
       });

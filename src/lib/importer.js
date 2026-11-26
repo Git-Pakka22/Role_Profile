@@ -3,6 +3,13 @@ const ExcelJS = require('exceljs');
 const roleProfile = require('../models/roleProfile');
 // Messages are in English unless the caller passes its reader's translator as options.t.
 const EN = require('./i18n').translator('en');
+const measures = require('./measures');
+
+// The widest layout: SN, skill, attribute, three measurability years, weightage,
+// sub-weightage, key outcome no., assessment mechanism — and some room to spare.
+const MAX_COLS = 12;
+// A financial year as the sheets write it: 2026-27, 2026-2027, 2026–27.
+const YEAR_RE = /^\s*\d{4}\s*[-–—/]\s*(\d{2}|\d{4})\s*$/;
 
 /**
  * Read a role profile out of a spreadsheet laid out the way Pakka writes them:
@@ -13,6 +20,10 @@ const EN = require('./i18n').translator('en');
  *   header row        SN | Technical Skills | Attribute | Weightage | Sub-Weightage | Key Outcomes
  *   rows              the skill and its weightage span that skill's attributes
  *   last row          Total
+ *
+ * Outcomes Measurability is optional too: three year columns (2026-27, 2027-28, 2028-29)
+ * between Attribute and Weightage, under a "Outcomes Measurability" heading or headed by the
+ * years themselves, holding each skill's target for that year.
  *
  * Key Outcome No. is optional: for each attribute line, the numbers of the key outcomes it
  * delivers ("1, 3"; "O1, O3" is read too). Only numbers — outcome text there is not guessed
@@ -61,7 +72,10 @@ function detectColumns(cells) {
     const t = text(cell).toLowerCase();
     if (!t) return;
     if (idx.sn === undefined && /^(sn|s\.n\.?|sr\.?\s*no\.?)$/.test(t)) idx.sn = i;
-    else if (idx.outcomes === undefined && t.includes('outcome')) idx.outcomes = i;
+    // "Outcomes Measurability" heads the year columns — it is not the Key Outcome No. column.
+    else if (t.includes('measurability') || YEAR_RE.test(t)) return;
+    // "Key Outcome No." — but not "Outcome-based Technical Skill", which is the skill column.
+    else if (idx.outcomes === undefined && t.includes('outcome') && !/skill|attribute|capabilit/.test(t)) idx.outcomes = i;
     else if (idx.attribute === undefined && t.includes('attribute')) idx.attribute = i;
     else if (idx.skill === undefined && t.includes('skill')) idx.skill = i;
     else if (idx.assessment === undefined && t.includes('assessment')) idx.assessment = i;
@@ -146,7 +160,7 @@ function parseSheet(sheet, t = EN) {
   const rows = [];
   sheet.eachRow({ includeEmpty: true }, (row, n) => {
     const cells = [];
-    for (let c = 1; c <= 8; c++) cells.push(row.getCell(c).value);
+    for (let c = 1; c <= MAX_COLS; c++) cells.push(row.getCell(c).value);
     rows.push({ n, cells });
   });
 
@@ -159,24 +173,46 @@ function parseSheet(sheet, t = EN) {
 
   /* ------------------------------------------------- title, mission, outcomes */
   const above = rows.slice(0, headerAt);
-  const designation = text(above.length ? above[0].cells[0] : '');
+  const firstLine = text(above.length ? above[0].cells[0] : '');
+  // A sheet that opens straight on "Mission Statement" has no designation line.
+  const designation = /^mission/i.test(firstLine) ? '' : firstLine;
+  // A row's distinct non-empty cells, left to right (a merged cell repeats its value).
+  const cellsOf = (row) => row.cells.map(text).filter((v, i, all) => v !== '' && v !== all[i - 1]);
+  // Section titles between the outcomes and the table, e.g. "Technical Competency Framework".
+  const isTitle = (v) => /framework|^technical\s+(skills?|competenc)/i.test(v);
 
   let mission = '';
-  const missionRow = above.find((r) => /^mission/i.test(text(r.cells[0])));
-  if (missionRow) mission = afterLabel(missionRow.cells[0]);
+  const missionAt = above.findIndex((r) => /^mission/i.test(text(r.cells[0])));
+  if (missionAt !== -1) {
+    const raw = text(above[missionAt].cells[0]);
+    // "Mission: Build …" / "Mission- Build …", or a "Mission Statement" heading with the
+    // mission itself on the next line.
+    mission = /[:–—-]/.test(raw) ? afterLabel(raw) : raw.replace(/^mission(\s+statement)?\s*/i, '').trim();
+    if (!mission) {
+      const next = above.slice(missionAt + 1).find((r) => cellsOf(r).length);
+      if (next && !/^(major\s+)?(key\s+)?outcomes?\b/i.test(cellsOf(next)[0])) mission = cellsOf(next).join(' ');
+    }
+  }
 
   const outcomes = [];
-  const outcomeHeaderAt = above.findIndex((r) => /^(key\s+)?outcomes?\b/i.test(text(r.cells[0])));
+  const outcomeHeaderAt = above.findIndex((r) => /^(major\s+)?(key\s+)?outcomes?\b/i.test(text(r.cells[0])));
   if (outcomeHeaderAt !== -1) {
     const header = above[outcomeHeaderAt];
     const inline = splitNumbered(header.cells[0]);
-    // Either they are all in the one cell, or listed one per row underneath.
+    // All in the one cell; one per row underneath; or side by side ("Outcome 1 …" boxes).
     if (inline.length > 1) {
       outcomes.push(...inline);
     } else {
       for (const row of above.slice(outcomeHeaderAt + 1)) {
-        const label = text(row.cells[1]) || text(row.cells[0]);
-        if (label && !/^mission/i.test(label)) outcomes.push(label.replace(/^\d+[.)]\s*/, ''));
+        const values = cellsOf(row)
+          .filter((v) => !/^\d+[.)]?$/.test(v))               // a bare "1" in an SN column
+          .filter((v) => !/^outcome\s*\d+\s*:?$/i.test(v))     // an "Outcome 1" label on its own
+          .map((v) => v.replace(/^outcome\s*\d+\s*[:.\-–]?\s*/i, '').replace(/^\d+[.)]\s*/, '').trim())
+          .filter(Boolean);
+        if (!values.length) continue;
+        if (/^mission/i.test(values[0])) continue;
+        if (isTitle(values[0])) break;
+        outcomes.push(...values);
       }
       if (!outcomes.length && inline.length === 1) outcomes.push(inline[0]);
     }
@@ -187,7 +223,21 @@ function parseSheet(sheet, t = EN) {
   const attributes = [];
   let current = null;
 
-  for (const row of rows.slice(headerAt + 1)) {
+  // Outcomes Measurability: the year columns, headed by the years in the header row itself,
+  // or under an "Outcomes Measurability" heading with the years on the row below it — in
+  // which case that row is part of the header, not data.
+  const yearsIn = (cells) => cells.map((c, i) => (YEAR_RE.test(text(c)) ? i : -1)).filter((i) => i !== -1);
+  let measureCols = yearsIn(rows[headerAt].cells);
+  let dataFrom = headerAt + 1;
+  if (!measureCols.length && rows[headerAt + 1]) {
+    const below = yearsIn(rows[headerAt + 1].cells);
+    if (below.length) { measureCols = below; dataFrom = headerAt + 2; }
+  }
+  measureCols = measureCols.slice(0, measures.YEARS);
+  const yearRow = dataFrom === headerAt + 2 ? rows[headerAt + 1] : rows[headerAt];
+  const measureFrom = measureCols.length ? measures.fullYear(text(yearRow.cells[measureCols[0]])) : null;
+
+  for (const row of rows.slice(dataFrom)) {
     const sn = row.cells[cols.sn];
     const attribute = row.cells[cols.attribute];
     const skill = row.cells[cols.skill];
@@ -210,13 +260,16 @@ function parseSheet(sheet, t = EN) {
     if (attrName === '' && skillName === '' && assessmentText === '' && attrWeight === null && skillWeight === null) continue;
 
     // A new attribute starts wherever a name appears; blanks belong to the one above it.
+    const targets = measureCols.map((c) => text(row.cells[c]));
     if (attrName !== '' && (!current || current.attribute !== attrName)) {
-      current = { attribute: attrName, assessment: assessmentText, weight: attrWeight, skills: [] };
+      current = { attribute: attrName, assessment: assessmentText, measures: ['', '', ''], weight: attrWeight, skills: [] };
       attributes.push(current);
     } else if (!current) {
-      current = { attribute: attrName || `Attribute ${attributes.length + 1}`, assessment: assessmentText, weight: attrWeight, skills: [] };
+      current = { attribute: attrName || `Attribute ${attributes.length + 1}`, assessment: assessmentText, measures: ['', '', ''], weight: attrWeight, skills: [] };
       attributes.push(current);
     }
+    // A skill's targets span its rows; take each from the first row that has it.
+    targets.forEach((v, i) => { if (v && !current.measures[i]) current.measures[i] = v; });
     if (current.weight === null && attrWeight !== null) current.weight = attrWeight;
     if (!current.assessment && assessmentText !== '') current.assessment = assessmentText;
 
@@ -278,6 +331,7 @@ function parseSheet(sheet, t = EN) {
     sheet: sheet.name,
     designation,
     mission,
+    measureFrom,
     outcomes: outcomes.slice(0, MAX_O),
     attributes: kept,
     skillCount: kept.reduce((t, a) => t + a.skills.length, 0),

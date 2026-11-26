@@ -13,9 +13,12 @@
   const oldSangh = seed ? (seed.sangh_code || '') : (fromRecruit ? fromRecruit.sangh_code : '');
   const oldDesig = seed && seed.designation_name ? seed.designation_name : (fromRecruit ? fromRecruit.designation : '');
   const oldMission = seed ? (seed.mission || '') : '';
+  // Outcomes Measurability: the first of its three years.
+  const oldMeasureFrom = (seed && seed.measure_from) || measureDefault;
+  const measureChoices = [...new Set([...measureYears, oldMeasureFrom])].sort();
   const seedOutcomes = seed ? (seed.outcomes || []) : [];
   const seedAttributes = seed ? (seed.attributes || []).map(a => ({
-      attribute: a.attribute, assessment: a.assessment, weight: a.attribute_weight,
+      attribute: a.attribute, assessment: a.assessment, weight: a.attribute_weight, measures: a.measures || ['', '', ''],
       skills: a.skills.map(s => ({ skill: s.tech_skill, weight: s.tech_weight, links: s.outcome_links || '' }))
   })) : [];
 %>
@@ -267,6 +270,15 @@
                     <%= t('Each skill carries its weight and the attributes behind it. Weights are percentages. Up to {skills} skills, each with up to {attributes} attributes.', { skills: maxAttributes, attributes: maxSkills }) %>
                     <strong><%= t("A skill's attribute weights must add up to that skill's own weight.") %></strong>
                 </div>
+                <div class="rp-measure-years">
+                    <label for="measure_from"><i class="mdi mdi-chart-timeline-variant"></i> <%= t("Outcomes Measurability — years") %></label>
+                    <select class="rp-select" name="measure_from" id="measure_from">
+                        <% measureChoices.forEach(y => { %>
+                            <option value="<%= y %>" <%= y === oldMeasureFrom ? 'selected' : '' %>><%= measureSpan(y) %> (<%= measureLabels(y).join(', ') %>)</option>
+                        <% }) %>
+                    </select>
+                    <span class="rp-sub"><%= t("Each skill gets a measurable target for each of these three years.") %></span>
+                </div>
                 <div class="rp-form-hint rp-link-hint">
                     <i class="mdi mdi-link-variant"></i>
                     <%= t("Optional: link each attribute to the key outcomes it delivers (O1, O2 …). Linked profiles can also be assessed by key outcome — each outcome's rating then becomes the rating of the attributes linked to it.") %>
@@ -314,7 +326,7 @@ Object.assign(RP_I18N, <%- tjs(['— Choose a sangh first —', '— Choose a de
     'LDP role profiles need at least {min} key outcomes — {n} given', 'Ready to save or submit', 'Key outcome',
     'Please check total.', 'Skill weights must add up to {max}, and each skill’s attribute weights must equal that skill’s own weight.',
     'LDP role profiles also need {min} to {max} key outcomes.',
-    'Key outcomes', 'Key outcome {n}']) %>);
+    'Key outcomes', 'Key outcome {n}', 'Outcomes Measurability', 'Measurable target for this year']) %>);
 $(function () {
     var attrIndex = 0;
     var MAX_ATTRS = <%= maxAttributes %>, MAX_SKILLS = <%= maxSkills %>,
@@ -485,6 +497,13 @@ $(function () {
              + '    <span class="rp-balance idle js-balance"></span></div>'
              + '  <div class="js-skill-list">' + skillRow(ai) + '</div>'
              + '  <button type="button" class="rp-btn-add js-add-skill"><i class="mdi mdi-plus"></i> ' + h(tr('Add attribute')) + '</button>'
+             + '  <div class="rp-mini-label rp-measure-head">' + h(tr('Outcomes Measurability')) + '</div>'
+             + '  <div class="rp-measure-grid">'
+             + [0, 1, 2].map(function (i) {
+                   return '<div class="rp-field"><label class="js-measure-year" data-i="' + i + '"></label>'
+                        + '<textarea class="rp-input rp-measure-input js-measure" rows="2" name="measure[' + ai + '][]" placeholder="' + h(tr('Measurable target for this year')) + '"></textarea></div>';
+               }).join('')
+             + '  </div>'
              + '  <div class="rp-field js-assessment-wrap" style="' + (currentProgram === 'ldp' ? '' : 'display:none') + '">'
              + '    <label>' + h(tr('Assessment Mechanism')) + '</label>'
              + '    <input type="text" class="rp-input js-assessment" name="assessment[' + ai + ']" placeholder="' + h(tr('How this skill is assessed')) + '">'
@@ -492,6 +511,15 @@ $(function () {
              + '</div>';
     }
     function renumber() { $('#attrList .rp-attr-block').each(function (i) { $(this).find('.js-attr-no').first().text(i + 1); }); }
+    /** The three year labels on every skill follow the "years" choice: 2026-27, 2027-28, 2028-29. */
+    function measureYearLabels() {
+        var y = parseInt(String($('#measure_from').val() || '').slice(0, 4), 10);
+        $('.js-measure-year').each(function () {
+            var i = Number($(this).data('i'));
+            $(this).text(isNaN(y) ? '' : (y + i) + '-' + String(y + i + 1).slice(2));
+        });
+    }
+    $('#measure_from').on('change', measureYearLabels);
     function fmt(n) { return Math.round(n * 100) / 100; }
     function h(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
@@ -615,7 +643,7 @@ $(function () {
 
     $('#addAttr').on('click', function () {
         if ($('#attrList .rp-attr-block').length >= MAX_ATTRS) return;
-        $('#attrList').append(attrBlock(attrIndex++)); renumber(); refreshLimits(); recalcWeights(); renderLinks();
+        $('#attrList').append(attrBlock(attrIndex++)); renumber(); refreshLimits(); recalcWeights(); renderLinks(); measureYearLabels();
     });
     $('#attrList').on('click', '.js-remove-attr', function () {
         $(this).closest('.rp-attr-block').remove(); renumber(); refreshLimits(); recalcWeights();
@@ -653,6 +681,7 @@ $(function () {
             var $b = $('#attrList .rp-attr-block').last();
             $b.find('input[name^="attribute["]').val(a.attribute || '');
             $b.find('.js-assessment').val(a.assessment || '');
+            $b.find('.js-measure').each(function (i) { $(this).val((a.measures || [])[i] || ''); });
             $b.find('.js-attr-weight').val(a.weight === null ? '' : a.weight);
             (a.skills || []).forEach(function (sk, i) {
                 if (i > 0) $b.find('.js-add-skill').trigger('click');

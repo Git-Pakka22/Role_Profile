@@ -2,6 +2,7 @@
 const { displayName } = require('./displayName');
 const path = require('path');
 const fs = require('fs');
+const measures = require('./measures');
 const PDFDocument = require('pdfkit');
 
 /** Brand palette, the same values as public/css/app.css. */
@@ -183,6 +184,19 @@ function rowHeight(doc, cols, cells, pad = 4) {
   return h;
 }
 
+/**
+ * The built-in PDF fonts have no ≥ or ≤ (they print as '"e'), and targets such as "≥90%
+ * digitalized" use them a lot: write them the way a keyboard would.
+ */
+const SYMBOLS = [[/≥/g, '>='], [/≤/g, '<='], [/≠/g, '!='], [/→/g, '->'], [/←/g, '<-']];
+const plain = (v) => (typeof v === 'string' ? SYMBOLS.reduce((t, [re, to]) => t.replace(re, to), v) : v);
+function plainSymbols(doc) {
+  const text = doc.text.bind(doc);
+  const height = doc.heightOfString.bind(doc);
+  doc.text = (v, ...rest) => text(plain(v), ...rest);
+  doc.heightOfString = (v, ...rest) => height(plain(v), ...rest);
+}
+
 /* ----------------------------------------------------------- role profile */
 
 /**
@@ -193,17 +207,28 @@ function rowHeight(doc, cols, cells, pad = 4) {
 function roleProfile({ profile, outcomes, details, assessment = null, versionLabel = null, outcomeRatings = null }) {
   const doc = new PDFDocument({ ...PAGE, margin: MARGIN, bufferPages: true,
     info: { Title: `Role Profile — ${profile.designation_name}`, Author: 'Pakka' } });
+  plainSymbols(doc);
 
   const scored = !!assessment;
+  // Outcomes Measurability: three year columns between Attribute and Weightage, as in the
+  // Pakka format — on the role profile itself, once any skill has a target.
+  const years = measures.labels(profile.measure_from);
+  const measured = !scored && years.length > 0 && measures.any(details);
   // Widths are relative; the two weightage columns need enough room for their headings.
   const cols = layout(doc, scored
-    ? [{ label: 'SN', w: 4, align: 'center' }, { label: 'Technical Skills', w: 19 },
-       { label: 'Attribute', w: 36 }, { label: 'Weightage', w: 9, align: 'center' },
-       { label: 'Sub-Weightage', w: 11, align: 'center' }, { label: 'Rating', w: 6, align: 'center' },
-       { label: 'Score', w: 6, align: 'center' }, { label: 'Training Gap', w: 15 }]
-    : [{ label: 'SN', w: 5, align: 'center' }, { label: 'Technical Skills', w: 24 },
-       { label: 'Attribute', w: 51 }, { label: 'Weightage', w: 9, align: 'center' },
-       { label: 'Sub-Weightage', w: 11, align: 'center' }]);
+    ? [{ key: 'sn', label: 'SN', w: 4, align: 'center' }, { key: 'skill', label: 'Technical Skills', w: 19 },
+       { key: 'attr', label: 'Attribute', w: 36 }, { key: 'weight', label: 'Weightage', w: 9, align: 'center' },
+       { key: 'sub', label: 'Sub-Weightage', w: 11, align: 'center' }, { key: 'rating', label: 'Rating', w: 6, align: 'center' },
+       { key: 'score', label: 'Score', w: 6, align: 'center' }, { key: 'gap', label: 'Training Gap', w: 15 }]
+    : measured
+      ? [{ key: 'sn', label: 'SN', w: 4, align: 'center' }, { key: 'skill', label: 'Technical Skills', w: 15 },
+         { key: 'attr', label: 'Attribute', w: 27 },
+         ...years.map((y, i) => ({ key: `m${i}`, label: `Measurability ${y}`, w: 14 })),
+         { key: 'weight', label: 'Weightage', w: 8, align: 'center' }, { key: 'sub', label: 'Sub-Weightage', w: 10, align: 'center' }]
+      : [{ key: 'sn', label: 'SN', w: 5, align: 'center' }, { key: 'skill', label: 'Technical Skills', w: 24 },
+         { key: 'attr', label: 'Attribute', w: 51 }, { key: 'weight', label: 'Weightage', w: 9, align: 'center' },
+         { key: 'sub', label: 'Sub-Weightage', w: 11, align: 'center' }]);
+  const col = Object.fromEntries(cols.map((c) => [c.key, c]));
 
   const title = profile.designation_name;
   const subtitle = [profile.sangh_name, scored ? `Assessment ${assessment.financial_year}` : 'Role Profile', versionLabel]
@@ -272,12 +297,20 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
 
   groups.forEach((g, gi) => {
     // Measure the whole attribute block first — it must not be split across pages.
-    const heights = g.skills.map((s) => rowHeight(doc, cols, [
-      '', '', s.tech_skill, '', num(s.tech_weight),
-      s.rating == null ? '—' : num(s.rating),
-      s.rating == null ? '—' : num(Number(s.tech_weight) * Number(s.rating)),
-      s.training_gap || '',
-    ]));
+    const heights = g.skills.map((s) => rowHeight(doc, cols, cols.map((c) => ({
+      attr: s.tech_skill, sub: num(s.tech_weight),
+      rating: s.rating == null ? '—' : num(s.rating),
+      score: s.rating == null ? '—' : num(Number(s.tech_weight) * Number(s.rating)),
+      gap: s.training_gap || '',
+    }[c.key] ?? ''))));
+    // The skill's targets span its attribute rows; the block grows if they need more room.
+    const targets = measured ? measures.of(g.skills[0] || {}) : [];
+    if (measured) {
+      doc.font('Helvetica').fontSize(6.2);
+      const need = Math.max(...targets.map((m, i) => (m ? doc.heightOfString(m, { width: col[`m${i}`].w - 8 }) + 5 : 0)));
+      const have = heights.reduce((t, h) => t + h, 0);
+      if (need > have) heights[heights.length - 1] += need - have;
+    }
     const blockH = heights.reduce((t, h) => t + h, 0);
 
     // The last block reserves room for the total row too, so the table never ends with
@@ -295,18 +328,22 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
 
     // Merged cells: SN, attribute and weightage span the attribute's skills.
     doc.font('Helvetica-Bold').fontSize(7).fillColor(C.maroon)
-      .text(String(g.no), cols[0].x + 4, blockTop + 3, { width: cols[0].w - 8, align: 'center', lineBreak: false });
+      .text(String(g.no), col.sn.x + 4, blockTop + 3, { width: col.sn.w - 8, align: 'center', lineBreak: false });
     doc.font('Helvetica-Bold').fontSize(6.5).fillColor(C.text)
-      .text(g.name, cols[1].x + 4, blockTop + 2.5, { width: cols[1].w - 8 });
+      .text(g.name, col.skill.x + 4, blockTop + 2.5, { width: col.skill.w - 8 });
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.green)
-      .text(num(g.weight), cols[3].x + 4, blockTop + 3, { width: cols[3].w - 8, align: 'center', lineBreak: false });
+      .text(num(g.weight), col.weight.x + 4, blockTop + 3, { width: col.weight.w - 8, align: 'center', lineBreak: false });
+    targets.forEach((m, i) => {
+      doc.font('Helvetica').fontSize(6.2).fillColor(m ? C.text : C.muted)
+        .text(m || '—', col[`m${i}`].x + 4, blockTop + 2.5, { width: col[`m${i}`].w - 8 });
+    });
 
     g.skills.forEach((s, i) => {
       const h = heights[i];
       doc.font('Helvetica').fontSize(6.5).fillColor(C.text)
-        .text(s.tech_skill || '', cols[2].x + 4, y + 2, { width: cols[2].w - 8 });
+        .text(s.tech_skill || '', col.attr.x + 4, y + 2, { width: col.attr.w - 8 });
       doc.font('Helvetica-Bold').fontSize(6.5).fillColor(C.textSoft)
-        .text(num(s.tech_weight), cols[4].x + 4, y + 2, { width: cols[4].w - 8, align: 'center', lineBreak: false });
+        .text(num(s.tech_weight), col.sub.x + 4, y + 2, { width: col.sub.w - 8, align: 'center', lineBreak: false });
 
       if (scored) {
         const rated = s.rating != null;
@@ -314,19 +351,22 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
         // 4 is full marks, so the band follows the share of it.
         const tone = !rated ? C.muted : rating >= 3.5 ? C.green : rating >= 2.5 ? C.yellowDark : C.maroon;
         doc.font('Helvetica-Bold').fontSize(7).fillColor(tone)
-          .text(rated ? num(rating) : '—', cols[5].x + 4, y + 2, { width: cols[5].w - 8, align: 'center', lineBreak: false });
+          .text(rated ? num(rating) : '—', col.rating.x + 4, y + 2, { width: col.rating.w - 8, align: 'center', lineBreak: false });
         doc.font('Helvetica-Bold').fontSize(6.5).fillColor(rated ? C.text : C.muted)
           .text(rated ? num(Number(s.tech_weight) * rating) : '—',
-            cols[6].x + 4, y + 2, { width: cols[6].w - 8, align: 'center', lineBreak: false });
+            col.score.x + 4, y + 2, { width: col.score.w - 8, align: 'center', lineBreak: false });
 
         const gap = String(s.training_gap || '').trim();
         doc.font('Helvetica').fontSize(6).fillColor(gap ? C.yellowDark : C.muted)
-          .text(gap || '—', cols[7].x + 4, y + 2, { width: cols[7].w - 8 });
+          .text(gap || '—', col.gap.x + 4, y + 2, { width: col.gap.w - 8 });
       }
 
       y += h;
+      // A line between attributes — not through the skill's targets, which span them.
       if (i < g.skills.length - 1) {
-        doc.rect(cols[2].x, y, fullW - (cols[2].x - MARGIN), 0.4).fill(C.border);
+        const lineEnd = measured ? col.m0.x : MARGIN + fullW;
+        doc.rect(col.attr.x, y, lineEnd - col.attr.x, 0.4).fill(C.border);
+        if (measured) doc.rect(col.sub.x, y, col.sub.w, 0.4).fill(C.border);
       }
     });
 
@@ -340,15 +380,15 @@ function roleProfile({ profile, outcomes, details, assessment = null, versionLab
   if (y + TOTAL_H > bottomLimit) { doc.addPage(); header(doc, title, subtitle); y = CONTENT_TOP; }
   doc.rect(MARGIN, y, fullW, TOTAL_H).fill(C.maroon);
   doc.font('Helvetica-Bold').fontSize(7).fillColor(C.white)
-    .text('Total', cols[0].x + 4, y + 4.5, { width: cols[1].x + cols[1].w - cols[0].x - 8, lineBreak: false });
-  doc.text(num(totalWeight), cols[3].x + 4, y + 4.5, { width: cols[3].w - 8, align: 'center', lineBreak: false });
-  doc.text(num(subTotal), cols[4].x + 4, y + 4.5, { width: cols[4].w - 8, align: 'center', lineBreak: false });
+    .text('Total', col.sn.x + 4, y + 4.5, { width: col.skill.x + col.skill.w - col.sn.x - 8, lineBreak: false });
+  doc.text(num(totalWeight), col.weight.x + 4, y + 4.5, { width: col.weight.w - 8, align: 'center', lineBreak: false });
+  doc.text(num(subTotal), col.sub.x + 4, y + 4.5, { width: col.sub.w - 8, align: 'center', lineBreak: false });
 
   if (scored) {
     doc.text(`${num(assessment.total_score)} / ${num(assessment.max_score)}`,
-      cols[5].x + 4, y + 4.5, { width: cols[6].x + cols[6].w - cols[5].x - 8, align: 'center', lineBreak: false });
+      col.rating.x + 4, y + 4.5, { width: col.score.x + col.score.w - col.rating.x - 8, align: 'center', lineBreak: false });
     doc.fillColor(C.sand)
-      .text(`${num(assessment.percentage)}%`, cols[7].x + 4, y + 4.5, { width: cols[7].w - 8, lineBreak: false });
+      .text(`${num(assessment.percentage)}%`, col.gap.x + 4, y + 4.5, { width: col.gap.w - 8, lineBreak: false });
   }
   // Each gap already sits next to its own attribute in the "Training Gap" column above —
   // repeating them in a summary panel here is what pushed a scored profile to a second

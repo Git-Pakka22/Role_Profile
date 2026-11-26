@@ -232,6 +232,15 @@
                                     <% if (s.tech_weight !== null && s.tech_weight !== '') { %><span class="w"><%= trim2(s.tech_weight) %></span><% } %>
                                 </div>
                             <% }) %>
+                            <% const ms = (a.measures || []).map((m) => String(m || '').trim());
+                               if (ms.some(Boolean)) { const yl = measureLabels(profile.measure_from); %>
+                                <div class="rp-measures">
+                                    <div class="rp-measures-title"><i class="mdi mdi-chart-timeline-variant"></i> <%= t("Outcomes Measurability") %></div>
+                                    <% ms.forEach((m, i) => { %>
+                                        <div class="rp-measure"><span class="y"><%= yl[i] || '' %></span><span class="m"><%= m ? tc(m) : '—' %></span></div>
+                                    <% }) %>
+                                </div>
+                            <% } %>
                         </div>
                     <% }) %>
                 </div>

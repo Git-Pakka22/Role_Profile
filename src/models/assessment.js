@@ -36,7 +36,7 @@ function isValidRating(rating) {
 async function skillsFor(profileId, assessmentId) {
   return db.query(
     `SELECT d.id, d.attribute_no, d.attribute, d.attribute_weight,
-            d.tech_skill, d.tech_weight, d.outcome_links,
+            d.tech_skill, d.tech_weight, d.outcome_links, d.measure_1, d.measure_2, d.measure_3,
             r.rating, r.score, r.training_gap
      FROM rp_role_profile_details d
      LEFT JOIN rp_assessment_ratings r

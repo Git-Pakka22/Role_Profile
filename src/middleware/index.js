@@ -1,4 +1,5 @@
 'use strict';
+const measures = require('../lib/measures');
 const crypto = require('crypto');
 const config = require('../config');
 const notification = require('../models/notification');
@@ -44,6 +45,9 @@ function language(req, res, next) {
   res.locals.lang = lang;
   res.locals.t = req.t;
   res.locals.raw = i18n.raw;
+  // Outcomes Measurability: the three year labels and the span for the heading.
+  res.locals.measureLabels = measures.labels;
+  res.locals.measureSpan = measures.span;
   // Role profile content as written; res.page swaps in the Hindi when the reader chose Hindi.
   res.locals.tc = (s) => (s == null ? '' : s);
   // For page scripts: the given strings, translated, as a JSON object safe inside <script>.

@@ -152,13 +152,13 @@ const form = (d, sangh, mission, extra = {}) => ({
   await wb.xlsx.load(sample.body);
   wb.getWorksheet('Role Profile').eachRow((row) => {
     const attr = String(row.getCell(3).value || '');
-    if (attr.startsWith('Root cause')) row.getCell(6).value = '1, 7';
+    if (attr.startsWith('Root cause')) row.getCell(9).value = '1, 7';
     // The outcome's wording pasted in: its "2%" must not become a link to outcome 2.
-    if (attr.startsWith('Spares')) row.getCell(6).value = 'Unplanned downtime below 2%';
-    if (attr.startsWith('Permit')) row.getCell(6).value = 'O2';
+    if (attr.startsWith('Spares')) row.getCell(9).value = 'Unplanned downtime below 2%';
+    if (attr.startsWith('Permit')) row.getCell(9).value = 'O2';
   });
   const bad = await importer.parse(Buffer.from(await wb.xlsx.writeBuffer()));
-  check('the sample header says numbers', String(wb.getWorksheet('Role Profile').getRow(8).getCell(6).value), 'Key Outcome No.');
+  check('the sample header says numbers', String(wb.getWorksheet('Role Profile').getRow(8).getCell(9).value), 'Key Outcome No.');
   check('a link to a missing outcome is dropped with a warning',
     `${bad.attributes[0].skills[1].outcomes}|${bad.warnings.some((w) => /outcome 7/.test(w))}`, '1|true');
   check('outcome text in the column links nothing, with a warning',

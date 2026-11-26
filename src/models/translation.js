@@ -64,12 +64,15 @@ async function profileTexts(profileId) {
   }
   const seen = new Set();
   for (const d of await db.query(
-    `SELECT attribute_no, attribute, assessment, tech_skill FROM rp_role_profile_details
+    `SELECT attribute_no, attribute, assessment, measure_1, measure_2, measure_3, tech_skill FROM rp_role_profile_details
      WHERE role_profile_id = ? ORDER BY attribute_no, sort_order`, [profileId])) {
     if (!seen.has(d.attribute_no)) {
       seen.add(d.attribute_no);
       if (translatable(d.attribute)) items.push({ kind: 'skill', no: d.attribute_no, text: norm(d.attribute) });
       if (translatable(d.assessment)) items.push({ kind: 'mechanism', no: d.attribute_no, text: norm(d.assessment) });
+      for (const m of [d.measure_1, d.measure_2, d.measure_3]) {
+        if (translatable(m)) items.push({ kind: 'measure', no: d.attribute_no, text: norm(m) });
+      }
     }
     if (translatable(d.tech_skill)) items.push({ kind: 'attribute', no: d.attribute_no, text: norm(d.tech_skill) });
   }
@@ -84,10 +87,10 @@ async function allTexts() {
   const add = (rows) => rows.forEach((r) => Object.values(r).forEach((v) => translatable(v) && texts.add(norm(v))));
   add(await db.query('SELECT mission FROM rp_role_profiles'));
   add(await db.query('SELECT outcome FROM rp_role_key_outcomes'));
-  add(await db.query('SELECT attribute, assessment, tech_skill FROM rp_role_profile_details'));
+  add(await db.query('SELECT attribute, assessment, measure_1, measure_2, measure_3, tech_skill FROM rp_role_profile_details'));
   add(await db.query('SELECT mission FROM rp_profile_versions'));
   add(await db.query('SELECT outcome FROM rp_version_outcomes'));
-  add(await db.query('SELECT attribute, assessment, tech_skill FROM rp_version_details'));
+  add(await db.query('SELECT attribute, assessment, measure_1, measure_2, measure_3, tech_skill FROM rp_version_details'));
   return [...texts];
 }
 

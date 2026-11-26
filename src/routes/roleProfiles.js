@@ -17,6 +17,7 @@ const translation = require('../models/translation');
 const translate = require('../lib/translate');
 const importer = require('../lib/importer');
 const sampleSheet = require('../lib/sampleSheet');
+const measures = require('../lib/measures');
 const multer = require('multer');
 
 const router = express.Router();
@@ -168,6 +169,8 @@ function collectAttributes(body) {
   const skillWeights = body.tech_weight || {};
   // The key outcomes each attribute links to, as their positions on the form ("1,3").
   const skillOutcomes = body.tech_outcomes || {};
+  // Outcomes Measurability: the skill's targets for its three years.
+  const skillMeasures = body.measure || {};
 
   const out = [];
   for (const key of Object.keys(names)) {
@@ -190,6 +193,7 @@ function collectAttributes(body) {
     out.push({
       attribute: name,
       assessment: assessments[key] ?? '',
+      measures: [].concat(skillMeasures[key] ?? []).slice(0, measures.YEARS).map((m) => String(m ?? '')),
       attribute_weight: weights[key] ?? '',
       // Enforced here as well as in the browser.
       skills: rowSkills.slice(0, roleProfile.MAX_SKILLS_PER_ATTR),
@@ -296,6 +300,8 @@ async function validateSubmission(body, actor, exceptId = null, locked = null, t
   return {
     designation, sangh_code: sanghCode, sangh_name: sanghName,
     mission: String(body.mission || '').trim(),
+    // The first of the three measurability years; this year if none was given.
+    measure_from: measures.fullYear(body.measure_from) || financialYear.yearFor(),
     outcomes, attributes, program,
   };
 }
@@ -424,6 +430,13 @@ async function formData(req, profile = null) {
     maxSkills: roleProfile.MAX_SKILLS_PER_ATTR,
     totalWeight: roleProfile.TOTAL_WEIGHT,
     statusLabels: roleProfile.STATUS_LABELS,
+    // The first year of Outcomes Measurability: this year or one of the next two, plus
+    // whatever the profile already has.
+    measureYears: [...new Set([
+      ...(profile && profile.measure_from ? [profile.measure_from] : []),
+      ...[0, 1, 2].map((i) => { const y = measures.startOf(financialYear.yearFor()) + i; return `${y}-${y + 1}`; }),
+    ])].sort(),
+    measureDefault: financialYear.yearFor(),
     designationsEmpty: sanghs.length === 0,
     takenCount,
     freeCount,
@@ -485,6 +498,7 @@ router.post('/store', async (req, res) => {
     sangh_code: parsed.sangh_code,
     sangh_name: parsed.sangh_name,
     mission: parsed.mission,
+    measure_from: parsed.measure_from,
     program: parsed.program,
     status: isDraft ? S.DRAFT : (approver.code !== '' ? S.PENDING_SEVAK : S.PENDING_ADMIN),
     created_by: actor.code,
@@ -598,6 +612,7 @@ async function updatePending(req, res, profile, actor) {
     sangh_code: parsed.sangh_code,
     sangh_name: parsed.sangh_name,
     mission: parsed.mission,
+    measure_from: parsed.measure_from,
     program: parsed.program,
     updated_at: roleProfile.nowStamp(),
   }, parsed.outcomes, parsed.attributes);
@@ -657,6 +672,7 @@ router.post('/:id(\\d+)/update', async (req, res) => {
     sangh_code: parsed.sangh_code,
     sangh_name: parsed.sangh_name,
     mission: parsed.mission,
+    measure_from: parsed.measure_from,
     program: parsed.program,
     status: isDraft ? S.DRAFT : (approver.code !== '' ? S.PENDING_SEVAK : S.PENDING_ADMIN),
     rp_approver_code: approver.code,
@@ -950,11 +966,13 @@ router.post('/import', (req, res) => {
       designation_name: String(req.body.designation_name || '').trim(),
       sangh_code: String(req.body.sangh_code || ''),
       mission: parsed.mission,
+      measure_from: parsed.measureFrom || null,
       outcomes: parsed.outcomes,
       attributes: parsed.attributes.map((a, i) => ({
         attribute_no: i + 1,
         attribute: a.attribute,
         assessment: a.assessment || '',
+        measures: a.measures || ['', '', ''],
         attribute_weight: a.weight === null ? '' : a.weight,
         skills: a.skills.map((sk) => ({
           tech_skill: sk.skill,
@@ -1178,6 +1196,8 @@ router.get('/:id(\\d+)/view', async (req, res) => {
     totalWeight: attributes.reduce((t, a) => t + Number(a.attribute_weight || 0), 0),
     subTotal: attributes.reduce((t, a) => t + a.skills.reduce((u, k) => u + Number(k.tech_weight || 0), 0), 0),
     hasMechanism: attributes.some((a) => String(a.assessment || '').trim() !== ''),
+    // Shown once any skill has a target, so older profiles keep their five columns.
+    hasMeasures: attributes.some((a) => (a.measures || []).some((m) => String(m || '').trim() !== '')),
     inForce: versions.length ? versions[0] : null,
     pendingUpdate: roleProfile.hasPendingUpdate(profile),
     statusText: req.t(roleProfile.statusLabel(profile)),
@@ -1310,7 +1330,7 @@ function canEditHindi(profile, actor) {
     || roleProfile.isFinalApprover(profile, actor.isAdmin, actor.isLdpAdmin);
 }
 
-const KIND_LABELS = { mission: 'Mission', outcome: 'Key outcome', skill: 'Technical Skill', attribute: 'Attribute', mechanism: 'Assessment Mechanism' };
+const KIND_LABELS = { mission: 'Mission', outcome: 'Key outcome', skill: 'Technical Skill', attribute: 'Attribute', mechanism: 'Assessment Mechanism', measure: 'Outcomes Measurability' };
 
 router.get('/:id(\\d+)/hindi', async (req, res) => {
   const actor = me(req);

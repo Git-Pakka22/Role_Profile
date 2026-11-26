@@ -40,12 +40,12 @@ async function freeze(profile, { effectiveYear, reason, outcome, actor }) {
 
     const [res] = await conn.query(
       `INSERT INTO rp_profile_versions
-         (role_profile_id, version_no, designation_name, designation_id, sangh_code, sangh_name, mission,
+         (role_profile_id, version_no, designation_name, designation_id, sangh_code, sangh_name, mission, measure_from,
           created_by, created_by_name, rp_approver_code, rp_approver_name, rp_approver_action_by, rp_approver_action_at,
           admin_action_by, admin_action_at, approved_at, effective_from_year, reason, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [profile.id, next, profile.designation_name, profile.designation_id, profile.sangh_code,
-       profile.sangh_name, profile.mission, profile.created_by, profile.created_by_name,
+       profile.sangh_name, profile.mission, profile.measure_from || null, profile.created_by, profile.created_by_name,
        profile.rp_approver_code || '', profile.rp_approver_name || '', profile.rp_approver_action_by, profile.rp_approver_action_at,
        profile.admin_action_by, profile.admin_action_at, now, effectiveYear, reason || '', now]);
     const versionId = res.insertId;
@@ -64,10 +64,10 @@ async function freeze(profile, { effectiveYear, reason, outcome, actor }) {
     for (const d of details) {
       await conn.query(
         `INSERT INTO rp_version_details
-           (version_id, source_detail_id, attribute_no, attribute, assessment,
+           (version_id, source_detail_id, attribute_no, attribute, assessment, measure_1, measure_2, measure_3,
             attribute_weight, tech_skill, tech_weight, outcome_links, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?,?)`,
-        [versionId, d.id, d.attribute_no, d.attribute, d.assessment,
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [versionId, d.id, d.attribute_no, d.attribute, d.assessment, d.measure_1 || null, d.measure_2 || null, d.measure_3 || null,
          d.attribute_weight, d.tech_skill, d.tech_weight, d.outcome_links || null, d.sort_order]);
     }
 
@@ -178,7 +178,7 @@ async function outcomesFor(versionId) {
 async function detailsFor(versionId, assessmentId = null) {
   return db.query(
     `SELECT d.id, d.attribute_no, d.attribute, d.attribute_weight,
-            d.tech_skill, d.tech_weight, d.outcome_links,
+            d.tech_skill, d.tech_weight, d.outcome_links, d.measure_1, d.measure_2, d.measure_3,
             r.rating, r.score, r.training_gap
      FROM rp_version_details d
      LEFT JOIN rp_assessment_ratings r
@@ -209,6 +209,10 @@ function diff(oldV, newV, oldDetails, newDetails, oldOutcomes, newOutcomes, t = 
 
   const links = (list) => list.map((d) => `${d.attribute_no}|${String(d.tech_skill).trim()}|${d.outcome_links || ''}`).join(';');
   if (links(oldDetails) !== links(newDetails)) changes.push(t('Outcome links changed'));
+
+  const measured = (v, list) => `${v.measure_from || ''}#` + [...new Set(list.map((d) =>
+    `${d.attribute_no}:${[d.measure_1, d.measure_2, d.measure_3].map((m) => String(m || '').trim()).join('|')}`))].join(';');
+  if (measured(oldV, oldDetails) !== measured(newV, newDetails)) changes.push(t('Outcomes measurability changed'));
 
   return changes.length ? changes : [t('No differences in the recorded text')];
 }

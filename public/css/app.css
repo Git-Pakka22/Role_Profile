@@ -2347,3 +2347,23 @@ html[lang="hi"] .rp-nav-section, html[lang="hi"] th, html[lang="hi"] .rp-mini-la
 .rp-sample-btn:hover { background: var(--green-dark); border-color: var(--green-dark); color: #FFFFFF; }
 .rp-sample-btn i { font-size: 18px; }
 @media (max-width: 640px) { .rp-sample-btn { width: 100%; justify-content: center; margin-top: 12px; } }
+
+/* Outcomes Measurability (role profile form) */
+.rp-measure-years { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 12px; padding: 11px 14px;
+    background: rgba(94,99,55,0.07); border: 1px solid rgba(94,99,55,0.22); border-radius: 10px; }
+.rp-measure-years label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: var(--green-dark); }
+.rp-measure-years label i { font-size: 17px; }
+.rp-measure-years .rp-select { width: auto; min-width: 260px; }
+.rp-measure-head { margin-top: 14px; }
+.rp-measure-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rp-measure-grid label { font-size: 0.72rem; font-weight: 800; color: var(--green-dark); }
+.rp-measure-input { min-height: 58px; resize: vertical; font-size: 0.82rem; }
+@media (max-width: 760px) { .rp-measure-grid { grid-template-columns: 1fr; } .rp-measure-years .rp-select { min-width: 0; width: 100%; } }
+/* Outcomes Measurability on the profile and version pages */
+.rp-measures { margin-top: 10px; padding: 10px 12px; border-radius: 9px; background: rgba(94,99,55,0.06); border: 1px solid rgba(94,99,55,0.18); }
+.rp-measures-title { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; font-size: 0.68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--green-dark); }
+.rp-measure { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 4px 0; font-size: 0.82rem; line-height: 1.45; }
+.rp-measure + .rp-measure { border-top: 1px dashed rgba(94,99,55,0.2); }
+.rp-measure .y { font-weight: 800; color: var(--green-dark); }
+.rps-measure { font-size: 0.8em; line-height: 1.4; vertical-align: top; }

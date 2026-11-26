@@ -33,6 +33,10 @@ const COLUMNS = [
   ['rp_role_profile_details', 'outcome_links'],
   ['rp_version_details', 'outcome_links'],
   ['rp_assessments', 'method'],
+  ['rp_role_profile_details', 'measure_1'],
+  ['rp_version_details', 'measure_1'],
+  ['rp_role_profiles', 'measure_from'],
+  ['rp_profile_versions', 'measure_from'],
 ];
 
 // Columns that must accept NULL, because a versioned row leaves them empty.

@@ -97,6 +97,15 @@
                         <span class="rp-weight-sm"><%= trim2(sk.tech_weight) %></span>
                     </div>
                 <% }) %>
+                <% const ms = (g.skills.length ? [g.skills[0].measure_1, g.skills[0].measure_2, g.skills[0].measure_3] : []).map((m) => String(m || '').trim());
+                   if (ms.some(Boolean)) { const yl = measureLabels(version.measure_from); %>
+                    <div class="rp-measures">
+                        <div class="rp-measures-title"><i class="mdi mdi-chart-timeline-variant"></i> <%= t("Outcomes Measurability") %></div>
+                        <% ms.forEach((m, i) => { %>
+                            <div class="rp-measure"><span class="y"><%= yl[i] || '' %></span><span class="m"><%= m ? tc(m) : '—' %></span></div>
+                        <% }) %>
+                    </div>
+                <% } %>
             </div>
         <% }) %>
     </div>

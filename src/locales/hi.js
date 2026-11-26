@@ -857,5 +857,10 @@ module.exports = {
   "Reads the Pakka format — mission, key outcomes, and the SN / Technical Skills / Attribute / Weightage / Sub-Weightage table, with an optional Key Outcome No. column (only the numbers, e.g. \"1, 3\") linking each attribute to its outcomes. Nothing is saved until you submit it yourself. Choose the sangh and designation above first.": "पक्का फ़ॉर्मेट पढ़ता है — मिशन, मुख्य परिणाम, और SN / Technical Skills / Attribute / Weightage / Sub-Weightage टेबल, साथ में वैकल्पिक Key Outcome No. कॉलम (केवल नंबर, जैसे \"1, 3\") जो हर एट्रिब्यूट को उसके परिणामों से जोड़ता है। जब तक आप खुद सबमिट न करें, कुछ सेव नहीं होता। पहले ऊपर संघ और डेज़िग्नेशन चुनें।",
   "\"{name}\" is linked to outcome {list}, but the sheet has only {n} key outcomes — that link was left out.": "\"{name}\" को परिणाम {list} से जोड़ा गया है, पर शीट में केवल {n} मुख्य परिणाम हैं — वह लिंक छोड़ दिया गया।",
   "\"{name}\": the Key Outcome No. column takes only outcome numbers, such as 1, 3 — \"{value}\" was left out.": "\"{name}\": Key Outcome No. कॉलम में केवल परिणाम के नंबर लिखें, जैसे 1, 3 — \"{value}\" छोड़ दिया गया।",
-  "A filled-in example of the Excel format, to start your sheet from": "Excel फ़ॉर्मेट का भरा हुआ उदाहरण, जिससे आप अपनी शीट शुरू कर सकें"
+  "A filled-in example of the Excel format, to start your sheet from": "Excel फ़ॉर्मेट का भरा हुआ उदाहरण, जिससे आप अपनी शीट शुरू कर सकें",
+  "Outcomes measurability changed": "परिणाम मापन बदला",
+  "Outcomes Measurability — years": "परिणाम मापन — वर्ष",
+  "Each skill gets a measurable target for each of these three years.": "हर स्किल के लिए इन तीनों वर्षों में से हर वर्ष का मापने योग्य लक्ष्य लिखें।",
+  "Outcomes Measurability": "परिणाम मापन",
+  "Measurable target for this year": "इस वर्ष का मापने योग्य लक्ष्य"
 };

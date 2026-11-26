@@ -70,19 +70,26 @@
 
     <div class="rps-tablewrap">
         <table class="rps-table">
+            <% const years = measureLabels(profile.measure_from);
+               const cols = 5 + (hasMechanism ? 1 : 0) + (hasMeasures ? 3 : 0);
+               const rs = hasMeasures ? ' rowspan="2"' : ''; %>
             <thead>
                 <tr>
-                    <th class="c"><%= t("SN") %></th>
-                    <th><%= t("Technical Skills") %></th>
-                    <th><%= t("Attribute") %></th>
-                    <th class="c"><%= t("Weightage") %></th>
-                    <th class="c"><%= t("Sub-Weightage") %></th>
-                    <% if (hasMechanism) { %><th><%= t("Assessment Mechanism") %></th><% } %>
+                    <th class="c"<%- rs %>><%= t("SN") %></th>
+                    <th<%- rs %>><%= t("Technical Skills") %></th>
+                    <th<%- rs %>><%= t("Attribute") %></th>
+                    <% if (hasMeasures) { %><th class="c" colspan="3"><%= t("Outcomes Measurability") %> (<%= measureSpan(profile.measure_from) %>)</th><% } %>
+                    <th class="c"<%- rs %>><%= t("Weightage") %></th>
+                    <th class="c"<%- rs %>><%= t("Sub-Weightage") %></th>
+                    <% if (hasMechanism) { %><th<%- rs %>><%= t("Assessment Mechanism") %></th><% } %>
                 </tr>
+                <% if (hasMeasures) { %>
+                    <tr><% years.forEach(y => { %><th class="c"><%= y %></th><% }) %></tr>
+                <% } %>
             </thead>
             <tbody>
             <% if (!attributes.length) { %>
-                <tr><td colspan="<%= hasMechanism ? 6 : 5 %>" class="rps-empty"><%= t("No skills written yet.") %></td></tr>
+                <tr><td colspan="<%= cols %>" class="rps-empty"><%= t("No skills written yet.") %></td></tr>
             <% } %>
             <% attributes.forEach((a, i) => {
                  const skills = a.skills.length ? a.skills : [{ tech_skill: '', tech_weight: null }];
@@ -94,6 +101,9 @@
                             <td class="rps-skill" rowspan="<%= span %>"><%= tc(a.attribute) %></td>
                         <% } %>
                         <td><%= k.tech_skill ? tc(k.tech_skill) : '—' %></td>
+                        <% if (hasMeasures && j === 0) { (a.measures || ['', '', '']).forEach(m => { %>
+                            <td class="rps-measure" rowspan="<%= span %>"><%= String(m || '').trim() ? tc(m) : '—' %></td>
+                        <% }) } %>
                         <% if (j === 0) { %>
                             <td class="c rps-weight" rowspan="<%= span %>"><%= num(a.attribute_weight) %></td>
                         <% } %>
@@ -107,7 +117,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3"><%= t("Total") %></td>
+                    <td colspan="<%= hasMeasures ? 6 : 3 %>"><%= t("Total") %></td>
                     <td class="c"><%= num(totalWeight) %></td>
                     <td class="c"><%= num(subTotal) %></td>
                     <% if (hasMechanism) { %><td></td><% } %>
