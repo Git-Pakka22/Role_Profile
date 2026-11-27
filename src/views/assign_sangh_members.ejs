@@ -117,10 +117,13 @@ $(document).ready(function () {
 
         var all  = RP_ASSIGN.candidates[role] || [];
         var mine = ((RP_ASSIGN.sanghLeaders[SANGH_CODE] || {})[role]) || [];
+        var heads = RP_ASSIGN.sanghHeads[SANGH_CODE] || [];
         var label = RP_ASSIGN.labels[role];
 
         var inSangh = all.filter(function (c) { return mine.indexOf(c.key) !== -1; });
-        var others  = all.filter(function (c) { return mine.indexOf(c.key) === -1; });
+        // The leaders this sangh's members report to, from outside it.
+        var leadersOf = all.filter(function (c) { return heads.indexOf(c.key) !== -1 && mine.indexOf(c.key) === -1; });
+        var others  = all.filter(function (c) { return mine.indexOf(c.key) === -1 && heads.indexOf(c.key) === -1; });
 
         function add($parent, list) {
             list.forEach(function (c) { $parent.append($('<option>', { value: c.key, text: c.label })); });
@@ -130,6 +133,11 @@ $(document).ready(function () {
             var $g1 = $('<optgroup>', { label: tr('Members of this sangh') });
             add($g1, inSangh);
             $sel.append($g1);
+        }
+        if (leadersOf.length) {
+            var $gl = $('<optgroup>', { label: tr('Leaders of this sangh') });
+            add($gl, leadersOf);
+            $sel.append($gl);
         }
         if (others.length) {
             var $g2 = $('<optgroup>', { label: tr(inSangh.length ? 'All other members' : 'All members') });

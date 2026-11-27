@@ -34,7 +34,7 @@
 <div class="rp-toast" id="rpToast"></div>
 
 <script>
-Object.assign(RP_I18N, <%- tjs(['— Not assigned —', 'No active members in this sangh', 'Members of this sangh', 'All other members', 'All members', 'Currently set',
+Object.assign(RP_I18N, <%- tjs(['— Not assigned —', 'Leaders of this sangh', 'No active members in this sangh', 'Members of this sangh', 'All other members', 'All members', 'Currently set',
     'Saving…', 'Save changes', '{n} role applied to {members} members.', '{n} roles applied to {members} members.', '{n} change saved.', '{n} changes saved.',
     'Could not save. Please try again.', '— Not assigned (clear) —', 'Clear {role} for {n} member(s)?', 'Set {role} to {person} for {n} member(s)?',
     'Applying…', 'Could not apply.', 'Apply to selected', '{n} active member', '{n} active members',
@@ -51,6 +51,8 @@ var RP_ASSIGN = (function () {
     var LABELS = <%- JSON.stringify(labels) %>;
     var CANDIDATES = <%- JSON.stringify(cand) %>;
     var SANGH_LEADERS = <%- JSON.stringify(sanghLeaders) %>;
+    // The leaders a sangh's members report to, from outside the sangh.
+    var SANGH_HEADS = <%- JSON.stringify(typeof sanghHeads !== 'undefined' ? sanghHeads : {}) %>;
 
     var $modal = $('#assignModal'), current = null, onSaved = null;
 
@@ -63,9 +65,9 @@ var RP_ASSIGN = (function () {
     /**
      * Rebuild one role's select.
      *
-     * Assigning to a whole sangh offers that sangh's own active members and nobody else —
-     * the choice is for those people. Assigning to one member offers every active member,
-     * with their own sangh's people grouped first for convenience.
+     * Assigning to a whole sangh offers that sangh's own active members and the leaders they
+     * report to. Assigning to one member offers every active member, with their own sangh's
+     * people and its leaders grouped first for convenience.
      */
     function buildOptions(role, sanghCode, selected, sanghOnly) {
         var $sel = $('#assign-' + role).empty();
@@ -73,21 +75,31 @@ var RP_ASSIGN = (function () {
 
         var all = CANDIDATES[role] || [];
         var mine = ((SANGH_LEADERS[sanghCode] || {})[role]) || [];
+        var heads = SANGH_HEADS[sanghCode] || [];
         var opt = function (c) { return $('<option>', { value: c.key, text: c.label }); };
+        var group = function (label, list) {
+            if (!list.length) return;
+            var $g = $('<optgroup>', { label: label });
+            list.forEach(function (c) { $g.append(opt(c)); });
+            $sel.append($g);
+        };
+        var leadersOf = all.filter(function (c) { return heads.indexOf(c.key) !== -1 && mine.indexOf(c.key) === -1; });
 
         if (sanghOnly) {
             var only = all.filter(function (c) { return mine.indexOf(c.key) !== -1; });
-            if (only.length) {
-                only.forEach(function (c) { $sel.append(opt(c)); });
+            if (only.length || leadersOf.length) {
+                group(tr('Members of this sangh'), only);
+                group(tr('Leaders of this sangh'), leadersOf);
             } else {
                 $sel.append($('<option>', { value: '', disabled: true, text: tr('No active members in this sangh') }));
             }
         } else if (sanghCode && mine.length) {
             var inSangh = all.filter(function (c) { return mine.indexOf(c.key) !== -1; });
-            var others = all.filter(function (c) { return mine.indexOf(c.key) === -1; });
+            var others = all.filter(function (c) { return mine.indexOf(c.key) === -1 && heads.indexOf(c.key) === -1; });
             var $g1 = $('<optgroup>', { label: tr('Members of this sangh') });
             inSangh.forEach(function (c) { $g1.append(opt(c)); });
             $sel.append($g1);
+            group(tr('Leaders of this sangh'), leadersOf);
             if (others.length) {
                 var $g2 = $('<optgroup>', { label: tr('All other members') });
                 others.forEach(function (c) { $g2.append(opt(c)); });
@@ -172,7 +184,7 @@ var RP_ASSIGN = (function () {
         $('#assignSave').on('click', save);
     });
 
-    return { open: open, toast: toast, candidates: CANDIDATES, sanghLeaders: SANGH_LEADERS,
+    return { open: open, toast: toast, candidates: CANDIDATES, sanghLeaders: SANGH_LEADERS, sanghHeads: SANGH_HEADS,
              labels: LABELS, csrf: function () { return { csrf_test_name: CSRF }; },
              onSaved: function (fn) { onSaved = fn; } };
 })();

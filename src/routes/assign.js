@@ -13,8 +13,8 @@ const label = (role) => (employee.ROLES[role] ? employee.ROLES[role].label : rol
 /**
  * Resolve a submitted person against the active members. Empty means unassign.
  *
- * `sanghCode` restricts the choice to that sangh's own members, which is what assigning to
- * a whole sangh means; without it any active member is allowed.
+ * `sanghCode` restricts the choice to that sangh's own members and the leaders they report
+ * to, which is what assigning to a whole sangh means; without it any active member is allowed.
  */
 async function resolvePerson(role, personCode, sanghCode = '') {
   if (personCode === '') return { code: '', name: '', error: null };
@@ -24,11 +24,13 @@ async function resolvePerson(role, personCode, sanghCode = '') {
   if (!found) {
     return { code: '', name: '', error: 'That person is not an active member.' };
   }
-  if (sanghCode && String(found.sangh_code || '').trim() !== sanghCode) {
+  // A whole sangh takes one of its own members, or one of the leaders its members report to.
+  if (sanghCode && String(found.sangh_code || '').trim() !== sanghCode
+      && !(await leader.isSanghHead(sanghCode, found.emp_code))) {
     return {
       code: '', name: '',
-      error: `${found.name} is not a member of ${sanghCode}. Assigning to a whole sangh `
-        + `can only pick that sangh's own active members.`,
+      error: `${found.name} is not a member or leader of ${sanghCode}. Assigning to a whole sangh `
+        + `can only pick that sangh's own active members or the leaders they report to.`,
     };
   }
   return { code: found.emp_code, name: found.name, error: null };
@@ -51,6 +53,7 @@ router.get('/', async (req, res) => {
     members, counts, roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
+    sanghHeads: await leader.sanghHeadMap(),
     title: req.t('Assign by Member — Pakka Role Profile'),
     pageTitle: req.t('Assign Roles by Member'),
     activeNav: 'assign-member',
@@ -87,6 +90,7 @@ router.get('/sangh', async (req, res) => {
     roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
+    sanghHeads: await leader.sanghHeadMap(),
     title: req.t('Assign by Sangh — Pakka Role Profile'),
     pageTitle: req.t('Assign Roles by Sangh'),
     activeNav: 'assign-sangh',
@@ -132,6 +136,7 @@ router.get('/sangh/:code', async (req, res) => {
     roles: employee.ROLES,
     candidates: await leader.allCandidates(),
     sanghLeaders: await leader.sanghLeaderMap(),
+    sanghHeads: await leader.sanghHeadMap(),
     title: req.t('{sangh} — Assign Roles', { sangh: sanghCode }),
     pageTitle: req.t('Assign Roles · {sangh}', { sangh: named ? named.sangh_name : sanghCode }),
     activeNav: 'assign-sangh',

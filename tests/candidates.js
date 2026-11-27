@@ -75,8 +75,11 @@ function post(port, path, who, form) {
   check('the by-member page offers every active member', candB.pracharak.length, activeMembers);
 
   /* ------------------------------------------------------- what the server takes */
+  // Someone from another sangh who is not one of the leaders MSS members report to.
+  const mssHeads = (await require('../src/models/leader').sanghHeadMap()).MSS || [];
   const outsider = await db.first(
-    "SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code<>'MSS' AND sangh_code NOT IN ('SS','SS1','CT') LIMIT 1");
+    `SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code<>'MSS' AND sangh_code NOT IN ('SS','SS1','CT')
+     ${mssHeads.length ? 'AND emp_code NOT IN (?)' : ''} LIMIT 1`, mssHeads.length ? [mssHeads] : []);
   const insider = await db.first(
     "SELECT emp_code, name FROM tbl_employee WHERE status=0 AND sangh_code='MSS' AND TRIM(name)<>'' LIMIT 1");
 
@@ -90,10 +93,22 @@ function post(port, path, who, form) {
   r = await post(port, '/assign/save-sangh', 'MM008',
     { sangh_code: 'MSS', role: 'pracharak', person_code: outsider.emp_code });
   check('a whole-sangh assignment refuses an outsider', r.status, 422);
-  check('and says why', /not a member of MSS/.test(r.body), true);
+  check('and says why', /not a member or leader of MSS/.test(r.body), true);
   check('nothing changed',
     (await db.first("SELECT pracharak_name n FROM tbl_employee WHERE sangh_code='MSS' AND status=0 LIMIT 1")).n,
     insider.name);
+
+  /* --------------------- a sangh also accepts the leaders its members report to */
+  const heads = await require('../src/models/leader').sanghHeadMap();
+  const withHead = Object.keys(heads).find((code) => heads[code].length);
+  check('the by-sangh page lists each sangh\'s leaders', /var SANGH_HEADS = \{"/.test(bySangh), true);
+  if (withHead) {
+    const head = heads[withHead][0];
+    r = await post(port, '/assign/save-sangh', 'MM008', { sangh_code: withHead, role: 'rp_creator', person_code: head });
+    check('a sangh accepts a leader its members report to', r.status, 200);
+    check('...stored for the sangh', (await db.first(
+      'SELECT rp_creator_code c FROM tbl_employee WHERE sangh_code = ? AND status = 0 LIMIT 1', [withHead])).c, head);
+  }
 
   /* ------------------------------- one member may be given anyone active */
   const target = await db.first("SELECT emp_code FROM tbl_employee WHERE status=0 AND sangh_code='MSS' LIMIT 1");

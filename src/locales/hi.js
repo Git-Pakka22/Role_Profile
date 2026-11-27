@@ -862,5 +862,6 @@ module.exports = {
   "Outcomes Measurability — years": "परिणाम मापन — वर्ष",
   "Each skill gets a measurable target for each of these three years.": "हर स्किल के लिए इन तीनों वर्षों में से हर वर्ष का मापने योग्य लक्ष्य लिखें।",
   "Outcomes Measurability": "परिणाम मापन",
-  "Measurable target for this year": "इस वर्ष का मापने योग्य लक्ष्य"
+  "Measurable target for this year": "इस वर्ष का मापने योग्य लक्ष्य",
+  "Leaders of this sangh": "इस संघ के लीडर"
 };
